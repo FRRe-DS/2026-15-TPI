@@ -1,0 +1,316 @@
+RF 3.1 Perfil de conductor
+
+POST /conductores/
+
+	payload
+{
+  "dni": "35123456",
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "telefono": "+5493624123456",
+  "email": "juan.perez@mail.com"
+}
+
+	response 
+
+{
+  "id": 15,
+  "dni": "35123456",
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "telefono": "+5493624123456",
+  "email": "juan.perez@mail.com",
+  "documentos": [],
+  "vehiculos": [],
+  "habilitacion": "PENDIENTE",
+  "conectado": false,
+  "disponible": false
+}
+
+GET /conductores (pueden ir query para posicion, disponibilidad y habilitado)
+array conductores
+{
+  "id": 15,
+  "dni": "35123456",
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "telefono": "+5493624123456",
+  "email": "juan.perez@mail.com",
+  "documentos": [],
+  "vehiculos": [],
+  "latitud":
+  "longitud":
+  "fecha_act_ubic": datetime
+  "habilitacion": "PENDIENTE",
+  "conectado": false,
+  "disponible": false
+}
+
+GET /conductores/{id_cond}
+
+	sin payload
+	response 
+
+
+GET /conductores/{id_cond}/habilitacion
+
+	sin payload 
+	response
+{
+  "id_conductor": 15,
+  "estado": "APROBADA",
+  "historial": [
+    {
+      "estado": "OBSERVADA",
+      "motivo": "Foto de licencia ilegible",
+      "id_operador": 3,
+      "fecha": "2026-09-10T14:22:00Z"
+    },
+    {
+      "estado": "APROBADA",
+      "motivo": "Documentación corregida y verificada",
+      "id_operador": 3,
+      "fecha": "2026-09-12T09:05:00Z"
+    }
+  ]
+}
+
+
+RF 3.2 Vehículos Auto y Moto
+
+POST /conductores/{id_cond}/vehiculo
+
+	payload 
+
+{
+  "tipo": "AUTO",
+  "patente": "AB123CD",
+  "marca": "Toyota",
+  "modelo": "Etios",
+  "anio": 2021,
+  "tipos_serv": ["PASAJEROS", "ENVIOS"]
+}
+
+	response 
+
+{
+  "id": 7,
+  "id_conductor": 15,
+  "tipo": "AUTO",
+  "patente": "AB123CD",
+  "marca": "Toyota",
+  "modelo": "Etios",
+  "anio": 2021,
+  "tipos_serv": [
+    { "tipo": "PASAJEROS", "habilitado": false },
+    { "tipo": "ENVIOS", "habilitado": false }
+  ],
+  "documentos": [],
+  "habilitacion": "PENDIENTE"
+}
+
+GET /conductores/{id_cond}/vehículos
+
+	sin payload 
+
+[
+  {
+    "id": 7,
+    "tipo": "AUTO",
+    "patente": "AB123CD",
+    "marca": "Toyota",
+    "modelo": "Etios",
+    "anio": 2021,
+    "habilitacion": "APROBADA"
+  },
+  {
+    "id": 9,
+    "tipo": "MOTO",
+    "patente": "A123BCD",
+    "marca": "Honda",
+    "modelo": "Wave",
+    "anio": 2023,
+    "habilitacion": "PENDIENTE"
+  }
+]	
+
+GET /conductores/{id_cond}/vehiculos/{id_veh}/tipo serv
+
+	sin payload
+	response
+
+[
+  { "tipo": "PASAJEROS", "habilitado": true },
+  { "tipo": "ENVIOS", "habilitado": false }
+]
+
+GET /conductores/{id_cond}/vehiculos/{id_veh}
+sin payload
+response
+
+RF 3.3 Documentación
+
+POST /conductor/{id_cond}/documentacion
+
+	payload
+
+{
+  "tipo": "LICENCIA",
+  "numero": "35123456",
+  "categoria": "B1",
+  "fecha_emision": "2023-03-15",
+  "fecha_vencimiento": "2028-03-15",
+  "url_archivo": "https://storage.app/docs/lic-15.pdf"
+}
+
+	response 
+
+{
+  "id_conductor": 15,
+  "tipo": "LICENCIA",
+  "numero": "35123456",
+  "categoria": "B1",
+  "fecha_emision": "2023-03-15",
+  "fecha_vencimiento": "2028-03-15",
+  "url_archivo": "https://storage.app/docs/lic-15.pdf",
+  "estado": "VIGENTE"
+}
+
+POST /conductor/{id_cond}/vehiculo/{id_veh}/documentación
+
+	payload 
+
+{
+  "tipo": "SEGURO",
+  "numero": "POL-889123",
+  "entidad_emisora": "La Segunda",
+  "fecha_emision": "2026-01-01",
+  "fecha_vencimiento": "2027-01-01",
+  "url_archivo": "https://storage.app/docs/seg-7.pdf"
+}
+
+	response
+
+RF 3.4 Habilitación
+
+POST /conductor/{id_cond}/habilitacion
+
+	payload
+
+{
+  "accion": "OBSERVAR",
+  "motivo": "Foto de licencia ilegible"
+}
+
+	response
+
+{
+  "id_conductor": 15,
+  "estado": "APROBADA",
+  "eventos": [
+    {
+      "id": 1,
+      "accion": "ALTA",
+      "estado_anterior": null,
+      "estado_nuevo": "PENDIENTE",
+      "motivo": "Registro inicial del conductor",
+      "id_operador": null,
+      "fecha": "2026-09-08T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "accion": "OBSERVAR",
+      "estado_anterior": "PENDIENTE",
+      "estado_nuevo": "OBSERVADA",
+      "motivo": "Foto de licencia ilegible",
+      "id_operador": 3,
+      "fecha": "2026-09-10T14:22:00Z"
+    },
+    {
+      "id": 3,
+      "accion": "APROBAR",
+      "estado_anterior": "OBSERVADA",
+      "estado_nuevo": "APROBADA",
+      "motivo": "Documentación corregida y verificada",
+      "id_operador": 3,
+      "fecha": "2026-09-12T09:05:00Z"
+    }
+  ]
+}
+
+POST  /conductor/{id_cond}/vehiculo/{id_veh}/habilitacion
+
+RF 3.5 Estado operativo
+
+sería una request más elaborada con query para chequear si puede o no, después vemos. 
+
+RF 3.6 Disponibilidad
+
+PATCH /conductor/{id_cond}/estado
+
+	payload
+
+{
+  "conectado": true,
+  "disponible": true,
+  "id_vehiculo_activo": 7
+}
+
+	request
+
+{
+  "id_conductor": 15,
+  "conectado": true,
+  "disponible": true,
+  "id_vehiculo_activo": 7,
+  "actualizado": "2026-10-03T18:40:00Z"
+}
+RF 3.7 Calificación del cliente
+
+POST /viaje/{id_viaje}/puntaje_cli
+
+payload
+
+{
+  "puntaje": 4,
+  "comentario": "Puntual y amable"
+}
+
+	response
+
+{
+  "id": 120,
+  "id_viaje": 5521,
+  "id_conductor": 15,
+  "id_cliente": 88,
+  "puntaje": 5,
+  "comentario": "Puntual y amable",
+  "fecha": "2026-10-03T19:10:00Z"
+}
+
+5.4 y 5.5
+
+POST /solicitud/{id_solicitud}
+
+payload
+
+{
+    "respuesta": "ACEPTADO" o "RECHAZADO"
+    hora_rta: datetime
+}
+
+6.2 
+
+GET /viaje/{id_viaje}
+
+{
+    estado: [TRANSCURSO, FINALIZADO, ...]
+    retiro: 
+    destino:
+    tiempo_estimado: ?
+    inicio: datetime
+    fin: datetime (opcional?)
+    id_cond: 
+    id_veh:
+    id_cliente:
+}
