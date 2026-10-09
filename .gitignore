@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Typescript
+node_modules/
+jspm_packages/
+out/
+lib/
+*.tsbuildinfo
+ 
+.next/
+.cache/
+npm-debug.log*
+
+# Docker 
+.docker/
+
+# Variables entorno 
+.env
+.env.*
+!.env.example
+
+# Logs y temps
+logs/
+*.log
+tmp/
+temp/
+
+# Editores y SO 
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
