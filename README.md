@@ -150,15 +150,3 @@ Las integraciones clave de M3 son **M1, M4, M5 y M6**.
 | `410` | Oferta vencida |
 | `422` | Incumple una regla de negocio |
 | `500` | Error interno |
-
----
-
-## Pendientes marcados en el contrato ⚠️ ***DEFINIR***
-
-Son los `TODO` que figuran en el `openapi.yaml`:
-
-- [ ] Confirmar con **M5** los estados de solicitud (`EstadoSolicitud`).
-- [ ] Confirmar con **M5** los campos de `Solicitud`.
-- [ ] Confirmar con **M6** los estados del viaje (`EstadoViaje`).
-- [ ] Confirmar con **M6** los campos de `Viaje`.
-- [ ] Confirmar con **M4** cómo se reporta la ubicación del conductor.
