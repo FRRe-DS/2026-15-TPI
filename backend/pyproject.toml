@@ -1,21 +1,53 @@
 [project]
-name = "m3-backend"
+name = "m3-conductores-vehiculos"
 version = "0.1.0"
-description = "Modulo M3 - Conductores y Vehiculos"
+description = "Módulo 3 (Conductores y Vehículos) - Iteración 1"
 requires-python = ">=3.12,<3.13"
 dependencies = []
 
+# Un grupo por stack para que cada uno sume solo lo suyo y evitar conflictos.
 [dependency-groups]
-dev = [
-    "ruff>=0.17.1",
+dev = [          # Stack 1: lógica
+    "pytest>=9.1,<9.2",
+    "pytest-cov>=7.1,<7.2",
+    "ruff>=0.17,<0.18",
 ]
-api = []
-db = []
-test = [
-    "testcontainers>=4.0.0",
-    "openapi-core>=0.19.0",
-    "httpx>=0.27.0",
-    "openapi-spec-validator>=0.7.0",
-    "pytest>=9.1.1",
-    "pyyaml>=6.0.3",
+api = [          # Stack 2: servidor HTTP
+    "fastapi>=0.159,<0.160",
+    "uvicorn[standard]>=0.32,<1",
+    "pydantic-settings>=2.7,<3",
+    "pyjwt[crypto]>=2.15,<2.16",
+    "httpx2>=2.16,<2.17",
 ]
+db = [           # Stack 3: datos y seguridad
+    "sqlalchemy>=2.1,<2.2",
+    "alembic>=1.20,<1.21",
+    "psycopg[binary]>=3.3,<3.4",
+]
+test = [         # Stack 4: testing y CI; Testcontainers lo usa también S3 (T078)
+    "testcontainers[postgres]>=4.15,<4.16",
+    "openapi-core>=0.19,<0.20",
+    "openapi-spec-validator>=0.7,<0.8",
+    "httpx>=0.27,<1",
+    "pyyaml>=6,<7",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "integration: requiere Docker/Testcontainers y se omite si el daemon no está disponible",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
