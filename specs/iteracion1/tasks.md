@@ -51,9 +51,9 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s1-base-dominio`
 
-- [ ] T001 [S1] Crear `backend/pyproject.toml` (paquete `app`, `requires-python = ">=3.12,<3.13"`) con grupos de dependencias separados por stack: `dev` (S1: pytest, pytest-cov, ruff), `api` (S2), `db` (S3) y `test` (S4), los tres últimos vacíos. Versiones según [research.md](./research.md)
-- [ ] T002 [S1] Generar `backend/uv.lock` con `uv lock` y verificar `uv sync --group dev`
-- [ ] T003 [P] [S1] Crear los paquetes vacíos con `__init__.py`: `backend/app/__init__.py`, `backend/app/dominio/`, `backend/app/aplicacion/casos_de_uso/`, `backend/app/aplicacion/puertos/`, `backend/app/infraestructura/repositorios/` y `backend/tests/unitarios/`
+- [X] T001 [S1] Crear `backend/pyproject.toml` (paquete `app`, `requires-python = ">=3.12,<3.13"`) con grupos de dependencias separados por stack: `dev` (S1: pytest, pytest-cov, ruff), `api` (S2), `db` (S3) y `test` (S4), los tres últimos vacíos. Versiones según [research.md](./research.md)
+- [X] T002 [S1] Generar `backend/uv.lock` con `uv lock` y verificar `uv sync --group dev`
+- [X] T003 [P] [S1] Crear los paquetes vacíos con `__init__.py`: `backend/app/__init__.py`, `backend/app/dominio/`, `backend/app/aplicacion/casos_de_uso/`, `backend/app/aplicacion/puertos/`, `backend/app/infraestructura/repositorios/` y `backend/tests/unitarios/`
 - [ ] T004 [S1] [US1] Test (Red) `backend/tests/unitarios/dominio/test_conductor.py`: DNI válido de 7 u 8 dígitos (`^[0-9]{7,8}$`) y rechazo de `"1234567a"`, 6 y 9 dígitos; `nombre`, `apellido` y `telefono` obligatorios; email con formato válido; un conductor nuevo queda con habilitación `PENDIENTE`, `conectado` falso y `disponible` falso
 - [ ] T005 [S1] [US1] Impl (Green) `backend/app/dominio/errores.py` (`NoEncontrado`, `DniDuplicado`, `PatenteDuplicada`, `TransicionInvalida`, `LicenciaVigenteRequerida`, `DatosInvalidos`) y `backend/app/dominio/conductor.py` (entidad y creación) hasta que pase T004
 - [ ] T006 [S1] [US2] Test (Red) `backend/tests/unitarios/dominio/test_habilitacion.py`: todas las transiciones de la matriz (`PENDIENTE` → `APROBADA`/`OBSERVADA`/`RECHAZADA`; `OBSERVADA` → `APROBADA`/`RECHAZADA`; `APROBADA` → `SUSPENDIDA`; `SUSPENDIDA` → `APROBADA`/`RECHAZADA`; `RECHAZADA` final), rechazo de cada combinación no listada con `TransicionInvalida`, `motivo` obligatorio y no vacío (`DatosInvalidos`), y evento con `estado_anterior`, `estado_nuevo`, `motivo`, `id_operador` y `fecha`
