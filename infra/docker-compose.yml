@@ -1,0 +1,152 @@
+name: m3
+
+x-backend-build: &backend-build
+  context: ..
+  dockerfile: backend/Dockerfile
+
+x-database-url: &database-url postgresql+psycopg://${M3_DB_USER}:${M3_DB_PASSWORD}@postgres:5432/${M3_DB_NAME}
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      M3_DB_NAME: ${M3_DB_NAME}
+      M3_DB_USER: ${M3_DB_USER}
+      M3_DB_PASSWORD: ${M3_DB_PASSWORD}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init/01-crear-bases.sh:/docker-entrypoint-initdb.d/01-crear-bases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - m3
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    env_file:
+      - .env
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "false"
+      # Variables consumidas por los placeholders ${...} del realm.
+      KEYCLOAK_M3_CLIENT_SECRET: ${KEYCLOAK_M3_CLIENT_SECRET}
+      M3_OPERADOR_PASSWORD: ${M3_OPERADOR_PASSWORD}
+      M3_CONDUCTOR_PASSWORD: ${M3_CONDUCTOR_PASSWORD}
+    ports:
+      - "${KEYCLOAK_PORT:-8081}:8080"
+    volumes:
+      - ./keycloak/realm-m3.json:/opt/keycloak/data/import/realm-m3.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bash",
+          "-c",
+          "{ printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&0; grep 'HTTP/1.0 200'; } 0<>/dev/tcp/localhost/9000",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - m3
+
+  migraciones:
+    build: *backend-build
+    image: m3-backend:local
+    command:
+      - alembic
+      - -c
+      - /app/infra/migraciones/alembic.ini
+      - upgrade
+      - head
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - m3
+
+  seed:
+    build: *backend-build
+    image: m3-backend:local
+    command: ["python", "/app/infra/seed/cargar_datos.py"]
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+    restart: "no"
+    networks:
+      - m3
+
+  api:
+    build: *backend-build
+    image: m3-backend:local
+    environment:
+      DATABASE_URL: *database-url
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8081}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-m3}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      migraciones:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/salud', timeout=3)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - m3
+
+volumes:
+  postgres_data:
+
+networks:
+  m3:
+    driver: bridge
