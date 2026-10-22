@@ -4,7 +4,7 @@ Punto de sincronización entre el **Stack 1** (lógica) y el **Stack 2** (servid
 
 Los nombres de los tipos de entrada y salida coinciden con los esquemas de `docs/contract/openapi.yaml`.
 
-## Casos de uso (`backend/src/m3/aplicacion/casos_de_uso/`)
+## Casos de uso (`backend/app/aplicacion/casos_de_uso/`)
 
 | # | Endpoint | Caso de uso | Entrada | Salida | Errores de dominio |
 |---|---|---|---|---|---|
@@ -24,7 +24,7 @@ Reglas comunes:
 - Un vehículo que no pertenece al conductor indicado se trata como `NoEncontrado`.
 - Las acciones de habilitación se ejecutan en una única transacción con bloqueo de fila.
 
-## Puertos (`backend/src/m3/aplicacion/puertos/`)
+## Puertos (`backend/app/aplicacion/puertos/`)
 
 | Puerto | Responsabilidad |
 |---|---|
@@ -37,6 +37,6 @@ Reglas comunes:
 
 Los repositorios SQL los implementa el Stack 1 en `infraestructura/repositorios/` sobre los modelos del Stack 3. Para los tests unitarios se usan implementaciones en memoria.
 
-## Errores de dominio (`backend/src/m3/dominio/errores.py`)
+## Errores de dominio (`backend/app/dominio/errores.py`)
 
 `NoEncontrado`, `DniDuplicado`, `PatenteDuplicada`, `TransicionInvalida`, `LicenciaVigenteRequerida` y `DatosInvalidos`. El servidor los traduce a HTTP según [errores.md](./errores.md).

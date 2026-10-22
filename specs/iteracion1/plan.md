@@ -75,7 +75,7 @@ backend/
 ├── uv.lock
 ├── ruff.toml
 ├── .coveragerc
-├── src/m3/
+├── app/
 │   ├── dominio/               # entidades, enums, matriz de habilitación, errores de dominio
 │   ├── aplicacion/
 │   │   ├── casos_de_uso/      # un módulo por caso de uso
@@ -113,9 +113,9 @@ Cinco stacks de PRs, todas contra `dev`. Cada archivo tiene un único dueño par
 
 | Stack | Grupo | Dueño de | Entrega |
 |---|---|---|---|
-| 1 | Backend: lógica | `backend/src/m3/dominio/`, `aplicacion/`, `infraestructura/repositorios/`, `backend/tests/unitarios/`, `backend/pyproject.toml`, `uv.lock` | Dominio, casos de uso y repositorios con TDD |
-| 2 | Backend: servidor | `backend/src/m3/api/`, `backend/tests/api/`, `backend/Dockerfile` | Routers, esquemas, validación JWT, manejo de errores |
-| 3 | Datos y seguridad | `infra/` completo, `backend/src/m3/infraestructura/db/` | Compose, esquema y migraciones, modelos ORM, realm de Keycloak, seed |
+| 1 | Backend: lógica | `backend/app/dominio/`, `aplicacion/`, `infraestructura/repositorios/`, `backend/tests/unitarios/`, `backend/pyproject.toml`, `uv.lock` | Dominio, casos de uso y repositorios con TDD |
+| 2 | Backend: servidor | `backend/app/api/`, `backend/tests/api/`, `backend/Dockerfile` | Routers, esquemas, validación JWT, manejo de errores |
+| 3 | Datos y seguridad | `infra/` completo, `backend/app/infraestructura/db/` | Compose, esquema y migraciones, modelos ORM, realm de Keycloak, seed |
 | 4 | Testing y CI | `.github/workflows/`, `backend/tests/integracion/`, `backend/tests/contrato/`, `backend/ruff.toml`, `backend/.coveragerc`, validación del OpenAPI | CI, integración, contrato |
 | 5 | Frontend | `frontend/` completo | Pantalla de listado |
 
