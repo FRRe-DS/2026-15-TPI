@@ -31,3 +31,10 @@ class HabilitacionEventos:
     id_conductor: int
     estado: EstadoHabilitacion
     eventos: list[EventoHabilitacion]
+
+
+@dataclass
+class DocumentoDeConductor:
+    id_conductor: int
+    documento: Documento
+    estado: EstadoDocumento
