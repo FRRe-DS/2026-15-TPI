@@ -83,3 +83,57 @@ def crear_token(clave_rsa):
         )
 
     return _crear_token
+
+
+from app.main import app
+from app.api.seguridad import (
+    obtener_cliente_jwks,
+    requerir_usuario,
+    requerir_operador,
+)
+
+
+@pytest.fixture
+def client(clave_rsa, jwks, monkeypatch):
+    """Cliente HTTP con autenticación y casos de uso simulados."""
+
+    class ClienteJWKSTest:
+        def get_signing_key_from_jwt(self, token):
+            import jwt
+
+            encabezado = jwt.get_unverified_header(token)
+
+            if encabezado.get("kid") != "test-key-1":
+                raise jwt.exceptions.PyJWKClientError(
+                    "Clave de prueba desconocida"
+                )
+
+            return type(
+                "SigningKey",
+                (),
+                {"key": clave_rsa.public_key()},
+            )()
+
+    cliente_jwks = ClienteJWKSTest()
+
+    app.dependency_overrides[obtener_cliente_jwks] = (
+        lambda: cliente_jwks
+    )
+    monkeypatch.setenv(
+    "KEYCLOAK_URL",
+    "http://localhost:8080",
+    )
+    monkeypatch.setenv("KEYCLOAK_REALM", "m3")
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://test:test@localhost:5432/test",
+    )
+    # Evita que los tests hereden overrides de otra prueba.
+    app.dependency_overrides.pop(requerir_usuario, None)
+    app.dependency_overrides.pop(requerir_operador, None)
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+
