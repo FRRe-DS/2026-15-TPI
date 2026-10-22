@@ -21,19 +21,24 @@ class AccionHabilitacion(Enum):
     RECHAZAR = "RECHAZAR"
 
 
-_E = EstadoHabilitacion
-_A = AccionHabilitacion
-
-TRANSICIONES: dict[_E, dict[_A, _E]] = {
-    _E.PENDIENTE: {
-        _A.APROBAR: _E.APROBADA,
-        _A.OBSERVAR: _E.OBSERVADA,
-        _A.RECHAZAR: _E.RECHAZADA,
+TRANSICIONES: dict[EstadoHabilitacion, dict[AccionHabilitacion, EstadoHabilitacion]] = {
+    EstadoHabilitacion.PENDIENTE: {
+        AccionHabilitacion.APROBAR: EstadoHabilitacion.APROBADA,
+        AccionHabilitacion.OBSERVAR: EstadoHabilitacion.OBSERVADA,
+        AccionHabilitacion.RECHAZAR: EstadoHabilitacion.RECHAZADA,
     },
-    _E.OBSERVADA: {_A.APROBAR: _E.APROBADA, _A.RECHAZAR: _E.RECHAZADA},
-    _E.APROBADA: {_A.SUSPENDER: _E.SUSPENDIDA},
-    _E.SUSPENDIDA: {_A.APROBAR: _E.APROBADA, _A.RECHAZAR: _E.RECHAZADA},
-    _E.RECHAZADA: {},
+    EstadoHabilitacion.OBSERVADA: {
+        AccionHabilitacion.APROBAR: EstadoHabilitacion.APROBADA,
+        AccionHabilitacion.RECHAZAR: EstadoHabilitacion.RECHAZADA,
+    },
+    EstadoHabilitacion.APROBADA: {
+        AccionHabilitacion.SUSPENDER: EstadoHabilitacion.SUSPENDIDA,
+    },
+    EstadoHabilitacion.SUSPENDIDA: {
+        AccionHabilitacion.APROBAR: EstadoHabilitacion.APROBADA,
+        AccionHabilitacion.RECHAZAR: EstadoHabilitacion.RECHAZADA,
+    },
+    EstadoHabilitacion.RECHAZADA: {},
 }
 
 
