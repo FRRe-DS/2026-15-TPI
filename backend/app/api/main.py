@@ -1,25 +1,51 @@
-"""Aplicación FastAPI mínima usada por el stack de infraestructura.
-
-Los endpoints de negocio pertenecen al Stack 2. Aquí sólo se expone un
-chequeo de salud para que Docker Compose pueda esperar a la API sin acoplar
-el arranque de la base ni de Keycloak.
-"""
+"""Aplicación FastAPI del módulo M3."""
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from collections.abc import Sequence
+
+from fastapi import Depends, FastAPI
+from fastapi.routing import APIRouter
+
+from app.api.errores import registrar_manejadores
+from app.api.routers import (
+    conductores,
+    documentacion,
+    habilitacion,
+    vehiculos,
+    vehiculos_habilitacion,
+)
+from app.api.seguridad import requerir_usuario
+
+# Cada PR del Stack 2 suma sus routers a esta lista.
+ROUTERS: tuple[APIRouter, ...] = (
+    conductores.router,
+    habilitacion.router,
+    documentacion.router,
+    vehiculos.router,
+    vehiculos_habilitacion.router,
+)
 
 
-def crear_app() -> FastAPI:
-    app = FastAPI(title="M3 - Conductores y Vehículos", version="0.1.0")
+def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
+    """Crea la aplicación con el prefijo, la seguridad y los errores comunes."""
+    app = FastAPI(
+        title="API M3 - Conductores y Vehículos",
+        version="1.0.0",
+    )
+    registrar_manejadores(app)
 
-    @app.get("/salud", tags=["infra"])
+    @app.get("/salud", include_in_schema=False)
     def salud() -> dict[str, str]:
-        return {"estado": "ok", "servicio": "m3"}
+        """Sonda de salud usada por Docker Compose."""
+        return {"estado": "ok"}
 
-    @app.get("/api/v1/salud", tags=["infra"])
-    def salud_api() -> dict[str, str]:
-        return {"estado": "ok", "servicio": "m3"}
+    for router in ROUTERS if routers is None else routers:
+        app.include_router(
+            router,
+            prefix="/api/v1",
+            dependencies=[Depends(requerir_usuario)],
+        )
 
     return app
 
