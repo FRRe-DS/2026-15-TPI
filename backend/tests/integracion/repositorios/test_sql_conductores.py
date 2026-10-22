@@ -10,11 +10,14 @@ Se comporta como el fake `RepositorioConductoresEnMemoria` (ver `tests/unitarios
   `IntegrityError` se propaga sin traducir.
 - `listar` ordena por id y filtra por `habilitado` (True solo APROBADA), `disponible` y
   `tipo_vehiculo` (al menos un vehiculo de ese tipo, sin duplicar al conductor), con AND.
+- `test_guardar_un_conductor_con_id_inexistente_lanza_no_encontrado` es un test de
+  CARACTERIZACION: fija una decision tomada en la implementacion (los ids los genera la
+  base, un id que no existe no es un alta) y pasa de entrada, sin fase Red.
 """
 
 import pytest
 from app.dominio.conductor import Conductor
-from app.dominio.errores import DniDuplicado
+from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
@@ -128,6 +131,17 @@ def test_guardar_un_conductor_con_id_lo_actualiza_conservando_el_id(
         assert leido.conectado is True
         assert leido.disponible is True
         assert len(repositorio_otra.listar()) == 1
+
+
+def test_guardar_un_conductor_con_id_inexistente_lanza_no_encontrado(repositorio):
+    """Caracterizacion: el comportamiento ya existia cuando se escribio este test."""
+    conductor = nuevo_conductor()
+    conductor.id = 999
+
+    with pytest.raises(NoEncontrado):
+        repositorio.guardar(conductor)
+
+    assert repositorio.listar() == []
 
 
 # --- DniDuplicado ---

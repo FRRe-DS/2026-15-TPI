@@ -9,6 +9,7 @@ from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
+from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
 
 RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 
@@ -36,11 +37,6 @@ def _copiar_a_fila(conductor: Conductor, fila: ConductorOrm) -> None:
     fila.estado_habilitacion = conductor.habilitacion.value
     fila.conectado = conductor.conectado
     fila.disponible = conductor.disponible
-
-
-def _es_dni_duplicado(error: IntegrityError) -> bool:
-    diagnostico = getattr(error.orig, "diag", None)
-    return getattr(diagnostico, "constraint_name", None) == RESTRICCION_DNI_UNICO
 
 
 class SqlRepositorioConductores(RepositorioConductores):
@@ -96,6 +92,6 @@ class SqlRepositorioConductores(RepositorioConductores):
                 self._sesion.add(fila)
                 self._sesion.flush()
         except IntegrityError as error:
-            if _es_dni_duplicado(error):
+            if nombre_de_restriccion(error) == RESTRICCION_DNI_UNICO:
                 raise DniDuplicado("Ya existe un conductor con ese DNI") from error
             raise
