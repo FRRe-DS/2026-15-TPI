@@ -63,7 +63,7 @@ Los 10 endpoints de la Iteración 1:
 
 ## Arquitectura y estructura del repositorio
 
-M3 tiene una **API en FastAPI**, su **propia base PostgreSQL**, **Keycloak** para los tokens y un **frontend en Next.js**. Todo se levanta con Docker Compose.
+M3 tiene una **API en FastAPI**, su **propia base PostgreSQL**, **Keycloak** para los tokens y un **frontend en Next.js**. La API, PostgreSQL y Keycloak se levantan con Docker Compose; el frontend se ejecuta con npm.
 
 El backend se divide en dos mitades que se comunican por interfaces (puertos) definidas en `specs/iteracion1/contracts/casos-de-uso.md`:
 
@@ -366,16 +366,16 @@ Se trabaja con **TDD**: primero un test que falla, después el código mínimo p
 | API | `backend/tests/api/` | Endpoints, seguridad y errores, con casos de uso simulados y tokens de prueba. |
 | Integración | `backend/tests/integracion/` | Repositorios SQL contra PostgreSQL real (Testcontainers). |
 | Infraestructura | `backend/tests/infra/` | Bases, esquema, migraciones, seed y realm de Keycloak. |
-| Contrato | `backend/tests/contrato/` | Las respuestas cumplen el `openapi.yaml`. |
-| Concurrencia | `backend/tests/integracion/concurrencia/` | 20 solicitudes simultáneas con el mismo DNI dan exactamente un `201` y 19 `409`. Lo mismo con la patente. Dos acciones de habilitación simultáneas: una se aplica y la otra recibe `409`. |
-| Humo | `.github/scripts/humo.sh` | Levanta el Compose, pide un token de operador a Keycloak y verifica que `GET /api/v1/conductores` dé `200` con al menos un conductor y `401` sin token. |
+| Contrato | `backend/tests/contrato/` | Validez y ejemplos del OpenAPI. La suite automática contra respuestas reales queda para Iteración 2. |
+| Concurrencia (pendiente) | T104–T106 | Pruebas simultáneas de DNI, patente y habilitación para Iteración 2. |
+| Humo automático (pendiente) | T107 | El Compose se verificó manualmente; falta incorporar la prueba al CI. |
 
 ### Comandos
 
 ```bash
 cd backend
-uv sync --group dev                                     # instalar dependencias
-uv run pytest backend/tests/unitarios --cov=app         # tests unitarios con cobertura
+uv sync --frozen --all-groups                          # instalar todos los stacks
+uv run pytest tests/unitarios --cov=app         # tests unitarios con cobertura
 uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobertura mínima
 ```
 
@@ -498,15 +498,22 @@ uv run alembic -c ../infra/migraciones/alembic.ini upgrade head
 uv run python ../infra/seed/cargar_datos.py
 ```
 
-### Verificación pendiente con Docker
+### Integración verificada (22/10/2026)
 
-El código, el esquema, las migraciones (DDL offline), el seed (simulación) y las pruebas estáticas ya fueron validados. En el entorno de desarrollo usado para preparar esta entrega **no había un daemon de Docker operativo**, por lo que quedan pendientes de ejecutar:
+Se verificaron PostgreSQL, migraciones, seed idempotente, Keycloak con tokens reales y la API en Compose. Se recorrieron las 10 operaciones del alcance y se validaron 17 respuestas reales contra OpenAPI, incluidos errores y eventos con ID entero. El frontend se ejecutó con `npm run dev` y mostró conductores reales.
 
-- `docker compose --env-file .env -f docker-compose.yml config` para comprobar la interpolación de variables.
-- El build de `backend/Dockerfile` y del tag temporal `m3-backend:local`.
-- La inicialización de PostgreSQL y el script `infra/postgres/init/01-crear-bases.sh` (creación de roles, bases y revocación de `CONNECT`).
-- `alembic upgrade head` y `alembic downgrade base` contra PostgreSQL real.
-- La ejecución real del seed y su segunda ejecución para confirmar la idempotencia en PostgreSQL.
-- La importación de `realm-m3.json` en Keycloak, la sustitución de `${...}` y la obtención de un token con `operador.m3`.
-- Los healthchecks de Keycloak (puerto de administración 9000) y de la API, y el orden `postgres → keycloak/migraciones → seed → API`.
-- Los 15 tests marcados como `integration` (Testcontainers), omitidos automáticamente al no detectar Docker.
+El frontend se levanta por separado:
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local
+# Completar con las mismas credenciales usadas en infra/.env.
+npm run dev
+```
+
+Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` de `infra/.env`. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
+
+El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
+
+Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas. No se abre una PR a main en esta integración.

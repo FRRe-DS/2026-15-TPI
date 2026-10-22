@@ -57,7 +57,6 @@ class HabilitacionResumen(BaseModel):
 
 
 class HabilitacionEvento(BaseModel):
-    # El dominio todavía no expone el id del evento (deuda de S1).
     id: int | None = None
     accion: AccionHabilitacion
     estado_anterior: EstadoHabilitacion | None = None
@@ -81,6 +80,7 @@ class HabilitacionVehiculoEventos(BaseModel):
 
 def _evento(evento: EventoHabilitacion) -> HabilitacionEvento:
     return HabilitacionEvento(
+        id=evento.id,
         accion=AccionHabilitacion(evento.accion.value),
         estado_anterior=(
             EstadoHabilitacion(evento.estado_anterior.value)

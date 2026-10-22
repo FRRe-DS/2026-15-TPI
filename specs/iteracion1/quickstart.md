@@ -12,7 +12,8 @@ Cómo comprobar que la iteración funciona de punta a punta. Los comandos se vue
 
 ```bash
 cp infra/.env.example infra/.env
-docker compose -f infra/docker-compose.yml up --build
+# Completar todos los valores vacíos de infra/.env.
+docker compose --env-file infra/.env -f infra/docker-compose.yml up --build
 ```
 
 Resultado esperado: PostgreSQL, Keycloak y la API en marcha; las migraciones y el seed terminaron con éxito. API en `http://localhost:8080/api/v1`, Keycloak en `http://localhost:8081`.
@@ -41,7 +42,7 @@ Con un token de operador: crear conductor → cargar licencia vigente → aproba
 
 ```bash
 cd backend
-uv sync
+uv sync --frozen --all-groups
 uv run ruff check . && uv run ruff format --check .
 uv run pytest --cov --cov-fail-under=65
 ```
@@ -52,7 +53,9 @@ Resultado esperado: pruebas en verde y cobertura mínima cumplida. Las de integr
 
 ```bash
 cd frontend
-npm install
+npm ci
+cp .env.example .env.local
+# Usar las mismas credenciales de infra/.env; ver frontend/README.md.
 npm run dev
 ```
 
