@@ -795,15 +795,20 @@ components:
       properties:
         dni:
           type: string
+          maxLength: 8
           pattern: '^[0-9]{7,8}$'
         nombre:
           type: string
+          maxLength: 100
         apellido:
           type: string
+          maxLength: 100
         telefono:
           type: string
+          maxLength: 30
         email:
           type: string
+          maxLength: 255
           format: email
 
     Conductor:
@@ -898,12 +903,17 @@ components:
           $ref: '#/components/schemas/TipoVehiculo'
         patente:
           type: string
+          maxLength: 10
         marca:
           type: string
+          maxLength: 80
         modelo:
           type: string
+          maxLength: 80
         anio:
           type: integer
+          minimum: 1900
+          maximum: 2100
         tipos_serv:
           type: array
           minItems: 1
@@ -940,6 +950,8 @@ components:
           type: string
         anio:
           type: integer
+          minimum: 1900
+          maximum: 2100
         tipos_serv:
           type: array
           items:
@@ -968,6 +980,8 @@ components:
           type: string
         anio:
           type: integer
+          minimum: 1900
+          maximum: 2100
         habilitacion:
           $ref: '#/components/schemas/EstadoHabilitacion'
 
@@ -980,8 +994,10 @@ components:
           enum: [LICENCIA]
         numero:
           type: string
+          maxLength: 50
         categoria:
           type: string
+          maxLength: 10
         fecha_emision:
           type: string
           format: date
@@ -990,6 +1006,7 @@ components:
           format: date
         url_archivo:
           type: string
+          maxLength: 500
           format: uri
 
     DocumentoConductor:
@@ -1047,6 +1064,7 @@ components:
         motivo:
           type: string
           minLength: 1
+          maxLength: 500
 
     HabilitacionHistorialItem:
       type: object
@@ -1056,6 +1074,7 @@ components:
           $ref: '#/components/schemas/EstadoHabilitacion'
         motivo:
           type: string
+          maxLength: 500
         id_operador:
           type: integer
           format: int64
@@ -1096,6 +1115,7 @@ components:
           $ref: '#/components/schemas/EstadoHabilitacion'
         motivo:
           type: string
+          maxLength: 500
         id_operador:
           type: integer
           format: int64
