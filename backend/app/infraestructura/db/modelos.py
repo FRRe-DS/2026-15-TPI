@@ -7,13 +7,15 @@ la última línea de defensa, además de las validaciones de dominio.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
+    Float,
     ForeignKey,
     Identity,
     Index,
@@ -31,14 +33,12 @@ ESTADOS_HABILITACION = ("PENDIENTE", "OBSERVADA", "APROBADA", "SUSPENDIDA", "REC
 TIPOS_VEHICULO = ("AUTO", "MOTO")
 TIPOS_SERVICIO = ("PASAJEROS", "ENVIOS")
 ACCIONES_HABILITACION = ("ALTA", "APROBAR", "OBSERVAR", "SUSPENDER", "RECHAZAR")
-ESTADOS_DOCUMENTO = ("VIGENTE", "VENCIDO")
-TIPOS_DOCUMENTO = ("LICENCIA", "SEGURO")
+TIPOS_DOCUMENTO = ("LICENCIA",)
 
 _ESTADOS_SQL = ", ".join(f"'{estado}'" for estado in ESTADOS_HABILITACION)
 _TIPOS_VEHICULO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_VEHICULO)
 _TIPOS_SERVICIO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_SERVICIO)
 _ACCIONES_SQL = ", ".join(f"'{accion}'" for accion in ACCIONES_HABILITACION)
-_ESTADOS_DOCUMENTO_SQL = ", ".join(f"'{estado}'" for estado in ESTADOS_DOCUMENTO)
 _TIPOS_DOCUMENTO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_DOCUMENTO)
 
 NAMING_CONVENTION = {
@@ -69,6 +69,12 @@ class Conductor(Base):
         CheckConstraint(
             "email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'", name="email_formato"
         ),
+        CheckConstraint(
+            "latitud IS NULL OR (latitud >= -90 AND latitud <= 90)", name="latitud_rango"
+        ),
+        CheckConstraint(
+            "longitud IS NULL OR (longitud >= -180 AND longitud <= 180)", name="longitud_rango"
+        ),
         Index("ix_conductor_estado_habilitacion", "estado_habilitacion"),
         Index("ix_conductor_disponible", "disponible"),
     )
@@ -88,6 +94,9 @@ class Conductor(Base):
     disponible: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=false(), default=False
     )
+    latitud: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitud: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fecha_act_ubic: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     fecha_alta: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -110,8 +119,8 @@ class Conductor(Base):
     )
     eventos_habilitacion: Mapped[list[HabilitacionEventoConductor]] = relationship(
         back_populates="conductor",
-        cascade="all, delete-orphan",
         order_by="HabilitacionEventoConductor.fecha",
+        passive_deletes=True,
     )
 
 
@@ -163,8 +172,8 @@ class Vehiculo(Base):
     )
     eventos_habilitacion: Mapped[list[HabilitacionEventoVehiculo]] = relationship(
         back_populates="vehiculo",
-        cascade="all, delete-orphan",
         order_by="HabilitacionEventoVehiculo.fecha",
+        passive_deletes=True,
     )
 
 
@@ -200,7 +209,6 @@ class DocumentoConductor(Base):
     __tablename__ = "documento_conductor"
     __table_args__ = (
         CheckConstraint(f"tipo IN ({_TIPOS_DOCUMENTO_SQL})", name="tipo"),
-        CheckConstraint(f"estado IN ({_ESTADOS_DOCUMENTO_SQL})", name="estado"),
         CheckConstraint("fecha_vencimiento > fecha_emision", name="fechas_coherentes"),
         CheckConstraint("length(trim(numero)) > 0", name="numero_obligatorio"),
         Index("ix_documento_conductor_id_conductor", "id_conductor"),
@@ -221,12 +229,9 @@ class DocumentoConductor(Base):
     )
     numero: Mapped[str] = mapped_column(String(50), nullable=False)
     categoria: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    fecha_emision: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    fecha_vencimiento: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    fecha_emision: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_vencimiento: Mapped[date] = mapped_column(Date, nullable=False)
     url_archivo: Mapped[str] = mapped_column(String(500), nullable=False)
-    estado: Mapped[str] = mapped_column(
-        String(10), nullable=False, server_default=text("'VIGENTE'"), default="VIGENTE"
-    )
     fecha_registro: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -243,10 +248,7 @@ class HabilitacionEventoConductor(Base):
         ),
         CheckConstraint(f"estado_nuevo IN ({_ESTADOS_SQL})", name="estado_nuevo"),
         CheckConstraint(f"accion IN ({_ACCIONES_SQL})", name="accion"),
-        CheckConstraint(
-            "accion = 'ALTA' OR (motivo IS NOT NULL AND length(trim(motivo)) > 0)",
-            name="motivo_requerido",
-        ),
+        CheckConstraint("length(trim(motivo)) > 0", name="motivo_requerido"),
         Index("ix_habilitacion_evento_conductor_id_conductor", "id_conductor"),
     )
 
@@ -255,7 +257,7 @@ class HabilitacionEventoConductor(Base):
         BigInteger,
         ForeignKey(
             "conductor.id_conductor",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
             name="fk_habilitacion_evento_conductor_conductor",
         ),
         nullable=False,
@@ -263,7 +265,7 @@ class HabilitacionEventoConductor(Base):
     estado_anterior: Mapped[str | None] = mapped_column(String(20), nullable=True)
     estado_nuevo: Mapped[str] = mapped_column(String(20), nullable=False)
     accion: Mapped[str] = mapped_column(String(20), nullable=False)
-    motivo: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
     id_operador: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     fecha: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -281,10 +283,7 @@ class HabilitacionEventoVehiculo(Base):
         ),
         CheckConstraint(f"estado_nuevo IN ({_ESTADOS_SQL})", name="estado_nuevo"),
         CheckConstraint(f"accion IN ({_ACCIONES_SQL})", name="accion"),
-        CheckConstraint(
-            "accion = 'ALTA' OR (motivo IS NOT NULL AND length(trim(motivo)) > 0)",
-            name="motivo_requerido",
-        ),
+        CheckConstraint("length(trim(motivo)) > 0", name="motivo_requerido"),
         Index("ix_habilitacion_evento_vehiculo_id_vehiculo", "id_vehiculo"),
     )
 
@@ -293,7 +292,7 @@ class HabilitacionEventoVehiculo(Base):
         BigInteger,
         ForeignKey(
             "vehiculo.id_vehiculo",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
             name="fk_habilitacion_evento_vehiculo_vehiculo",
         ),
         nullable=False,
@@ -301,7 +300,7 @@ class HabilitacionEventoVehiculo(Base):
     estado_anterior: Mapped[str | None] = mapped_column(String(20), nullable=True)
     estado_nuevo: Mapped[str] = mapped_column(String(20), nullable=False)
     accion: Mapped[str] = mapped_column(String(20), nullable=False)
-    motivo: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    motivo: Mapped[str] = mapped_column(String(500), nullable=False)
     id_operador: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     fecha: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

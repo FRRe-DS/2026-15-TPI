@@ -18,6 +18,7 @@ ESTADOS = "'PENDIENTE', 'OBSERVADA', 'APROBADA', 'SUSPENDIDA', 'RECHAZADA'"
 TIPOS_VEHICULO = "'AUTO', 'MOTO'"
 TIPOS_SERVICIO = "'PASAJEROS', 'ENVIOS'"
 ACCIONES = "'ALTA', 'APROBAR', 'OBSERVAR', 'SUSPENDER', 'RECHAZAR'"
+TIPOS_DOCUMENTO = "'LICENCIA'"
 
 
 def upgrade() -> None:
@@ -37,6 +38,9 @@ def upgrade() -> None:
         ),
         sa.Column("conectado", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("disponible", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("latitud", sa.Float(), nullable=True),
+        sa.Column("longitud", sa.Float(), nullable=True),
+        sa.Column("fecha_act_ubic", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "fecha_alta",
             sa.DateTime(timezone=True),
@@ -61,6 +65,14 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "email ~ '^[^@[:space:]]+@[^@[:space:]]+\\.[^@[:space:]]+$'",
             name="email_formato",
+        ),
+        sa.CheckConstraint(
+            "latitud IS NULL OR (latitud >= -90 AND latitud <= 90)",
+            name="latitud_rango",
+        ),
+        sa.CheckConstraint(
+            "longitud IS NULL OR (longitud >= -180 AND longitud <= 180)",
+            name="longitud_rango",
         ),
     )
     op.create_index("ix_conductor_estado_habilitacion", "conductor", ["estado_habilitacion"])
@@ -124,15 +136,9 @@ def upgrade() -> None:
         ),
         sa.Column("numero", sa.String(length=50), nullable=False),
         sa.Column("categoria", sa.String(length=10), nullable=True),
-        sa.Column("fecha_emision", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("fecha_vencimiento", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("fecha_emision", sa.Date(), nullable=False),
+        sa.Column("fecha_vencimiento", sa.Date(), nullable=False),
         sa.Column("url_archivo", sa.String(length=500), nullable=False),
-        sa.Column(
-            "estado",
-            sa.String(length=10),
-            nullable=False,
-            server_default=sa.text("'VIGENTE'"),
-        ),
         sa.Column(
             "fecha_registro",
             sa.DateTime(timezone=True),
@@ -145,8 +151,7 @@ def upgrade() -> None:
             name="fk_documento_conductor_conductor",
             ondelete="CASCADE",
         ),
-        sa.CheckConstraint("tipo IN ('LICENCIA', 'SEGURO')", name="tipo"),
-        sa.CheckConstraint("estado IN ('VIGENTE', 'VENCIDO')", name="estado"),
+        sa.CheckConstraint(f"tipo IN ({TIPOS_DOCUMENTO})", name="tipo"),
         sa.CheckConstraint(
             "fecha_vencimiento > fecha_emision",
             name="fechas_coherentes",
@@ -165,7 +170,7 @@ def upgrade() -> None:
         sa.Column("estado_anterior", sa.String(length=20), nullable=True),
         sa.Column("estado_nuevo", sa.String(length=20), nullable=False),
         sa.Column("accion", sa.String(length=20), nullable=False),
-        sa.Column("motivo", sa.String(length=500), nullable=True),
+        sa.Column("motivo", sa.String(length=500), nullable=False),
         sa.Column("id_operador", sa.BigInteger(), nullable=True),
         sa.Column(
             "fecha",
@@ -177,7 +182,7 @@ def upgrade() -> None:
             ["id_conductor"],
             ["conductor.id_conductor"],
             name="fk_habilitacion_evento_conductor_conductor",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
         ),
         sa.CheckConstraint(
             f"estado_anterior IS NULL OR estado_anterior IN ({ESTADOS})",
@@ -191,10 +196,7 @@ def upgrade() -> None:
             f"accion IN ({ACCIONES})",
             name="accion",
         ),
-        sa.CheckConstraint(
-            "accion = 'ALTA' OR (motivo IS NOT NULL AND length(trim(motivo)) > 0)",
-            name="motivo_requerido",
-        ),
+        sa.CheckConstraint("length(trim(motivo)) > 0", name="motivo_requerido"),
     )
     op.create_index(
         "ix_habilitacion_evento_conductor_id_conductor",
@@ -238,7 +240,7 @@ def upgrade() -> None:
         sa.Column("estado_anterior", sa.String(length=20), nullable=True),
         sa.Column("estado_nuevo", sa.String(length=20), nullable=False),
         sa.Column("accion", sa.String(length=20), nullable=False),
-        sa.Column("motivo", sa.String(length=500), nullable=True),
+        sa.Column("motivo", sa.String(length=500), nullable=False),
         sa.Column("id_operador", sa.BigInteger(), nullable=True),
         sa.Column(
             "fecha",
@@ -250,7 +252,7 @@ def upgrade() -> None:
             ["id_vehiculo"],
             ["vehiculo.id_vehiculo"],
             name="fk_habilitacion_evento_vehiculo_vehiculo",
-            ondelete="CASCADE",
+            ondelete="RESTRICT",
         ),
         sa.CheckConstraint(
             f"estado_anterior IS NULL OR estado_anterior IN ({ESTADOS})",
@@ -264,10 +266,7 @@ def upgrade() -> None:
             f"accion IN ({ACCIONES})",
             name="accion",
         ),
-        sa.CheckConstraint(
-            "accion = 'ALTA' OR (motivo IS NOT NULL AND length(trim(motivo)) > 0)",
-            name="motivo_requerido",
-        ),
+        sa.CheckConstraint("length(trim(motivo)) > 0", name="motivo_requerido"),
     )
     op.create_index(
         "ix_habilitacion_evento_vehiculo_id_vehiculo",
