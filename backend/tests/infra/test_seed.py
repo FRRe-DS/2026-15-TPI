@@ -9,8 +9,24 @@ from sqlalchemy import create_engine, text
 
 
 def test_el_seed_declara_licencias_vigentes_y_vencidas(seed_module: Any) -> None:
-    estados = {documento["estado"] for documento in seed_module.DOCUMENTOS}
-    assert {"VIGENTE", "VENCIDO"} <= estados
+    hoy = seed_module.FECHA_BASE.date()
+    vencimientos = [documento["fecha_vencimiento"] for documento in seed_module.DOCUMENTOS]
+
+    assert any(vencimiento < hoy for vencimiento in vencimientos)
+    assert any(vencimiento >= hoy for vencimiento in vencimientos)
+    assert all(
+        documento["fecha_emision"] < documento["fecha_vencimiento"]
+        for documento in seed_module.DOCUMENTOS
+    )
+    assert all("estado" not in documento for documento in seed_module.DOCUMENTOS)
+
+
+def test_los_eventos_alta_tienen_motivo_no_vacio(seed_module: Any) -> None:
+    eventos = [*seed_module.EVENTOS_CONDUCTOR, *seed_module.EVENTOS_VEHICULO]
+    altas = [evento for evento in eventos if evento["accion"] == "ALTA"]
+
+    assert altas
+    assert all(isinstance(evento["motivo"], str) and evento["motivo"].strip() for evento in altas)
 
 
 def test_el_seed_declara_un_conductor_conectado_y_disponible(seed_module: Any) -> None:
@@ -68,14 +84,40 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
                 for fila in conexion.execute(
                     text(
                         """
-                        SELECT estado
+                        SELECT fecha_vencimiento < DATE '2026-01-15'
                         FROM documento_conductor
                         WHERE tipo = 'LICENCIA'
                         """
                     )
                 )
             }
-            assert {"VIGENTE", "VENCIDO"} <= licencias
+            assert {False, True} <= licencias
+
+            incoherentes = conexion.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM documento_conductor
+                    WHERE fecha_vencimiento <= fecha_emision
+                    """
+                )
+            ).scalar_one()
+            assert incoherentes == 0
+
+            altas_sin_motivo = conexion.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM (
+                        SELECT motivo FROM habilitacion_evento_conductor WHERE accion = 'ALTA'
+                        UNION ALL
+                        SELECT motivo FROM habilitacion_evento_vehiculo WHERE accion = 'ALTA'
+                    ) AS altas
+                    WHERE motivo IS NULL OR length(trim(motivo)) = 0
+                    """
+                )
+            ).scalar_one()
+            assert altas_sin_motivo == 0
 
             conectado_disponible = conexion.execute(
                 text(

@@ -70,6 +70,33 @@ def test_usuario_operador_con_id_operador_numerico_y_claim_entero() -> None:
     assert config["access.token.claim"] == "true"
 
 
+def _perfil_de_usuario(realm: dict[str, Any]) -> dict[str, Any]:
+    componente = realm["components"]["org.keycloak.userprofile.UserProfileProvider"][0]
+    assert componente["providerId"] == "declarative-user-profile"
+
+    return json.loads(componente["config"]["kc.user.profile.config"][0])
+
+
+def test_el_user_profile_declara_los_claims_numericos() -> None:
+    perfil = _perfil_de_usuario(_cargar())
+    atributos = {atributo["name"]: atributo for atributo in perfil["attributes"]}
+
+    assert {"username", "email", "firstName", "lastName"} <= atributos.keys()
+    for nombre in ("id_operador", "id_conductor"):
+        atributo = atributos[nombre]
+        assert atributo["multivalued"] is False
+        assert "integer" in atributo["validations"]
+
+    cliente = next(c for c in _cargar()["clients"] if c["clientId"] == "m3-api")
+    mappers = {
+        mapper["config"]["user.attribute"]: mapper
+        for mapper in cliente["protocolMappers"]
+        if mapper["config"].get("claim.name") == mapper["config"].get("user.attribute")
+    }
+    assert {"id_operador", "id_conductor"} <= mappers.keys()
+    assert all(mapper["config"]["jsonType.label"] == "int" for mapper in mappers.values())
+
+
 def test_no_hay_password_ni_secretos_literales() -> None:
     realm = _cargar()
 

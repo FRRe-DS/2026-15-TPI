@@ -9,8 +9,6 @@ x-database-url: &database-url postgresql+psycopg://${M3_DB_USER}:${M3_DB_PASSWOR
 services:
   postgres:
     image: postgres:17.11-alpine
-    env_file:
-      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -39,8 +37,6 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.8.1
     command: ["start-dev", "--import-realm", "--http-port=8080"]
-    env_file:
-      - .env
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB_NAME}

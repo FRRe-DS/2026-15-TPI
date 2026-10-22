@@ -86,6 +86,20 @@
       ]
     }
   ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "id": "6c1f0f5e-6f1e-4b7a-9d2e-3a5f8c9b0d11",
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}}},{\"name\":\"email\",\"displayName\":\"${email}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"id_operador\",\"displayName\":\"ID de operador\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"validations\":{\"integer\":{\"min\":1},\"length\":{\"max\":19}},\"multivalued\":false},{\"name\":\"id_conductor\",\"displayName\":\"ID de conductor\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"validations\":{\"integer\":{\"min\":1},\"length\":{\"max\":19}},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  },
   "users": [
     {
       "username": "operador.m3",
@@ -95,7 +109,9 @@
       "lastName": "M3",
       "email": "operador.m3@m3.local",
       "attributes": {
-        "id_operador": ["101"]
+        "id_operador": [
+          "101"
+        ]
       },
       "credentials": [
         {
@@ -104,7 +120,9 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["operador"],
+      "realmRoles": [
+        "operador"
+      ],
       "requiredActions": []
     },
     {
@@ -115,7 +133,9 @@
       "lastName": "M3",
       "email": "conductor.m3@m3.local",
       "attributes": {
-        "id_conductor": ["1"]
+        "id_conductor": [
+          "1"
+        ]
       },
       "credentials": [
         {
@@ -124,7 +144,9 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["conductor"],
+      "realmRoles": [
+        "conductor"
+      ],
       "requiredActions": []
     }
   ]
