@@ -53,7 +53,7 @@ Un operador registra un conductor con sus datos personales y puede listar los co
 2. **Dado** un conductor con un DNI ya registrado, **cuando** se intenta registrar otro con el mismo DNI, **entonces** se rechaza con conflicto (`409`).
 3. **Dado** datos inválidos (por ejemplo DNI con letras), **cuando** se intenta registrar, **entonces** se rechaza con error `{codigo, mensaje}`.
 4. **Dado** conductores existentes, **cuando** se consulta el listado, **entonces** se devuelven todos con sus datos y estado.
-5. **Dado** conductores en distintos estados, **cuando** se filtra por `habilitado`, `disponible` o `tipo_vehiculo`, **entonces** se devuelven solo los que cumplen el filtro (`habilitado=true` significa habilitación `APROBADA`).
+5. **Dado** conductores en distintos estados, **cuando** se filtra por `habilitado`, `disponible` o `tipo_vehiculo`, **entonces** se devuelven solo los que cumplen el filtro (`habilitado=true` significa habilitación `APROBADA` y `habilitado=false`, cualquier otro estado).
 6. **Dado** un id inexistente, **cuando** se consulta el conductor, **entonces** se responde "no encontrado" (`404`).
 
 ---
@@ -180,7 +180,7 @@ Una persona abre una única pantalla que muestra el listado de conductores obten
 
 - **FR-001**: El sistema DEBE permitir registrar un conductor con DNI (7 u 8 dígitos), nombre, apellido, teléfono y email, dejándolo con habilitación `PENDIENTE`, desconectado y no disponible.
 - **FR-002**: El sistema DEBE impedir DNI y patente duplicados, incluso ante solicitudes simultáneas, respondiendo conflicto (`409`).
-- **FR-003**: El sistema DEBE listar conductores, con los filtros `habilitado`, `disponible` y `tipo_vehiculo`, y consultar uno por id, informando `404` cuando no existe.
+- **FR-003**: El sistema DEBE listar conductores, con los filtros `habilitado` (verdadero solo con habilitación `APROBADA`; falso con cualquier otro estado), `disponible` y `tipo_vehiculo`, aceptando e ignorando los parámetros `latitud` y `longitud`, y consultar uno por id, informando `404` cuando no existe.
 - **FR-004**: El sistema DEBE permitir aprobar, observar, suspender o rechazar a un conductor y a un vehículo, con motivo obligatorio, registrando operador y fecha.
 - **FR-005**: El sistema DEBE aceptar solo las transiciones de habilitación de la matriz definida en Clarificaciones (`PENDIENTE` → `APROBADA`/`OBSERVADA`/`RECHAZADA`; `OBSERVADA` → `APROBADA`/`RECHAZADA`; `APROBADA` → `SUSPENDIDA`; `SUSPENDIDA` → `APROBADA`/`RECHAZADA`; `RECHAZADA` final), rechazar el resto con conflicto (`409`) y conservar el historial completo de eventos.
 - **FR-006**: El sistema DEBE permitir consultar el estado de habilitación del conductor junto con su historial.

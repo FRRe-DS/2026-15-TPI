@@ -117,7 +117,7 @@ Cinco stacks de PRs, todas contra `dev`. Cada archivo tiene un único dueño par
 | 1 | Backend: lógica | `backend/app/dominio/`, `aplicacion/`, `infraestructura/repositorios/`, `backend/tests/unitarios/`, `backend/tests/integracion/repositorios/`, `backend/pyproject.toml`, `uv.lock` | Dominio, casos de uso y repositorios con TDD |
 | 2 | Backend: servidor | `backend/app/api/`, `backend/tests/api/`, `backend/Dockerfile` | Routers, esquemas, validación JWT, manejo de errores |
 | 3 | Datos y seguridad | `infra/` completo, `backend/app/infraestructura/db/`, `backend/tests/infra/` | Compose, esquema y migraciones, modelos ORM, realm de Keycloak, seed |
-| 4 | Testing y CI | `.github/`, `backend/tests/integracion/conftest.py`, `backend/tests/integracion/concurrencia/`, `backend/tests/contrato/`, `backend/ruff.toml`, `backend/.coveragerc`, validación del OpenAPI | CI, integración, contrato |
+| 4 | Testing y CI | `docs/contract/openapi.yaml` (pulido y ejemplos), `.github/`, `backend/tests/integracion/conftest.py`, `backend/tests/integracion/concurrencia/`, `backend/tests/contrato/`, `backend/ruff.toml`, `backend/.coveragerc`, validación del OpenAPI | CI, integración, contrato |
 | 5 | Frontend | `frontend/` completo | Pantalla de listado |
 
 **Puntos de sincronización**: `docs/contract/openapi.yaml` (todos), [data-model.md](./data-model.md) (Stacks 1, 3 y 4), [contracts/casos-de-uso.md](./contracts/casos-de-uso.md) (Stacks 1 y 2), [contracts/token-jwt.md](./contracts/token-jwt.md) (Stacks 2, 3 y 5).

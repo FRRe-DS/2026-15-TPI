@@ -3,7 +3,7 @@
 **Entrada**: Documentos de diseño en `specs/iteracion1/`
 **Requisitos previos**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/), [quickstart.md](./quickstart.md)
 
-**Pruebas**: obligatorias en todo el proyecto (constitución, principio I). Cada tarea de implementación va precedida por su tarea de **test que falla primero** (Red → Green → Refactor). Los tests no se modifican para hacerlos pasar.
+**Pruebas**: obligatorias en todo el proyecto (constitución, principio I). Cada tarea de implementación va precedida por su tarea de **test que falla primero** (Red → Green → Refactor). Los tests no se modifican para hacerlos pasar. Los archivos de configuración sin lógica de producción (Dockerfile, Compose, `.env.example`, workflow de CI) no llevan test propio: se verifican con la prueba de humo T107.
 
 **Organización**: las tareas se agrupan por **stack de trabajo** (una fase por stack). Dentro de cada stack, cada tarea lleva su historia de usuario (`[US1]`…`[US7]`) cuando corresponde.
 
@@ -21,9 +21,9 @@
 | S1 | Backend: lógica | Fase 1 | `feat/s1-base-dominio` (T001–T013) · `feat/s1-casos-de-uso-conductor` (T014–T025) · `feat/s1-casos-de-uso-vehiculo` (T026–T033) · `feat/s1-repositorios-sql` (T034–T040) |
 | S2 | Backend: servidor | Fase 2 | `feat/s2-base-api` (T041–T052) · `feat/s2-endpoints-conductor` (T053–T064) · `feat/s2-endpoints-vehiculo` (T065–T075) |
 | S3 | Datos y seguridad | Fase 3 | `feat/s3-esquema` (T076–T083) · `feat/s3-seed-realm-compose` (T084–T089) |
-| S4 | Testing y CI | Fase 4 | `test/s4-base-ci` (T090–T095, T096) · `test/s4-contrato` (T097–T101) · `test/s4-concurrencia-humo` (T102–T104, T105–T106) |
-| S5 | Frontend | Fase 5 | `feat/s5-pantalla` (T107–T117) |
-| — | Cierre | Fase 6 | Integración, documentación y verificación final (T118–T123) |
+| S4 | Testing y CI | Fase 4 | `test/s4-base-ci` (T090–T093) · `test/s4-contrato-openapi` (T094–T095) · `test/s4-ci` (T096) · `test/s4-fixture-integracion` (T097) · `test/s4-contrato` (T098–T103) · `test/s4-concurrencia-humo` (T104–T108) |
+| S5 | Frontend | Fase 5 | `feat/s5-pantalla` (T109–T119) |
+| — | Cierre | Fase 6 | Integración, documentación y verificación final (T120–T125) |
 
 ## Dependencias entre stacks
 
@@ -31,15 +31,15 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 | Si trabajás en… | Podés avanzar solo con… | Hasta que llegue… |
 |---|---|---|
-| S1 (lógica) | repositorios en memoria (T013) | S3 (modelos) y S4 (fixture T094) para los repositorios SQL (T034–T039) |
+| S1 (lógica) | repositorios en memoria (T013) | S3 (modelos) y S4 (fixture T097) para los repositorios SQL (T034–T039) |
 | S2 (servidor) | casos de uso simulados y tokens de prueba (T042) | S1 (casos de uso reales) y S3 (sesión) para el cableado final (T074) |
 | S3 (datos) | `data-model.md` | — |
-| S4 (testing) | OpenAPI y `ruff`/cobertura (T091–T093); luego migraciones de S3 para la fixture (T094) | S1, S2 y S3 integrados para que pasen los tests de contrato y concurrencia |
-| S5 (front) | `fetch` simulado y la forma de `ConductorConUbicacion` del OpenAPI | S2 y S3 para la verificación manual (T117) |
+| S4 (testing) | OpenAPI y `ruff`/cobertura (T091–T093); luego migraciones de S3 para la fixture (T097) | S1, S2 y S3 integrados para que pasen los tests de contrato y concurrencia |
+| S5 (front) | `fetch` simulado y la forma de `ConductorConUbicacion` del OpenAPI | S2 y S3 para la verificación manual (T119) |
 
 **Puntos de sincronización**: `docs/contract/openapi.yaml` · [data-model.md](./data-model.md) · [contracts/casos-de-uso.md](./contracts/casos-de-uso.md) · [contracts/token-jwt.md](./contracts/token-jwt.md) · [contracts/errores.md](./contracts/errores.md).
 
-**Orden de merge sugerido**: `feat/s1-base-dominio` primero (crea `pyproject.toml`); después el resto en cualquier orden, con estas excepciones: `feat/s1-repositorios-sql` y `test/s4-contrato` después de `feat/s3-esquema`; `feat/s2-endpoints-vehiculo` (T074) después de `feat/s1-repositorios-sql`.
+**Orden de merge sugerido**: `feat/s1-base-dominio` primero (crea `pyproject.toml`); después el resto en cualquier orden, con estas excepciones: `feat/s1-repositorios-sql`, `test/s4-fixture-integracion` y `test/s4-contrato` después de `feat/s3-esquema` (`test/s4-contrato` además después de S1 y S2); `feat/s2-endpoints-vehiculo` (T074) después de `feat/s1-repositorios-sql`. `test/s4-contrato-openapi` (cambia el contrato) se mergea temprano y se avisa a todos.
 
 **Dueños de archivos**: ver la tabla de [plan.md](./plan.md). Cada tarea toca solo archivos de su stack, salvo las que lo aclaran.
 
@@ -69,7 +69,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 - [ ] T014 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_crear_conductor.py`: crea con habilitación `PENDIENTE` y evento `ALTA` (`estado_anterior` nulo, `id_operador` nulo); `DniDuplicado` si el DNI ya existe; `DatosInvalidos` con datos inválidos
 - [ ] T015 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/crear_conductor.py` hasta que pase T014
-- [ ] T016 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: sin filtros devuelve todos; `habilitado=true` solo con habilitación `APROBADA`; `disponible`; `tipo_vehiculo` (al menos un vehículo de ese tipo); filtros combinados; lista vacía sin error
+- [ ] T016 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: sin filtros devuelve todos; `habilitado=true` solo con habilitación `APROBADA` y `habilitado=false` con cualquier otro estado; `disponible`; `tipo_vehiculo` (al menos un vehículo de ese tipo); filtros combinados; lista vacía sin error
 - [ ] T017 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` hasta que pase T016
 - [ ] T018 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py`: devuelve el conductor con sus documentos (estado calculado) y vehículos resumidos; `NoEncontrado` si no existe
 - [ ] T019 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_conductor.py` hasta que pase T018
@@ -93,7 +93,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s1-repositorios-sql`
 
-> **Depende de**: S3 (T081 modelos y T083 migración) y S4 (T094 fixture de Testcontainers).
+> **Depende de**: S3 (T081 modelos y T083 migración) y S4 (T097 fixture de Testcontainers).
 
 - [ ] T034 [S1] [US1] Test (Red) `backend/tests/integracion/repositorios/test_sql_conductores.py` con Testcontainers: guardar y buscar; el error de unicidad de DNI se traduce a `DniDuplicado`; filtros del listado; vehículos y documentos cargados en consultas agrupadas (sin una consulta por fila)
 - [ ] T035 [S1] [US1] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py` hasta que pase T034
@@ -128,7 +128,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 - [ ] T053 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_crear.py`: `POST /conductores` → `201` con encabezado `Location` y cuerpo `Conductor`; `400` por DNI inválido; `409` `DNI_DUPLICADO`; `401` sin token
 - [ ] T054 [S2] [US1] Impl (Green) `backend/app/api/routers/conductores.py` (crear) hasta que pase T053
-- [ ] T055 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_listar.py`: `GET /conductores` con `habilitado`, `disponible` y `tipo_vehiculo`; `400` ante un valor inválido; ignora los filtros de ubicación que quedan para la Iteración 2
+- [ ] T055 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_listar.py`: `GET /conductores` con `habilitado`, `disponible` y `tipo_vehiculo`; `400` ante un valor inválido; los parámetros `latitud` y `longitud` se aceptan y se ignoran (no filtran ni ordenan, quedan para la Iteración 2)
 - [ ] T056 [S2] [US1] Impl (Green) listar en `backend/app/api/routers/conductores.py` hasta que pase T055
 - [ ] T057 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_obtener.py`: `GET /conductores/{id_conductor}` → `200` y `404` `NO_ENCONTRADO`
 - [ ] T058 [S2] [US1] Impl (Green) obtener en `backend/app/api/routers/conductores.py` hasta que pase T057
@@ -151,7 +151,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [ ] T072 [S2] [US4] Impl (Green) `backend/app/api/routers/vehiculos_habilitacion.py` hasta que pase T071
 - [ ] T073 [S2] Test (Red) `backend/tests/api/test_paridad_rutas.py`: el `openapi.json` que genera FastAPI contiene exactamente los 10 pares ruta y método del alcance, con los mismos `operationId` de `docs/contract/openapi.yaml`
 - [ ] T074 [S2] Impl (Green) `backend/app/api/dependencias.py`: cableado de los casos de uso con los repositorios SQL y la sesión. **Depende de** S1 (T035, T037, T039) y S3 (T081). Verificar con T073
-- [ ] T075 [S2] Crear `backend/Dockerfile` con imagen base `python:3.12` de versión fija (nunca `latest`), `uv sync --frozen`, usuario sin privilegios y `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`
+- [ ] T075 [S2] Crear `backend/Dockerfile` con imagen base `python:3.12` de versión fija (nunca `latest`), `uv sync --frozen --no-dev --group api --group db` (las dependencias de ejecución viven en esos grupos), usuario sin privilegios y `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`
 
 ---
 
@@ -172,18 +172,18 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s3-seed-realm-compose`
 
-- [ ] T084 [S3] [US5] Test (Red) `backend/tests/infra/test_seed.py`: el seed es idempotente (correrlo dos veces no duplica); carga conductores en distintos estados de habilitación, al menos uno con licencia `VIGENTE` y otro con licencia `VENCIDO`, al menos un vehículo, y un evento `ALTA` por cada entidad
+- [ ] T084 [S3] [US5] Test (Red) `backend/tests/infra/test_seed.py`: el seed es idempotente (correrlo dos veces no duplica); carga conductores en distintos estados de habilitación, al menos uno con licencia `VIGENTE` y otro con licencia `VENCIDO`, al menos uno con `conectado` y `disponible` verdaderos (para probar el filtro `disponible`), al menos un vehículo, y un evento `ALTA` por cada entidad
 - [ ] T085 [S3] [US5] Impl (Green) `infra/seed/cargar_datos.py` determinista hasta que pase T084
 - [ ] T086 [S3] [US5] Test (Red) `backend/tests/infra/test_realm.py`: el JSON es válido; realm `m3`; roles `operador` y `conductor`; usuario operador con atributo numérico `id_operador` y mapeador que lo incluye como claim entero; cliente confidencial con concesión de contraseña habilitada; ningún secreto ni contraseña literal (solo `${VARIABLE}`)
 - [ ] T087 [S3] [US5] Impl (Green) `infra/keycloak/realm-m3.json` con sustitución de variables de entorno hasta que pase T086
-- [ ] T088 [S3] [US5] Impl `infra/docker-compose.yml`: `postgres` (versión fija de [research.md](./research.md)), `keycloak` (26.8.1, importa el realm), `migraciones` y `seed` (una sola vez) y `api` (usa `backend/Dockerfile` de S2); puertos 5432, 8081 y 8080; chequeos de salud y `depends_on` con condición; sin `latest`. Lo valida la prueba de humo T105
+- [ ] T088 [S3] [US5] Impl `infra/docker-compose.yml`: `postgres` (versión fija de [research.md](./research.md)), `keycloak` (26.8.1, importa el realm), `migraciones` y `seed` (una sola vez) y `api` (usa `backend/Dockerfile` de S2); puertos 5432, 8081 y 8080; chequeos de salud y `depends_on` con condición; sin `latest`. Lo valida la prueba de humo T107
 - [ ] T089 [S3] [US5] Agregar a `README.md` la sección "Arranque rápido" con los comandos de [quickstart.md](./quickstart.md), sin duplicar su contenido
 
 ---
 
 ## Fase 4: Stack 4 — Testing y CI
 
-**Meta**: verificación automática en cada PR y los tests que ningún otro stack cubre: contrato, concurrencia y entorno completo.
+**Meta**: verificación automática en cada PR y los tests que ningún otro stack cubre: contrato, concurrencia y entorno completo. S4 es también dueño de `docs/contract/openapi.yaml` (pulido y ejemplos).
 
 ### PR `test/s4-base-ci`
 
@@ -191,27 +191,42 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [ ] T091 [P] [S4] Crear `backend/ruff.toml` (lint y formato, Python 3.12)
 - [ ] T092 [P] [S4] Crear `backend/.coveragerc` con `source = app`, ramas activadas y `fail_under = 65`
 - [ ] T093 [P] [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_valido.py`: `docs/contract/openapi.yaml` es una especificación válida y define las 10 operaciones del alcance con sus respuestas `401`, `403` y de error
-- [ ] T094 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083)
-- [ ] T095 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T094, S1, S2 y S3
+
+### PR `test/s4-contrato-openapi`
+
+- [ ] T094 [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_ejemplos.py`: cada cuerpo de petición y cada respuesta `2xx` de las 10 operaciones del alcance tiene al menos un `example`; cada respuesta de error (`400`, `401`, `403`, `404`, `409`, `422`) declarada en esas operaciones tiene un ejemplo `{codigo, mensaje}` con un código del catálogo de [contracts/errores.md](./contracts/errores.md); rutas y nombres consistentes (plural, sin tildes ni espacios)
+- [ ] T095 [S4] [US6] Impl (Green) `docs/contract/openapi.yaml`: agregar los ejemplos y corregir las inconsistencias que marque T094, solo en las 10 operaciones del alcance (no se tocan las de la Iteración 2 ni las de M6). Es un punto de sincronización: va en su propia PR y se avisa a S1, S2 y S5 antes de mergear
+
+### PR `test/s4-ci`
+
 - [ ] T096 [S4] [US6] Crear `.github/workflows/ci.yml` que corre en cada PR: `ruff check` y `ruff format --check`; pruebas unitarias y de API con `--cov-fail-under=65`; integración, contrato y concurrencia con Docker; validación de `openapi.yaml`; y, si existe `frontend/package.json`, lint y pruebas del frontend
+
+### PR `test/s4-fixture-integracion`
+
+> **Depende de** S3 (T083). Desbloquea a S1 (T034).
+
+- [ ] T097 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083)
 
 ### PR `test/s4-contrato`
 
-- [ ] T097 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
-- [ ] T098 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
-- [ ] T099 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
-- [ ] T100 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
-- [ ] T101 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
+> **Depende de** S1, S2 y S3 integrados.
 
-> Los tests T097–T101 pueden fallar hasta que S1, S2 y S3 integren; es lo esperado en su fase Red. No se marcan como `xfail`.
+- [ ] T098 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T097, S1, S2 y S3
+- [ ] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
+- [ ] T100 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
+- [ ] T101 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
+- [ ] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
+- [ ] T103 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
+
+> Los tests T099–T103 pueden fallar hasta que S1, S2 y S3 integren; es lo esperado en su fase Red. No se marcan como `xfail`.
 
 ### PR `test/s4-concurrencia-humo`
 
-- [ ] T102 [S4] [US1] Test `backend/tests/integracion/concurrencia/test_dni_concurrente.py`: 20 solicitudes simultáneas con el mismo DNI producen exactamente un `201` y 19 `409` (SC-005)
-- [ ] T103 [S4] [US4] Test `backend/tests/integracion/concurrencia/test_patente_concurrente.py`: lo mismo con la patente
-- [ ] T104 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
-- [ ] T105 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
-- [ ] T106 [S4] **Acción manual del responsable del repositorio**: configurar la protección de las ramas `dev` y `main` exigiendo el chequeo `ci` en verde antes de mergear
+- [ ] T104 [S4] [US1] Test `backend/tests/integracion/concurrencia/test_dni_concurrente.py`: 20 solicitudes simultáneas con el mismo DNI producen exactamente un `201` y 19 `409` (SC-005)
+- [ ] T105 [S4] [US4] Test `backend/tests/integracion/concurrencia/test_patente_concurrente.py`: lo mismo con la patente
+- [ ] T106 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
+- [ ] T107 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
+- [ ] T108 [S4] **Acción manual del responsable del repositorio** (sin esto SC-004 no se garantiza; conviene hacerla apenas exista el workflow T096, antes de abrir las PRs de implementación): configurar la protección de las ramas `dev` y `main` exigiendo el chequeo `ci` en verde antes de mergear
 
 ---
 
@@ -221,17 +236,17 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s5-pantalla`
 
-- [ ] T107 [S5] [US7] Inicializar `frontend/` con `package.json` (Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, versiones exactas), `.nvmrc` con Node 24, `tsconfig.json`, ESLint y `vitest.config.ts` con Testing Library, y los scripts `dev`, `build`, `lint` y `test`
-- [ ] T108 [P] [S5] [US7] Crear `frontend/.env.example` con `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER` y `TEST_PASSWORD`, sin valores reales
-- [ ] T109 [S5] [US7] Test (Red) `frontend/src/lib/token.test.ts`: pide el token a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña, lo reutiliza hasta su vencimiento y lanza `ErrorAutenticacion` si Keycloak responde error
-- [ ] T110 [S5] [US7] Impl (Green) `frontend/src/lib/token.ts` hasta que pase T109
-- [ ] T111 [S5] [US7] Test (Red) `frontend/src/lib/api.test.ts`: `listarConductores` envía `Authorization: Bearer`, llama a `GET {API_URL}/conductores`, devuelve el listado y lanza `ErrorApi` ante `401` o `500`
-- [ ] T112 [S5] [US7] Impl (Green) `frontend/src/lib/api.ts` y `frontend/src/lib/tipos.ts` (forma de `ConductorConUbicacion` según `docs/contract/openapi.yaml`) hasta que pase T111
-- [ ] T113 [S5] [US7] Test (Red) `frontend/src/components/ListadoConductores.test.tsx`: muestra nombre, apellido, DNI y habilitación; estado vacío "No hay conductores"; estado de error con mensaje claro
-- [ ] T114 [S5] [US7] Impl (Green) `frontend/src/components/ListadoConductores.tsx` hasta que pase T113
-- [ ] T115 [S5] [US7] Test (Red) `frontend/src/app/page.test.tsx`: la pantalla obtiene los datos en el servidor y renderiza el listado; si la API falla, muestra el estado de error sin romper
-- [ ] T116 [S5] [US7] Impl (Green) `frontend/src/app/page.tsx` como componente de servidor (las credenciales nunca llegan al navegador) hasta que pase T115
-- [ ] T117 [S5] [US7] Agregar `frontend/README.md` breve (instalar, configurar `.env`, `npm run dev`) y verificar a mano contra la API real con el entorno levantado
+- [ ] T109 [S5] [US7] Inicializar `frontend/` con `package.json` (Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, versiones exactas), `.nvmrc` con Node 24, `tsconfig.json`, ESLint y `vitest.config.ts` con Testing Library, y los scripts `dev`, `build`, `lint` y `test`
+- [ ] T110 [P] [S5] [US7] Crear `frontend/.env.example` con `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER` y `TEST_PASSWORD`, sin valores reales
+- [ ] T111 [S5] [US7] Test (Red) `frontend/src/lib/token.test.ts`: pide el token a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña, lo reutiliza hasta su vencimiento y lanza `ErrorAutenticacion` si Keycloak responde error
+- [ ] T112 [S5] [US7] Impl (Green) `frontend/src/lib/token.ts` hasta que pase T111
+- [ ] T113 [S5] [US7] Test (Red) `frontend/src/lib/api.test.ts`: `listarConductores` envía `Authorization: Bearer`, llama a `GET {API_URL}/conductores`, devuelve el listado y lanza `ErrorApi` ante `401` o `500`
+- [ ] T114 [S5] [US7] Impl (Green) `frontend/src/lib/api.ts` y `frontend/src/lib/tipos.ts` (forma de `ConductorConUbicacion` según `docs/contract/openapi.yaml`) hasta que pase T113
+- [ ] T115 [S5] [US7] Test (Red) `frontend/src/components/ListadoConductores.test.tsx`: muestra nombre, apellido, DNI y habilitación; estado vacío "No hay conductores"; estado de error con mensaje claro
+- [ ] T116 [S5] [US7] Impl (Green) `frontend/src/components/ListadoConductores.tsx` hasta que pase T115
+- [ ] T117 [S5] [US7] Test (Red) `frontend/src/app/page.test.tsx`: la pantalla obtiene los datos en el servidor y renderiza el listado; si la API falla, muestra el estado de error sin romper
+- [ ] T118 [S5] [US7] Impl (Green) `frontend/src/app/page.tsx` como componente de servidor (las credenciales nunca llegan al navegador) hasta que pase T117
+- [ ] T119 [S5] [US7] Agregar `frontend/README.md` breve (instalar, configurar `.env`, `npm run dev`) y verificar a mano contra la API real con el entorno levantado
 
 ---
 
@@ -239,27 +254,27 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 **Meta**: integrar los cinco stacks en `dev`, completar la documentación y comprobar los criterios de éxito.
 
-- [ ] T118 Redactar `docs/justificacion-stack.md` (RNF-01): por qué FastAPI, PostgreSQL, Keycloak y Next.js, resumiendo [research.md](./research.md), para aprobar el stack
-- [ ] T119 Actualizar `README.md` con enlaces a la constitución, la spec y el plan, y verificar que "Arranque rápido" coincide con [quickstart.md](./quickstart.md)
-- [ ] T120 Verificar la cobertura: `cd backend && uv run pytest --cov --cov-fail-under=65`; confirmar que está entre 65 y 70% o más sobre lo implementado (SC-003)
-- [ ] T121 Recorrer [quickstart.md](./quickstart.md) en una máquina limpia y cronometrar que API, base e identidad levantan en menos de 10 minutos con un solo comando (SC-001)
-- [ ] T122 Verificar SC-002, SC-005 y SC-007: los 10 endpoints cumplen el contrato, la prueba de DNI simultáneo da un solo éxito, y los accesos sin token o sin rol son rechazados
-- [ ] T123 Resolver los conflictos de `backend/pyproject.toml` y `backend/uv.lock` al integrar, correr todo el CI en `dev` y abrir la PR de `dev` hacia `main`
+- [ ] T120 Redactar `docs/justificacion-stack.md` (RNF-01): por qué FastAPI, PostgreSQL, Keycloak y Next.js, resumiendo [research.md](./research.md), para aprobar el stack
+- [ ] T121 Actualizar `README.md` con enlaces a la constitución, la spec y el plan, y verificar que "Arranque rápido" coincide con [quickstart.md](./quickstart.md)
+- [ ] T122 Verificar la cobertura: `cd backend && uv run pytest --cov --cov-fail-under=65`; confirmar que está entre 65 y 70% o más sobre lo implementado (SC-003)
+- [ ] T123 Recorrer [quickstart.md](./quickstart.md) en una máquina limpia y cronometrar que API, base e identidad levantan en menos de 10 minutos con un solo comando (SC-001)
+- [ ] T124 Verificar SC-002, SC-005 y SC-007: los 10 endpoints cumplen el contrato, la prueba de DNI simultáneo da un solo éxito, y los accesos sin token o sin rol son rechazados
+- [ ] T125 Resolver los conflictos de `backend/pyproject.toml` y `backend/uv.lock` al integrar, correr todo el CI en `dev` y abrir la PR de `dev` hacia `main`
 
 ---
 
 ## Dependencias y orden de ejecución
 
-- **Fase 1 (S1)**: T001–T003 primero; T004–T013 después; los casos de uso (T014–T033) solo requieren T013. Los repositorios SQL (T034–T039) esperan a S3 y a T094.
+- **Fase 1 (S1)**: T001–T003 primero; T004–T013 después; los casos de uso (T014–T033) solo requieren T013. Los repositorios SQL (T034–T039) esperan a S3 y a T097.
 - **Fase 2 (S2)**: T041 y T042 primero; el resto sigue el orden de las PRs. T074 espera a S1 y S3.
-- **Fase 3 (S3)**: independiente al arranque. T083 desbloquea a S1 (T034) y S4 (T094).
-- **Fase 4 (S4)**: T090–T093 sin dependencias; T094 espera a T083; T095–T104 y T105 esperan a la integración de S1–S3.
-- **Fase 5 (S5)**: independiente hasta T117, que necesita la API real.
+- **Fase 3 (S3)**: independiente al arranque. T083 desbloquea a S1 (T034) y S4 (T097).
+- **Fase 4 (S4)**: T090–T096 sin dependencias (T094–T095 pulen el OpenAPI y se avisan al resto antes de mergear); T097 espera a T083; T098–T106 y T107 esperan a la integración de S1–S3.
+- **Fase 5 (S5)**: independiente hasta T119, que necesita la API real.
 - **Fase 6**: al final, con todo integrado en `dev`.
 
 ## Oportunidades de paralelismo
 
-- Cinco personas o grupos pueden empezar el día uno: T001 (S1), T041 (S2), T076 (S3), T090 (S4) y T107 (S5). Los cuatro últimos tocan solo su grupo de dependencias en `pyproject.toml`.
+- Cinco personas o grupos pueden empezar el día uno: T001 (S1), T041 (S2), T076 (S3), T090 (S4) y T109 (S5). Los cuatro últimos tocan solo su grupo de dependencias en `pyproject.toml`.
 - Dentro de S1: los tests de dominio T004, T006, T008 y T010 son independientes entre sí; también los pares de casos de uso de conductor y de vehículo.
 - Dentro de S2: los routers de conductores, habilitación, documentación y vehículos son independientes una vez hechas T041–T052.
 
