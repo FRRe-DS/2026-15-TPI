@@ -1,4 +1,4 @@
-from app.aplicacion.casos_de_uso.detalle_conductor import armar_detalle
+from app.aplicacion.casos_de_uso.detalle_conductor import armar_detalles
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
@@ -23,4 +23,4 @@ class ListarConductores:
                 disponible=disponible,
                 tipo_vehiculo=tipo_vehiculo,
             )
-            return [armar_detalle(self._uow, self._reloj, conductor) for conductor in conductores]
+            return armar_detalles(self._uow, self._reloj, conductores)

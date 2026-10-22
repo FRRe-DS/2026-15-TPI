@@ -95,13 +95,13 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 > **Depende de**: S3 (T081 modelos y T083 migración) y S4 (T097 fixture de Testcontainers).
 
-- [ ] T034 [S1] [US1] Test (Red) `backend/tests/integracion/repositorios/test_sql_conductores.py` con Testcontainers: guardar y buscar; el error de unicidad de DNI se traduce a `DniDuplicado`; filtros del listado; vehículos y documentos cargados en consultas agrupadas (sin una consulta por fila)
-- [ ] T035 [S1] [US1] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py` hasta que pase T034
-- [ ] T036 [S1] [US4] Test (Red) `backend/tests/integracion/repositorios/test_sql_vehiculos.py`: guardar con tipos de servicio; el error de unicidad de patente se traduce a `PatenteDuplicada`; listar por conductor con filtros
-- [ ] T037 [S1] [US4] Impl (Green) `backend/app/infraestructura/repositorios/sql_vehiculos.py` hasta que pase T036
-- [ ] T038 [S1] [US2] Test (Red) `backend/tests/integracion/repositorios/test_sql_habilitaciones.py`: los eventos son de solo escritura y el historial vuelve en orden; el estado y el evento se guardan en la misma transacción; la unidad de trabajo bloquea la fila (`SELECT ... FOR UPDATE`); licencias guardadas y consultadas
-- [ ] T039 [S1] [US2] Impl (Green) `backend/app/infraestructura/repositorios/sql_documentos.py`, `sql_habilitaciones.py` y `sql_unidad_de_trabajo.py` hasta que pase T038
-- [ ] T040 [S1] Refactor con la suite en verde: pasar `ruff`, aplicar la skill `clean-code` a `backend/app/dominio/` y `backend/app/aplicacion/`, y verificar con `uv run pytest backend/tests/unitarios --cov=app`
+- [X] T034 [S1] [US1] Test (Red) `backend/tests/integracion/repositorios/test_sql_conductores.py` con Testcontainers: guardar y buscar; el error de unicidad de DNI se traduce a `DniDuplicado`; filtros del listado; vehículos y documentos cargados en consultas agrupadas (sin una consulta por fila)
+- [X] T035 [S1] [US1] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py` hasta que pase T034
+- [X] T036 [S1] [US4] Test (Red) `backend/tests/integracion/repositorios/test_sql_vehiculos.py`: guardar con tipos de servicio; el error de unicidad de patente se traduce a `PatenteDuplicada`; listar por conductor con filtros
+- [X] T037 [S1] [US4] Impl (Green) `backend/app/infraestructura/repositorios/sql_vehiculos.py` hasta que pase T036
+- [X] T038 [S1] [US2] Test (Red) `backend/tests/integracion/repositorios/test_sql_habilitaciones.py`: los eventos son de solo escritura y el historial vuelve en orden; el estado y el evento se guardan en la misma transacción; la unidad de trabajo bloquea la fila (`SELECT ... FOR UPDATE`); licencias guardadas y consultadas
+- [X] T039 [S1] [US2] Impl (Green) `backend/app/infraestructura/repositorios/sql_documentos.py`, `sql_habilitaciones.py` y `sql_unidad_de_trabajo.py` hasta que pase T038
+- [X] T040 [S1] Refactor con la suite en verde: pasar `ruff`, aplicar la skill `clean-code` a `backend/app/dominio/` y `backend/app/aplicacion/`, y verificar con `uv run pytest backend/tests/unitarios --cov=app`
 
 ---
 
@@ -205,7 +205,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 > **Depende de** S3 (T083). Desbloquea a S1 (T034).
 
-- [ ] T097 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083)
+- [X] T097 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083) (hecha en la rama `feat/s1-repositorios-sql` por S1, porque desbloquea T034)
 
 ### PR `test/s4-contrato`
 
@@ -236,17 +236,17 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s5-pantalla`
 
-- [ ] T109 [S5] [US7] Inicializar `frontend/` con `package.json` (Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, versiones exactas), `.nvmrc` con Node 24, `tsconfig.json`, ESLint y `vitest.config.ts` con Testing Library, y los scripts `dev`, `build`, `lint` y `test`
-- [ ] T110 [P] [S5] [US7] Crear `frontend/.env.example` con `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER` y `TEST_PASSWORD`, sin valores reales
-- [ ] T111 [S5] [US7] Test (Red) `frontend/src/lib/token.test.ts`: pide el token a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña, lo reutiliza hasta su vencimiento y lanza `ErrorAutenticacion` si Keycloak responde error
-- [ ] T112 [S5] [US7] Impl (Green) `frontend/src/lib/token.ts` hasta que pase T111
-- [ ] T113 [S5] [US7] Test (Red) `frontend/src/lib/api.test.ts`: `listarConductores` envía `Authorization: Bearer`, llama a `GET {API_URL}/conductores`, devuelve el listado y lanza `ErrorApi` ante `401` o `500`
-- [ ] T114 [S5] [US7] Impl (Green) `frontend/src/lib/api.ts` y `frontend/src/lib/tipos.ts` (forma de `ConductorConUbicacion` según `docs/contract/openapi.yaml`) hasta que pase T113
-- [ ] T115 [S5] [US7] Test (Red) `frontend/src/components/ListadoConductores.test.tsx`: muestra nombre, apellido, DNI y habilitación; estado vacío "No hay conductores"; estado de error con mensaje claro
-- [ ] T116 [S5] [US7] Impl (Green) `frontend/src/components/ListadoConductores.tsx` hasta que pase T115
-- [ ] T117 [S5] [US7] Test (Red) `frontend/src/app/page.test.tsx`: la pantalla obtiene los datos en el servidor y renderiza el listado; si la API falla, muestra el estado de error sin romper
-- [ ] T118 [S5] [US7] Impl (Green) `frontend/src/app/page.tsx` como componente de servidor (las credenciales nunca llegan al navegador) hasta que pase T117
-- [ ] T119 [S5] [US7] Agregar `frontend/README.md` breve (instalar, configurar `.env`, `npm run dev`) y verificar a mano contra la API real con el entorno levantado
+- [x] T109 [S5] [US7] Inicializar `frontend/` con `package.json` (Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, versiones exactas), `.nvmrc` con Node 24, `tsconfig.json`, ESLint y `vitest.config.ts` con Testing Library, y los scripts `dev`, `build`, `lint` y `test`
+- [x] T110 [P] [S5] [US7] Crear `frontend/.env.example` con `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER` y `TEST_PASSWORD`, sin valores reales
+- [x] T111 [S5] [US7] Test (Red) `frontend/src/lib/token.test.ts`: pide el token a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña, lo reutiliza hasta su vencimiento y lanza `ErrorAutenticacion` si Keycloak responde error
+- [x] T112 [S5] [US7] Impl (Green) `frontend/src/lib/token.ts` hasta que pase T111
+- [x] T113 [S5] [US7] Test (Red) `frontend/src/lib/api.test.ts`: `listarConductores` envía `Authorization: Bearer`, llama a `GET {API_URL}/conductores`, devuelve el listado y lanza `ErrorApi` ante `401` o `500`
+- [x] T114 [S5] [US7] Impl (Green) `frontend/src/lib/api.ts` y `frontend/src/lib/tipos.ts` (forma de `ConductorConUbicacion` según `docs/contract/openapi.yaml`) hasta que pase T113
+- [x] T115 [S5] [US7] Test (Red) `frontend/src/components/ListadoConductores.test.tsx`: muestra nombre, apellido, DNI y habilitación; estado vacío "No hay conductores"; estado de error con mensaje claro
+- [x] T116 [S5] [US7] Impl (Green) `frontend/src/components/ListadoConductores.tsx` hasta que pase T115
+- [x] T117 [S5] [US7] Test (Red) `frontend/src/app/page.test.tsx`: la pantalla obtiene los datos en el servidor y renderiza el listado; si la API falla, muestra el estado de error sin romper
+- [x] T118 [S5] [US7] Impl (Green) `frontend/src/app/page.tsx` como componente de servidor (las credenciales nunca llegan al navegador) hasta que pase T117
+- [x] T119 [S5] [US7] Agregar `frontend/README.md` breve (instalar, configurar `.env`, `npm run dev`) y verificar a mano contra la API real con el entorno levantado
 
 ---
 
