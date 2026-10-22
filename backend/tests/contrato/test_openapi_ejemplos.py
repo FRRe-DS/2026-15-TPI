@@ -213,3 +213,12 @@ def test_nombres_de_esquemas_y_propiedades_consistentes(
                 f"Propiedad inválida en {nombre}: {propiedad!r}"
             )
             assert not _tiene_acentos(propiedad), f"Propiedad con tildes en {nombre}: {propiedad!r}"
+
+
+def test_estado_anterior_admite_null_en_evento_de_alta(contrato):
+    from openapi_schema_validator import OAS30Validator
+
+    esquema = contrato["components"]["schemas"]["HabilitacionEvento"]["properties"][
+        "estado_anterior"
+    ]
+    OAS30Validator(esquema).validate(None)

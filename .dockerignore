@@ -12,3 +12,12 @@
 infra/.env
 *.pdf
 README.md
+
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+.agents
+.claude
+.specify
+defensa

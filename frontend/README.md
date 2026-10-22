@@ -15,10 +15,10 @@ Interfaz web construida con **Next.js 16**, **React 19** y **TypeScript 5.9** pa
    npm install
    ```
 
-2. Configurar las variables de entorno creando un archivo `.env` basado en `.env.example`:
+2. Configurar las variables de entorno creando un archivo `.env.local` basado en `.env.example`:
 
    ```bash
-   cp .env.example .env
+   cp .env.example .env.local
    ```
 
    Completar los valores con los datos del entorno (Keycloak y API backend):
@@ -27,10 +27,10 @@ Interfaz web construida con **Next.js 16**, **React 19** y **TypeScript 5.9** pa
    API_URL=http://localhost:8080/api/v1
    KEYCLOAK_URL=http://localhost:8081
    KEYCLOAK_REALM=m3
-   KEYCLOAK_CLIENT_ID=frontend-client
-   KEYCLOAK_CLIENT_SECRET=tu-client-secret
-   TEST_USER=tu-usuario
-   TEST_PASSWORD=tu-contrasenia
+   KEYCLOAK_CLIENT_ID=m3-api
+   KEYCLOAK_CLIENT_SECRET=mismo-valor-de-KEYCLOAK_M3_CLIENT_SECRET
+   TEST_USER=conductor.m3
+   TEST_PASSWORD=mismo-valor-de-M3_CONDUCTOR_PASSWORD
    ```
 
 ## Ejecución en Desarrollo

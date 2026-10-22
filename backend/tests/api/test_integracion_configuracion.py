@@ -21,3 +21,30 @@ def test_jwks_usa_la_url_interna(monkeypatch):
     )
     cliente = obtener_cliente_jwks(settings)
     assert cliente.uri == "http://keycloak:8080/realms/m3/protocol/openid-connect/certs"
+
+
+def test_respuesta_conserva_el_id_del_evento_persistido():
+    from datetime import UTC, datetime
+
+    from app.api.esquemas.habilitacion import eventos_conductor_desde_dominio
+    from app.aplicacion.casos_de_uso.resultados import HabilitacionEventos
+    from app.dominio.habilitacion import (
+        AccionHabilitacion,
+        EstadoHabilitacion,
+        EventoHabilitacion,
+    )
+
+    evento = EventoHabilitacion(
+        id=42,
+        accion=AccionHabilitacion.ALTA,
+        estado_anterior=None,
+        estado_nuevo=EstadoHabilitacion.PENDIENTE,
+        motivo="Alta",
+        id_operador=None,
+        fecha=datetime.now(UTC),
+    )
+    resultado = HabilitacionEventos(
+        id_conductor=1, estado=EstadoHabilitacion.PENDIENTE, eventos=[evento]
+    )
+
+    assert eventos_conductor_desde_dominio(resultado).eventos[0].id == 42
