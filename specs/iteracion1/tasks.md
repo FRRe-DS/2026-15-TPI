@@ -67,29 +67,29 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s1-casos-de-uso-conductor`
 
-- [ ] T014 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_crear_conductor.py`: crea con habilitación `PENDIENTE` y evento `ALTA` (`estado_anterior` nulo, `id_operador` nulo); `DniDuplicado` si el DNI ya existe; `DatosInvalidos` con datos inválidos
-- [ ] T015 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/crear_conductor.py` hasta que pase T014
-- [ ] T016 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: sin filtros devuelve todos; `habilitado=true` solo con habilitación `APROBADA` y `habilitado=false` con cualquier otro estado; `disponible`; `tipo_vehiculo` (al menos un vehículo de ese tipo); filtros combinados; lista vacía sin error
-- [ ] T017 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` hasta que pase T016
-- [ ] T018 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py`: devuelve el conductor con sus documentos (estado calculado) y vehículos resumidos; `NoEncontrado` si no existe
-- [ ] T019 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_conductor.py` hasta que pase T018
-- [ ] T020 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_consultar_habilitacion_conductor.py`: devuelve estado actual e historial en orden cronológico; `NoEncontrado`
-- [ ] T021 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/consultar_habilitacion_conductor.py` hasta que pase T020
-- [ ] T022 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_conductor.py`: `APROBAR` con licencia `VIGENTE` pasa a `APROBADA` y guarda el evento con el `id_operador`; `APROBAR` sin licencia o con licencia `VENCIDO` lanza `LicenciaVigenteRequerida` y el estado no cambia; transición no permitida lanza `TransicionInvalida`; `SUSPENDER` y luego `APROBAR` son válidos y quedan en el historial; `NoEncontrado`; se pide el bloqueo de fila a la unidad de trabajo
-- [ ] T023 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_conductor.py` hasta que pase T022
-- [ ] T024 [S1] [US3] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_licencia.py`: guarda la licencia y devuelve el estado calculado `VIGENTE` o `VENCIDO`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` si el vencimiento no es posterior a la emisión
-- [ ] T025 [S1] [US3] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_licencia.py` hasta que pase T024
+- [X] T014 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_crear_conductor.py`: crea con habilitación `PENDIENTE` y evento `ALTA` (`estado_anterior` nulo, `id_operador` nulo); `DniDuplicado` si el DNI ya existe; `DatosInvalidos` con datos inválidos
+- [X] T015 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/crear_conductor.py` hasta que pase T014
+- [X] T016 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: sin filtros devuelve todos; `habilitado=true` solo con habilitación `APROBADA` y `habilitado=false` con cualquier otro estado; `disponible`; `tipo_vehiculo` (al menos un vehículo de ese tipo); filtros combinados; lista vacía sin error
+- [X] T017 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` hasta que pase T016
+- [X] T018 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py`: devuelve el conductor con sus documentos (estado calculado) y vehículos resumidos; `NoEncontrado` si no existe
+- [X] T019 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_conductor.py` hasta que pase T018
+- [X] T020 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_consultar_habilitacion_conductor.py`: devuelve estado actual e historial en orden cronológico; `NoEncontrado`
+- [X] T021 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/consultar_habilitacion_conductor.py` hasta que pase T020
+- [X] T022 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_conductor.py`: `APROBAR` con licencia `VIGENTE` pasa a `APROBADA` y guarda el evento con el `id_operador`; `APROBAR` sin licencia o con licencia `VENCIDO` lanza `LicenciaVigenteRequerida` y el estado no cambia; transición no permitida lanza `TransicionInvalida`; `SUSPENDER` y luego `APROBAR` son válidos y quedan en el historial; `NoEncontrado`; se pide el bloqueo de fila a la unidad de trabajo
+- [X] T023 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_conductor.py` hasta que pase T022
+- [X] T024 [S1] [US3] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_licencia.py`: guarda la licencia y devuelve el estado calculado `VIGENTE` o `VENCIDO`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` si el vencimiento no es posterior a la emisión
+- [X] T025 [S1] [US3] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_licencia.py` hasta que pase T024
 
 ### PR `feat/s1-casos-de-uso-vehiculo`
 
-- [ ] T026 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_vehiculo.py`: crea en `PENDIENTE` con tipos de servicio sin habilitar y evento `ALTA`; `PatenteDuplicada`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` sin tipos de servicio
-- [ ] T027 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_vehiculo.py` hasta que pase T026
-- [ ] T028 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_vehiculos.py`: solo los del conductor; filtros `tipo` y `habilitacion`; `NoEncontrado` si el conductor no existe
-- [ ] T029 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_vehiculos.py` hasta que pase T028
-- [ ] T030 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: devuelve el vehículo con `documentos` vacío; un vehículo de otro conductor lanza `NoEncontrado`
-- [ ] T031 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` hasta que pase T030
-- [ ] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
-- [ ] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
+- [X] T026 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_vehiculo.py`: crea en `PENDIENTE` con tipos de servicio sin habilitar y evento `ALTA`; `PatenteDuplicada`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` sin tipos de servicio
+- [X] T027 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_vehiculo.py` hasta que pase T026
+- [X] T028 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_vehiculos.py`: solo los del conductor; filtros `tipo` y `habilitacion`; `NoEncontrado` si el conductor no existe
+- [X] T029 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_vehiculos.py` hasta que pase T028
+- [X] T030 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: devuelve el vehículo con `documentos` vacío; un vehículo de otro conductor lanza `NoEncontrado`
+- [X] T031 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` hasta que pase T030
+- [X] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
+- [X] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
 
 ### PR `feat/s1-repositorios-sql`
 

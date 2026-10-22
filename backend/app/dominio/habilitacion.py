@@ -40,10 +40,10 @@ TRANSICIONES: dict[_E, dict[_A, _E]] = {
 @dataclass(frozen=True)
 class EventoHabilitacion:
     accion: AccionHabilitacion
-    estado_anterior: EstadoHabilitacion
+    estado_anterior: EstadoHabilitacion | None
     estado_nuevo: EstadoHabilitacion
     motivo: str
-    id_operador: int
+    id_operador: int | None
     fecha: datetime
 
 
