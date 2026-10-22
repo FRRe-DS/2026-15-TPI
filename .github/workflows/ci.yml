@@ -94,8 +94,8 @@ jobs:
             rutas+=("tests/api")
           fi
           if [ ${#rutas[@]} -eq 0 ]; then
-            echo "::warning::No hay tests/unitarios ni tests/api; se omite la cobertura."
-            exit 0
+            echo "::error::backend/app existe pero no hay tests/unitarios ni tests/api."
+            exit 1
           fi
           uv run pytest "${rutas[@]}" --cov=app --cov-report=term-missing --cov-fail-under=65
 
