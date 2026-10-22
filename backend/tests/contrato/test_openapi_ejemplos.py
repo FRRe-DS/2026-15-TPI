@@ -30,9 +30,7 @@ OPERACIONES_EN_ALCANCE = [
     ),
 ]
 
-IDS_OPERACIONES = [
-    f"{metodo.upper()} {ruta}" for metodo, ruta in OPERACIONES_EN_ALCANCE
-]
+IDS_OPERACIONES = [f"{metodo.upper()} {ruta}" for metodo, ruta in OPERACIONES_EN_ALCANCE]
 
 # Respuestas de error que T094 exige que tengan ejemplo.
 ERRORES_OBLIGATORIOS = ("400", "401", "403", "404", "409", "422")
@@ -81,11 +79,7 @@ def _ejemplos(contrato: dict[str, Any], contenido: dict[str, Any] | None) -> lis
     if "example" in medio:
         return [medio["example"]]
     if "examples" in medio:
-        return [
-            ejemplo["value"]
-            for ejemplo in medio["examples"].values()
-            if "value" in ejemplo
-        ]
+        return [ejemplo["value"] for ejemplo in medio["examples"].values() if "value" in ejemplo]
     esquema = _resolver(contrato, medio.get("schema", {}))
     if "example" in esquema:
         return [esquema["example"]]
@@ -95,10 +89,7 @@ def _ejemplos(contrato: dict[str, Any], contenido: dict[str, Any] | None) -> lis
 
 
 def _tiene_acentos(texto: str) -> bool:
-    return any(
-        unicodedata.combining(caracter)
-        for caracter in unicodedata.normalize("NFKD", texto)
-    )
+    return any(unicodedata.combining(caracter) for caracter in unicodedata.normalize("NFKD", texto))
 
 
 def _esquemas_del_alcance(contrato: dict[str, Any]) -> set[str]:
@@ -127,9 +118,7 @@ def _esquemas_del_alcance(contrato: dict[str, Any]) -> set[str]:
     return nombres
 
 
-@pytest.mark.parametrize(
-    ("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES
-)
+@pytest.mark.parametrize(("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES)
 def test_cada_cuerpo_de_peticion_tiene_ejemplo(
     contrato: dict[str, Any], metodo: str, ruta: str
 ) -> None:
@@ -141,12 +130,8 @@ def test_cada_cuerpo_de_peticion_tiene_ejemplo(
     assert ejemplos, f"{metodo.upper()} {ruta} no tiene example en el requestBody"
 
 
-@pytest.mark.parametrize(
-    ("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES
-)
-def test_cada_respuesta_2xx_tiene_ejemplo(
-    contrato: dict[str, Any], metodo: str, ruta: str
-) -> None:
+@pytest.mark.parametrize(("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES)
+def test_cada_respuesta_2xx_tiene_ejemplo(contrato: dict[str, Any], metodo: str, ruta: str) -> None:
     respuestas = contrato["paths"][ruta][metodo]["responses"]
     exitosas = [codigo for codigo in respuestas if codigo.startswith("2")]
     assert exitosas, f"{metodo.upper()} {ruta} no declara una respuesta 2xx"
@@ -157,9 +142,7 @@ def test_cada_respuesta_2xx_tiene_ejemplo(
         )
 
 
-@pytest.mark.parametrize(
-    ("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES
-)
+@pytest.mark.parametrize(("metodo", "ruta"), OPERACIONES_EN_ALCANCE, ids=IDS_OPERACIONES)
 def test_cada_respuesta_de_error_tiene_ejemplo_del_catalogo(
     contrato: dict[str, Any], metodo: str, ruta: str
 ) -> None:
@@ -168,16 +151,13 @@ def test_cada_respuesta_de_error_tiene_ejemplo_del_catalogo(
     for codigo in declarados:
         respuesta = _resolver(contrato, respuestas[codigo])
         ejemplos = _ejemplos(contrato, respuesta.get("content"))
-        assert ejemplos, (
-            f"{metodo.upper()} {ruta} no tiene example en la respuesta {codigo}"
-        )
+        assert ejemplos, f"{metodo.upper()} {ruta} no tiene example en la respuesta {codigo}"
         for ejemplo in ejemplos:
             assert isinstance(ejemplo, dict), (
                 f"El example de {codigo} en {metodo.upper()} {ruta} debe ser un objeto"
             )
             assert {"codigo", "mensaje"} <= ejemplo.keys(), (
-                f"El example de {codigo} en {metodo.upper()} {ruta} "
-                "debe tener codigo y mensaje"
+                f"El example de {codigo} en {metodo.upper()} {ruta} debe tener codigo y mensaje"
             )
             assert isinstance(ejemplo["mensaje"], str) and ejemplo["mensaje"], (
                 f"El mensaje del example de {codigo} en {metodo.upper()} {ruta} "
@@ -200,12 +180,8 @@ def test_rutas_consistentes() -> None:
 
         segmentos = ruta.strip("/").split("/")
         for segmento in segmentos:
-            assert PATRON_SEGMENTO.fullmatch(segmento), (
-                f"Segmento inválido en {ruta}: {segmento!r}"
-            )
-        assert segmentos[0].endswith("s"), (
-            f"El recurso base de {ruta} debe ir en plural"
-        )
+            assert PATRON_SEGMENTO.fullmatch(segmento), f"Segmento inválido en {ruta}: {segmento!r}"
+        assert segmentos[0].endswith("s"), f"El recurso base de {ruta} debe ir en plural"
 
 
 def test_operation_ids_consistentes_y_unicos(contrato: dict[str, Any]) -> None:
@@ -228,9 +204,7 @@ def test_nombres_de_esquemas_y_propiedades_consistentes(
     contrato: dict[str, Any],
 ) -> None:
     for nombre in _esquemas_del_alcance(contrato):
-        assert PATRON_ESQUEMA.fullmatch(nombre), (
-            f"Nombre de esquema inválido: {nombre!r}"
-        )
+        assert PATRON_ESQUEMA.fullmatch(nombre), f"Nombre de esquema inválido: {nombre!r}"
         assert not _tiene_acentos(nombre), f"Esquema con tildes: {nombre!r}"
 
         esquema = _resolver(contrato, {"$ref": f"#/components/schemas/{nombre}"})
@@ -238,6 +212,4 @@ def test_nombres_de_esquemas_y_propiedades_consistentes(
             assert PATRON_PROPIEDAD.fullmatch(propiedad), (
                 f"Propiedad inválida en {nombre}: {propiedad!r}"
             )
-            assert not _tiene_acentos(propiedad), (
-                f"Propiedad con tildes en {nombre}: {propiedad!r}"
-            )
+            assert not _tiene_acentos(propiedad), f"Propiedad con tildes en {nombre}: {propiedad!r}"
