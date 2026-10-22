@@ -8,6 +8,16 @@
 
 **Entrada**: Iteración 1 (TP1) del Módulo 3. Dejar una base funcional, testeada y ejecutable, dividida en cuatro grupos de trabajo en paralelo, que cubra 10 de los 16 endpoints propios de `docs/contract/openapi.yaml`.
 
+## Clarificaciones
+
+### Sesión 2026-10-22
+
+- Q: ¿Qué cambios de estado de habilitación se permiten al aplicar una acción sobre un conductor o un vehículo? → A: Matriz fija: `PENDIENTE` → `APROBADA`, `OBSERVADA` o `RECHAZADA`; `OBSERVADA` → `APROBADA` o `RECHAZADA`; `APROBADA` → `SUSPENDIDA`; `SUSPENDIDA` → `APROBADA` o `RECHAZADA`; `RECHAZADA` es final. Cualquier otra transición devuelve `409`.
+- Q: ¿De dónde sale el número que se guarda como `id_operador` al aplicar una acción de habilitación? → A: El usuario operador tiene un atributo numérico `id_operador` en el servicio de identidad, que viaja dentro del token; M3 lo lee de ahí y el contrato no cambia.
+- Q: ¿Qué puede hacer cada tipo de usuario con los endpoints de conductores, licencia y vehículos, además de las acciones de habilitación? → A: Cualquier usuario autenticado (operador o conductor) puede usar todos los endpoints, salvo las acciones de habilitación, que son solo del operador. El acceso de cada conductor únicamente a sus propios datos queda para la Iteración 2.
+- Q: ¿Qué filtros del listado de conductores se implementan en esta iteración? → A: `habilitado`, `disponible` y `tipo_vehiculo`. Los filtros por ubicación (`latitud`/`longitud`) y `tipo_servicio` quedan para la Iteración 2.
+- Q: ¿Se puede aprobar la habilitación de un conductor que no tiene una licencia vigente cargada? → A: No. Aprobar a un conductor exige una licencia `VIGENTE` cargada; si no la tiene se rechaza con `422`. La regla aplica al conductor, no al vehículo.
+
 ## Alcance
 
 **En alcance (10 endpoints):**
@@ -25,7 +35,7 @@
 | 9 | `GET /conductores/{id_conductor}/vehiculos/{id_vehiculo}` | Vehículos |
 | 10 | `POST /conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` | Habilitación |
 
-**Fuera de alcance (Iteración 2):** tipos de servicio del vehículo, documentación del vehículo, actualización de estado/disponibilidad, solicitudes, calificación del cliente, los 3 endpoints de M6 (solo consumidos), integraciones con M1/M4/M5/M6.
+**Fuera de alcance (Iteración 2):** acceso de cada conductor solo a sus propios datos, filtros del listado por ubicación y tipo de servicio, tipos de servicio del vehículo, documentación del vehículo, actualización de estado/disponibilidad, solicitudes, calificación del cliente, los 3 endpoints de M6 (solo consumidos), integraciones con M1/M4/M5/M6.
 
 ## Escenarios de Usuario y Pruebas *(obligatorio)*
 
@@ -43,7 +53,8 @@ Un operador registra un conductor con sus datos personales y puede listar los co
 2. **Dado** un conductor con un DNI ya registrado, **cuando** se intenta registrar otro con el mismo DNI, **entonces** se rechaza con conflicto (`409`).
 3. **Dado** datos inválidos (por ejemplo DNI con letras), **cuando** se intenta registrar, **entonces** se rechaza con error `{codigo, mensaje}`.
 4. **Dado** conductores existentes, **cuando** se consulta el listado, **entonces** se devuelven todos con sus datos y estado.
-5. **Dado** un id inexistente, **cuando** se consulta el conductor, **entonces** se responde "no encontrado" (`404`).
+5. **Dado** conductores en distintos estados, **cuando** se filtra por `habilitado`, `disponible` o `tipo_vehiculo`, **entonces** se devuelven solo los que cumplen el filtro (`habilitado=true` significa habilitación `APROBADA`).
+6. **Dado** un id inexistente, **cuando** se consulta el conductor, **entonces** se responde "no encontrado" (`404`).
 
 ---
 
@@ -53,14 +64,16 @@ Un operador autorizado revisa a un conductor y puede aprobar, observar, suspende
 
 **Por qué esta prioridad**: Un conductor sin habilitación aprobada no puede operar; es la regla de negocio central del módulo.
 
-**Prueba independiente**: Se prueba registrando un conductor, aplicándole acciones de habilitación y verificando estado e historial.
+**Prueba independiente**: Se prueba registrando un conductor, cargándole una licencia vigente, aplicándole acciones de habilitación y verificando estado e historial.
 
 **Escenarios de aceptación**:
 
-1. **Dado** un conductor `PENDIENTE`, **cuando** un operador lo aprueba con un motivo, **entonces** pasa a `APROBADA` y se registra un evento con motivo, operador y fecha.
-2. **Dado** una acción sin motivo, **cuando** se intenta aplicar, **entonces** se rechaza.
-3. **Dado** una transición no permitida entre estados, **cuando** se intenta aplicar, **entonces** se rechaza con conflicto (`409`).
-4. **Dado** un conductor con varias acciones aplicadas, **cuando** se consulta su habilitación, **entonces** se obtiene el estado actual y el historial completo en orden.
+1. **Dado** un conductor `PENDIENTE` con una licencia `VIGENTE` cargada, **cuando** un operador lo aprueba con un motivo, **entonces** pasa a `APROBADA` y se registra un evento con motivo, operador y fecha.
+2. **Dado** un conductor sin licencia `VIGENTE` cargada (sin licencia o con la licencia `VENCIDO`), **cuando** un operador intenta aprobarlo, **entonces** se rechaza con `422` y el estado no cambia.
+3. **Dado** una acción sin motivo, **cuando** se intenta aplicar, **entonces** se rechaza.
+4. **Dado** una transición no permitida entre estados (por ejemplo, cualquier acción sobre un conductor `RECHAZADA`, o `OBSERVAR` sobre uno `APROBADA`), **cuando** se intenta aplicar, **entonces** se rechaza con conflicto (`409`).
+5. **Dado** un conductor `APROBADA`, **cuando** un operador lo suspende con motivo y luego lo aprueba de nuevo, **entonces** ambas transiciones son válidas y quedan en el historial.
+6. **Dado** un conductor con varias acciones aplicadas, **cuando** se consulta su habilitación, **entonces** se obtiene el estado actual y el historial completo en orden.
 
 ---
 
@@ -113,7 +126,9 @@ El equipo levanta todo el entorno local con un único comando, con una base de d
 3. **Dado** cualquier configuración sensible, **cuando** se revisa el repositorio, **entonces** no hay credenciales ni claves versionadas.
 4. **Dado** una solicitud sin token o con un token inválido, **cuando** se invoca cualquier endpoint, **entonces** se responde `401`.
 5. **Dado** un usuario autenticado sin rol de operador, **cuando** intenta aplicar una acción de habilitación, **entonces** se responde `403`.
-6. **Dado** un operador autenticado, **cuando** aplica una acción de habilitación, **entonces** el evento queda registrado con su identificador.
+6. **Dado** un operador autenticado, **cuando** aplica una acción de habilitación, **entonces** el evento queda registrado con el `id_operador` numérico que trae su token.
+7. **Dado** un usuario autenticado con rol de conductor o de operador, **cuando** registra o consulta conductores, licencias y vehículos, **entonces** la operación se permite; solo las acciones de habilitación exigen el rol de operador.
+8. **Dado** un token de operador sin el atributo `id_operador`, **cuando** intenta aplicar una acción de habilitación, **entonces** se rechaza con `403`.
 
 ---
 
@@ -165,9 +180,9 @@ Una persona abre una única pantalla que muestra el listado de conductores obten
 
 - **FR-001**: El sistema DEBE permitir registrar un conductor con DNI (7 u 8 dígitos), nombre, apellido, teléfono y email, dejándolo con habilitación `PENDIENTE`, desconectado y no disponible.
 - **FR-002**: El sistema DEBE impedir DNI y patente duplicados, incluso ante solicitudes simultáneas, respondiendo conflicto (`409`).
-- **FR-003**: El sistema DEBE listar conductores y consultar uno por id, informando `404` cuando no existe.
+- **FR-003**: El sistema DEBE listar conductores, con los filtros `habilitado`, `disponible` y `tipo_vehiculo`, y consultar uno por id, informando `404` cuando no existe.
 - **FR-004**: El sistema DEBE permitir aprobar, observar, suspender o rechazar a un conductor y a un vehículo, con motivo obligatorio, registrando operador y fecha.
-- **FR-005**: El sistema DEBE rechazar transiciones de habilitación no permitidas con conflicto (`409`) y conservar el historial completo de eventos.
+- **FR-005**: El sistema DEBE aceptar solo las transiciones de habilitación de la matriz definida en Clarificaciones (`PENDIENTE` → `APROBADA`/`OBSERVADA`/`RECHAZADA`; `OBSERVADA` → `APROBADA`/`RECHAZADA`; `APROBADA` → `SUSPENDIDA`; `SUSPENDIDA` → `APROBADA`/`RECHAZADA`; `RECHAZADA` final), rechazar el resto con conflicto (`409`) y conservar el historial completo de eventos.
 - **FR-006**: El sistema DEBE permitir consultar el estado de habilitación del conductor junto con su historial.
 - **FR-007**: El sistema DEBE registrar la licencia del conductor y calcular su estado (`VIGENTE` o `VENCIDO`) según la fecha de vencimiento.
 - **FR-008**: El sistema DEBE permitir registrar vehículos de tipo `AUTO` o `MOTO` con al menos un tipo de servicio (`PASAJEROS`, `ENVIOS`), inicialmente sin habilitar, y listarlos y consultarlos por conductor.
@@ -180,7 +195,8 @@ Una persona abre una única pantalla que muestra el listado de conductores obten
 - **FR-015**: El proyecto DEBE incluir una justificación técnica breve del stack elegido y documentación versionada junto al código.
 - **FR-016**: La lógica de los 10 endpoints DEBE desarrollarse con TDD, alcanzando al menos 65–70% de cobertura sobre lo implementado.
 - **FR-017**: Todos los endpoints DEBEN exigir un token válido emitido por el servicio de identidad (`401` si falta o es inválido) y las acciones de habilitación DEBEN requerir el rol de operador (`403` si no lo tiene).
-- **FR-018**: El servicio de identidad DEBE levantarse con el entorno, con usuarios y roles de prueba (operador y conductor) cargados automáticamente.
+- **FR-018**: El servicio de identidad DEBE levantarse con el entorno, con usuarios y roles de prueba (operador y conductor) cargados automáticamente; los operadores de prueba DEBEN tener un atributo numérico `id_operador` incluido en su token.
+- **FR-019**: El sistema DEBE rechazar con `422` la aprobación de un conductor que no tiene una licencia `VIGENTE` cargada.
 
 ### Entidades Clave
 
