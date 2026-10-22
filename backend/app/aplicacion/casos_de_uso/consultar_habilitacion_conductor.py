@@ -1,7 +1,7 @@
+from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionResumen
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.errores import NoEncontrado
 
 
 class ConsultarHabilitacionConductor:
@@ -10,9 +10,10 @@ class ConsultarHabilitacionConductor:
 
     def ejecutar(self, *, id_conductor: int) -> HabilitacionResumen:
         with self._uow:
-            conductor = self._uow.conductores.obtener(id_conductor)
-            if conductor is None:
-                raise NoEncontrado(f"No existe el conductor {id_conductor}")
+            conductor = exigir_encontrado(
+                self._uow.conductores.obtener(id_conductor),
+                f"el conductor {id_conductor}",
+            )
             historial = self._uow.habilitaciones.historial_conductor(id_conductor)
             return HabilitacionResumen(
                 id_conductor=id_conductor,

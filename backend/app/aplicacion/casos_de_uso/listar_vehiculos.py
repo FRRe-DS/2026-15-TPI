@@ -1,5 +1,5 @@
+from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo, Vehiculo
 
@@ -16,8 +16,10 @@ class ListarVehiculos:
         habilitacion: EstadoHabilitacion | None = None,
     ) -> list[Vehiculo]:
         with self._uow:
-            if self._uow.conductores.obtener(id_conductor) is None:
-                raise NoEncontrado(f"No existe el conductor {id_conductor}")
+            exigir_encontrado(
+                self._uow.conductores.obtener(id_conductor),
+                f"el conductor {id_conductor}",
+            )
             return self._uow.vehiculos.listar_por_conductor(
                 id_conductor, tipo=tipo, habilitacion=habilitacion
             )
