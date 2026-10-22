@@ -25,6 +25,8 @@ from app.infraestructura.repositorios.sql_vehiculos import SqlRepositorioVehicul
 from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.integracion.sentencias import capturar_sentencias, selects
+
 PENDIENTE = EstadoHabilitacion.PENDIENTE
 APROBADA = EstadoHabilitacion.APROBADA
 AUTO = TipoVehiculo.AUTO
@@ -323,3 +325,133 @@ def test_listar_con_filtros_sin_coincidencias_devuelve_lista_vacia(repositorio, 
     repositorio.guardar(nuevo_vehiculo(id_conductor, "AAA111", AUTO))
 
     assert repositorio.listar_por_conductor(id_conductor, habilitacion=APROBADA) == []
+
+
+# --- listar_por_conductores (lote) ---
+
+
+def sembrar_flota(repositorio, sesion, conductores, vehiculos_por_conductor):
+    """Siembra y confirma conductores con vehiculos de 2 tipos de servicio; devuelve sus ids."""
+    ids = []
+    numero_de_patente = 0
+    for n in range(1, conductores + 1):
+        id_conductor = sembrar_conductor(sesion, f"3000{n:04d}")
+        ids.append(id_conductor)
+        for _ in range(vehiculos_por_conductor):
+            numero_de_patente += 1
+            repositorio.guardar(
+                nuevo_vehiculo(
+                    id_conductor, f"PAT{numero_de_patente:03d}", tipos_servicio=(PASAJEROS, ENVIOS)
+                )
+            )
+    sesion.commit()
+    return ids
+
+
+def test_listar_por_conductores_devuelve_una_clave_por_id_pedido_con_sus_vehiculos_y_servicios(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    con_vehiculos = sembrar_conductor(sesion_bd, "30000001")
+    sin_vehiculos = sembrar_conductor(sesion_bd, "30000002")
+    vehiculo = nuevo_vehiculo(con_vehiculos, "AAA111", MOTO, (PASAJEROS, ENVIOS))
+    vehiculo.tipos_servicio[1].habilitado = True  # ENVIOS habilitado, PASAJEROS no
+    repositorio.guardar(vehiculo)
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        resultado = SqlRepositorioVehiculos(otra_sesion).listar_por_conductores(
+            [con_vehiculos, sin_vehiculos]
+        )
+
+    assert set(resultado) == {con_vehiculos, sin_vehiculos}
+    assert resultado[sin_vehiculos] == []
+    [leido] = resultado[con_vehiculos]
+    assert isinstance(leido, Vehiculo)
+    assert (leido.patente, leido.tipo, leido.id_conductor) == ("AAA111", MOTO, con_vehiculos)
+    assert all(isinstance(s, ServicioDelVehiculo) for s in leido.tipos_servicio)
+    assert pares(leido) == {(PASAJEROS, False), (ENVIOS, True)}
+
+
+def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    uno = sembrar_conductor(sesion_bd, "30000001")
+    otro = sembrar_conductor(sesion_bd, "30000002")
+    altas = [(uno, "CCC333"), (otro, "XXX111"), (uno, "AAA111"), (otro, "YYY222")]
+    for id_conductor, patente in altas:
+        repositorio.guardar(nuevo_vehiculo(id_conductor, patente))
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        resultado = SqlRepositorioVehiculos(otra_sesion).listar_por_conductores([otro, uno])
+
+    assert patentes(resultado[uno]) == ["CCC333", "AAA111"]
+    assert patentes(resultado[otro]) == ["XXX111", "YYY222"]
+
+
+def test_listar_por_conductores_no_mezcla_los_ids_no_pedidos(repositorio, sesion_bd):
+    pedido = sembrar_conductor(sesion_bd, "30000001")
+    no_pedido = sembrar_conductor(sesion_bd, "30000002")
+    repositorio.guardar(nuevo_vehiculo(pedido, "PEDIDO1"))
+    repositorio.guardar(nuevo_vehiculo(no_pedido, "AJENO11"))
+
+    resultado = repositorio.listar_por_conductores([pedido])
+
+    assert set(resultado) == {pedido}
+    assert patentes(resultado[pedido]) == ["PEDIDO1"]
+
+
+def test_listar_por_conductores_sin_ids_devuelve_un_diccionario_vacio(repositorio, sesion_bd):
+    sembrar_flota(repositorio, sesion_bd, conductores=1, vehiculos_por_conductor=1)
+
+    assert repositorio.listar_por_conductores([]) == {}
+
+
+def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(repositorio):
+    assert repositorio.listar_por_conductores([998, 999]) == {998: [], 999: []}
+
+
+def test_el_lote_de_vehiculos_hace_una_cantidad_de_selects_que_no_crece_con_los_conductores(
+    repositorio, sesion_bd, fabrica_sesiones, engine_integracion
+):
+    ids = sembrar_flota(repositorio, sesion_bd, conductores=6, vehiculos_por_conductor=3)
+
+    def selects_para(ids_pedidos):
+        with fabrica_sesiones() as sesion_nueva:  # sesion sin objetos en cache
+            with capturar_sentencias(engine_integracion) as sentencias:
+                SqlRepositorioVehiculos(sesion_nueva).listar_por_conductores(ids_pedidos)
+        return len(selects(sentencias))
+
+    con_2_conductores = selects_para(ids[:2])
+    con_6_conductores = selects_para(ids)
+
+    assert con_2_conductores == con_6_conductores
+    assert con_6_conductores <= 2
+
+
+def test_listar_por_conductor_hace_una_cantidad_constante_de_selects_sin_n_mas_1(
+    repositorio, sesion_bd, fabrica_sesiones, engine_integracion
+):
+    con_un_vehiculo = sembrar_conductor(sesion_bd, "30000001")
+    con_cinco_vehiculos = sembrar_conductor(sesion_bd, "30000002")
+    repositorio.guardar(
+        nuevo_vehiculo(con_un_vehiculo, "UNO0001", tipos_servicio=(PASAJEROS, ENVIOS))
+    )
+    for n in range(5):
+        repositorio.guardar(
+            nuevo_vehiculo(con_cinco_vehiculos, f"CIN000{n}", tipos_servicio=(PASAJEROS, ENVIOS))
+        )
+    sesion_bd.commit()
+
+    def selects_para(id_conductor):
+        with fabrica_sesiones() as sesion_nueva:  # sesion sin objetos en cache
+            with capturar_sentencias(engine_integracion) as sentencias:
+                resultado = SqlRepositorioVehiculos(sesion_nueva).listar_por_conductor(id_conductor)
+                assert all(len(v.tipos_servicio) == 2 for v in resultado)
+        return len(selects(sentencias))
+
+    con_uno = selects_para(con_un_vehiculo)
+    con_cinco = selects_para(con_cinco_vehiculos)
+
+    assert con_uno == con_cinco
+    assert con_cinco <= 2

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -50,3 +52,16 @@ class SqlRepositorioDocumentos(RepositorioDocumentos):
             .order_by(DocumentoOrm.id_documento)
         )
         return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]
+
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Documento]]:
+        por_conductor: dict[int, list[Documento]] = {id_: [] for id_ in ids_conductor}
+        if not por_conductor:
+            return por_conductor
+        consulta = (
+            select(DocumentoOrm)
+            .where(DocumentoOrm.id_conductor.in_(list(por_conductor)))
+            .order_by(DocumentoOrm.id_documento)
+        )
+        for fila in self._sesion.scalars(consulta):
+            por_conductor[fila.id_conductor].append(_a_dominio(fila))
+        return por_conductor

@@ -24,10 +24,10 @@ class RepositorioVehiculos(ABC):
     ) -> list[Vehiculo]:
         """Lista los vehículos del conductor que cumplen los filtros indicados."""
 
+    @abstractmethod
     def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
         """Lista por lote los vehículos de varios conductores, en una sola consulta.
 
         Devuelve una clave por cada id pedido (lista vacía si no tiene vehículos), cada lista
         en orden de alta; con una secuencia vacía devuelve {}.
         """
-        raise NotImplementedError

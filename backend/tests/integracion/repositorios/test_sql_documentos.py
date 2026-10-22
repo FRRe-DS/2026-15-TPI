@@ -20,6 +20,8 @@ from app.infraestructura.repositorios.sql_documentos import SqlRepositorioDocume
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
+from tests.integracion.sentencias import capturar_sentencias, selects
+
 HOY = date(2026, 6, 15)
 URL = "https://almacen.example.com/licencias/lic.pdf"
 
@@ -185,3 +187,100 @@ def test_guardar_para_un_conductor_inexistente_propaga_el_integrity_error_de_la_
     guardado = repositorio.guardar(id_conductor, nueva_licencia("LIC-VALIDA"))
     assert numeros(repositorio.listar_por_conductor(id_conductor)) == ["LIC-VALIDA"]
     assert guardado.id is not None
+
+
+# --- listar_por_conductores (lote) ---
+
+
+def sembrar_conductores_con_documentos(repositorio, sesion, conductores, documentos_por_conductor):
+    """Siembra y confirma conductores con documentos; devuelve los ids de los conductores."""
+    ids = []
+    for n in range(1, conductores + 1):
+        id_conductor = sembrar_conductor(sesion, f"3000{n:04d}")
+        ids.append(id_conductor)
+        for k in range(documentos_por_conductor):
+            repositorio.guardar(id_conductor, nueva_licencia(f"LIC-{n}-{k}"))
+    sesion.commit()
+    return ids
+
+
+def test_listar_por_conductores_devuelve_una_clave_por_id_pedido_con_sus_documentos(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    con_documento = sembrar_conductor(sesion_bd, "30000001")
+    sin_documentos = sembrar_conductor(sesion_bd, "30000002")
+    repositorio.guardar(con_documento, nueva_licencia("LIC-1", categoria=None, vencimiento=HOY))
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        resultado = SqlRepositorioDocumentos(otra_sesion).listar_por_conductores(
+            [con_documento, sin_documentos]
+        )
+
+    assert set(resultado) == {con_documento, sin_documentos}
+    assert resultado[sin_documentos] == []
+    [leido] = resultado[con_documento]
+    assert isinstance(leido, Documento)
+    assert leido.tipo is TipoDocumento.LICENCIA
+    assert leido.categoria is None
+    assert type(leido.fecha_emision) is date
+    assert type(leido.fecha_vencimiento) is date
+    assert leido.fecha_vencimiento == HOY
+    assert leido.estado_al(HOY) is EstadoDocumento.VIGENTE
+
+
+def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    uno = sembrar_conductor(sesion_bd, "30000001")
+    otro = sembrar_conductor(sesion_bd, "30000002")
+    altas = [(uno, "LIC-C"), (otro, "LIC-X"), (uno, "LIC-A"), (otro, "LIC-Y")]
+    for id_conductor, numero in altas:
+        repositorio.guardar(id_conductor, nueva_licencia(numero))
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        resultado = SqlRepositorioDocumentos(otra_sesion).listar_por_conductores([otro, uno])
+
+    assert numeros(resultado[uno]) == ["LIC-C", "LIC-A"]
+    assert numeros(resultado[otro]) == ["LIC-X", "LIC-Y"]
+
+
+def test_listar_por_conductores_no_mezcla_los_ids_no_pedidos(repositorio, sesion_bd):
+    pedido = sembrar_conductor(sesion_bd, "30000001")
+    no_pedido = sembrar_conductor(sesion_bd, "30000002")
+    repositorio.guardar(pedido, nueva_licencia("LIC-PEDIDA"))
+    repositorio.guardar(no_pedido, nueva_licencia("LIC-AJENA"))
+
+    resultado = repositorio.listar_por_conductores([pedido])
+
+    assert set(resultado) == {pedido}
+    assert numeros(resultado[pedido]) == ["LIC-PEDIDA"]
+
+
+def test_listar_por_conductores_sin_ids_devuelve_un_diccionario_vacio(repositorio, sesion_bd):
+    sembrar_conductores_con_documentos(repositorio, sesion_bd, 1, 1)
+
+    assert repositorio.listar_por_conductores([]) == {}
+
+
+def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(repositorio):
+    assert repositorio.listar_por_conductores([998, 999]) == {998: [], 999: []}
+
+
+def test_el_lote_de_documentos_hace_una_cantidad_de_selects_que_no_crece_con_los_conductores(
+    repositorio, sesion_bd, fabrica_sesiones, engine_integracion
+):
+    ids = sembrar_conductores_con_documentos(repositorio, sesion_bd, 6, 3)
+
+    def selects_para(ids_pedidos):
+        with fabrica_sesiones() as sesion_nueva:  # sesion sin objetos en cache
+            with capturar_sentencias(engine_integracion) as sentencias:
+                SqlRepositorioDocumentos(sesion_nueva).listar_por_conductores(ids_pedidos)
+        return len(selects(sentencias))
+
+    con_2_conductores = selects_para(ids[:2])
+    con_6_conductores = selects_para(ids)
+
+    assert con_2_conductores == con_6_conductores
+    assert con_6_conductores <= 1

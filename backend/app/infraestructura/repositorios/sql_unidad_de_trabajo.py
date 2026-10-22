@@ -2,7 +2,7 @@ from types import TracebackType
 from typing import Self
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, selectinload, sessionmaker
 
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.conductor import Conductor
@@ -68,6 +68,7 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
                 VehiculoOrm.id_vehiculo == id_vehiculo,
                 VehiculoOrm.id_conductor == id_conductor,
             )
+            .options(selectinload(VehiculoOrm.tipos_servicio))
             .with_for_update()
         )
         fila = self._sesion.scalars(consulta).first()

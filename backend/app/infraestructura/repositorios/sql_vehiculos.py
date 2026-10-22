@@ -1,6 +1,8 @@
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.dominio.errores import NoEncontrado, PatenteDuplicada
@@ -75,9 +77,13 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
         return vehiculo
 
     def obtener(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
-        consulta = select(VehiculoOrm).where(
-            VehiculoOrm.id_vehiculo == id_vehiculo,
-            VehiculoOrm.id_conductor == id_conductor,
+        consulta = (
+            select(VehiculoOrm)
+            .where(
+                VehiculoOrm.id_vehiculo == id_vehiculo,
+                VehiculoOrm.id_conductor == id_conductor,
+            )
+            .options(selectinload(VehiculoOrm.tipos_servicio))
         )
         fila = self._sesion.scalars(consulta).first()
         return None if fila is None else a_dominio(fila)
@@ -93,12 +99,27 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
             select(VehiculoOrm)
             .where(VehiculoOrm.id_conductor == id_conductor)
             .order_by(VehiculoOrm.id_vehiculo)
+            .options(selectinload(VehiculoOrm.tipos_servicio))
         )
         if tipo is not None:
             consulta = consulta.where(VehiculoOrm.tipo == tipo.value)
         if habilitacion is not None:
             consulta = consulta.where(VehiculoOrm.estado_habilitacion == habilitacion.value)
         return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
+
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
+        por_conductor: dict[int, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
+        if not por_conductor:
+            return por_conductor
+        consulta = (
+            select(VehiculoOrm)
+            .where(VehiculoOrm.id_conductor.in_(list(por_conductor)))
+            .order_by(VehiculoOrm.id_vehiculo)
+            .options(selectinload(VehiculoOrm.tipos_servicio))
+        )
+        for fila in self._sesion.scalars(consulta):
+            por_conductor[fila.id_conductor].append(a_dominio(fila))
+        return por_conductor
 
     def _fila_a_guardar(self, vehiculo: Vehiculo) -> VehiculoOrm:
         if vehiculo.id is None:
