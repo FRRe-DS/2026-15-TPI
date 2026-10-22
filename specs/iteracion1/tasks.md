@@ -88,8 +88,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [X] T029 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_vehiculos.py` hasta que pase T028
 - [X] T030 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: devuelve el vehículo con `documentos` vacío; un vehículo de otro conductor lanza `NoEncontrado`
 - [X] T031 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` hasta que pase T030
-- [ ] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
-- [ ] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
+- [X] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
+- [X] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
 
 ### PR `feat/s1-repositorios-sql`
 

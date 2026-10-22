@@ -44,3 +44,10 @@ class DocumentoDeConductor:
 class VehiculoDetalle:
     vehiculo: Vehiculo
     documentos: list = field(default_factory=list)
+
+
+@dataclass
+class HabilitacionVehiculoEventos:
+    id_vehiculo: int
+    estado: EstadoHabilitacion
+    eventos: list[EventoHabilitacion]
