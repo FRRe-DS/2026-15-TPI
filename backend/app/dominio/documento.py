@@ -4,6 +4,7 @@ from enum import Enum
 from urllib.parse import urlparse
 
 from app.dominio.errores import DatosInvalidos
+from app.dominio.validaciones import exigir_texto
 
 
 class TipoDocumento(Enum):
@@ -41,8 +42,7 @@ class Documento:
         fecha_vencimiento: date,
         url_archivo: str,
     ) -> "Documento":
-        if not numero.strip():
-            raise DatosInvalidos("El número del documento es obligatorio")
+        exigir_texto("numero", numero)
         if fecha_vencimiento <= fecha_emision:
             raise DatosInvalidos(
                 "La fecha de vencimiento debe ser posterior a la de emisión"

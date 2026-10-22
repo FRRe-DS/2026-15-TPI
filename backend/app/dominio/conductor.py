@@ -3,14 +3,10 @@ from dataclasses import dataclass
 
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
+from app.dominio.validaciones import exigir_texto
 
 PATRON_DNI = re.compile(r"[0-9]{7,8}")
 PATRON_EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
-
-
-def _exigir_texto(campo: str, valor: str) -> None:
-    if not valor.strip():
-        raise DatosInvalidos(f"El campo {campo} es obligatorio")
 
 
 @dataclass
@@ -31,9 +27,9 @@ class Conductor:
     ) -> "Conductor":
         if not PATRON_DNI.fullmatch(dni):
             raise DatosInvalidos("El DNI debe tener 7 u 8 dígitos")
-        _exigir_texto("nombre", nombre)
-        _exigir_texto("apellido", apellido)
-        _exigir_texto("telefono", telefono)
+        exigir_texto("nombre", nombre)
+        exigir_texto("apellido", apellido)
+        exigir_texto("telefono", telefono)
         if not PATRON_EMAIL.fullmatch(email):
             raise DatosInvalidos("El email no tiene un formato válido")
         return cls(
