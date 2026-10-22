@@ -63,7 +63,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [X] T010 [S1] [US4] Test (Red) `backend/tests/unitarios/dominio/test_vehiculo.py`: `tipo` `AUTO` o `MOTO`; al menos un tipo de servicio (`PASAJEROS`/`ENVIOS`) sin repetidos; el vehículo inicia en `PENDIENTE` con todos sus tipos de servicio con `habilitado` falso; `patente`, `marca`, `modelo` obligatorios y `anio` entero
 - [X] T011 [S1] [US4] Impl (Green) `backend/app/dominio/vehiculo.py` hasta que pase T010
 - [X] T012 [P] [S1] Crear los puertos de [contracts/casos-de-uso.md](./contracts/casos-de-uso.md) como clases abstractas, sin lógica: `backend/app/aplicacion/puertos/` con `repositorio_conductores.py`, `repositorio_vehiculos.py`, `repositorio_documentos.py`, `repositorio_habilitaciones.py`, `unidad_de_trabajo.py` y `reloj.py`
-- [ ] T013 [S1] Test + Impl `backend/tests/unitarios/fakes/` (`repositorios_en_memoria.py`, `reloj_fijo.py`, `test_fakes.py`): repositorios en memoria que implementan los puertos y lanzan `DniDuplicado` y `PatenteDuplicada` igual que lo hará la base; el test se escribe primero
+- [X] T013 [S1] Test + Impl `backend/tests/unitarios/fakes/` (`repositorios_en_memoria.py`, `reloj_fijo.py`, `test_fakes.py`): repositorios en memoria que implementan los puertos y lanzan `DniDuplicado` y `PatenteDuplicada` igual que lo hará la base; el test se escribe primero
 
 ### PR `feat/s1-casos-de-uso-conductor`
 
