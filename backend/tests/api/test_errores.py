@@ -1,4 +1,3 @@
-
 import pytest
 from app.api.errores import ErrorAPI, registrar_manejadores
 from app.dominio.errores import (

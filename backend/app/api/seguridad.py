@@ -64,7 +64,8 @@ def requerir_usuario(
         raise no_autenticado()
 
     token = credentials.credentials
-    emisor = f"{settings.KEYCLOAK_URL.rstrip('/')}/realms/{settings.KEYCLOAK_REALM}"
+    url_publica = settings.KEYCLOAK_PUBLIC_URL or settings.KEYCLOAK_URL
+    emisor = f"{url_publica.rstrip('/')}/realms/{settings.KEYCLOAK_REALM}"
 
     try:
         signing_key = jwks.get_signing_key_from_jwt(token)

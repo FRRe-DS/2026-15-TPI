@@ -1,4 +1,4 @@
-from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
+from app.aplicacion.casos_de_uso.encontrado import exigir_vehiculo
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionVehiculoEventos
 from app.aplicacion.puertos.reloj import Reloj
@@ -21,9 +21,8 @@ class AccionarHabilitacionVehiculo:
         id_operador: int,
     ) -> HabilitacionVehiculoEventos:
         with self._uow:
-            vehiculo = exigir_encontrado(
-                self._uow.bloquear_vehiculo(id_conductor, id_vehiculo),
-                f"el vehiculo {id_vehiculo} del conductor {id_conductor}",
+            vehiculo = exigir_vehiculo(
+                self._uow.bloquear_vehiculo(id_conductor, id_vehiculo), id_conductor, id_vehiculo
             )
             evento = aplicar_accion(
                 vehiculo.habilitacion,

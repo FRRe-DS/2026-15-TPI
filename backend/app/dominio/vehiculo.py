@@ -52,10 +52,7 @@ class Vehiculo:
         exigir_texto("modelo", modelo)
         if not _es_entero(anio):
             raise DatosInvalidos("El año debe ser un número entero")
-        if not tipos_servicio:
-            raise DatosInvalidos("Se requiere al menos un tipo de servicio")
-        if len(set(tipos_servicio)) != len(tipos_servicio):
-            raise DatosInvalidos("Los tipos de servicio no pueden repetirse")
+        _exigir_tipos_servicio_distintos(tipos_servicio)
         return cls(
             tipo=tipo,
             patente=patente,
@@ -68,3 +65,10 @@ class Vehiculo:
 
 def _es_entero(valor: object) -> bool:
     return isinstance(valor, int) and not isinstance(valor, bool)
+
+
+def _exigir_tipos_servicio_distintos(tipos_servicio: list[TipoServicio]) -> None:
+    if not tipos_servicio:
+        raise DatosInvalidos("Se requiere al menos un tipo de servicio")
+    if len(set(tipos_servicio)) != len(tipos_servicio):
+        raise DatosInvalidos("Los tipos de servicio no pueden repetirse")

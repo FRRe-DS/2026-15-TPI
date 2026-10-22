@@ -11,6 +11,7 @@ ese tipo; los filtros se combinan con AND. Cada ConductorDetalle trae los docume
 conductor como DocumentoConEstado (estado calculado con `reloj.hoy()`) y sus vehiculos.
 """
 
+from collections import defaultdict
 from datetime import UTC, date, datetime
 
 import pytest
@@ -234,3 +235,80 @@ def test_el_estado_de_los_documentos_sigue_al_reloj(uow):
 
     assert antes.documentos[0].estado is EstadoDocumento.VIGENTE
     assert despues.documentos[0].estado is EstadoDocumento.VENCIDO
+
+
+# --- Consultas por lote (sin N+1) ---
+
+
+class UnidadDeTrabajoEspia(UnidadDeTrabajoEnMemoria):
+    """Cuenta las llamadas a los metodos de listado de vehiculos y documentos."""
+
+    def __init__(self):
+        super().__init__()
+        self.llamadas = defaultdict(list)
+        for nombre_repo in ("vehiculos", "documentos"):
+            repositorio = getattr(self, nombre_repo)
+            for metodo in ("listar_por_conductor", "listar_por_conductores"):
+                setattr(
+                    repositorio,
+                    metodo,
+                    self._espiar(f"{nombre_repo}.{metodo}", getattr(repositorio, metodo)),
+                )
+
+    def _espiar(self, nombre, original):
+        def espia(*args, **kwargs):
+            self.llamadas[nombre].append(args)
+            return original(*args, **kwargs)
+
+        return espia
+
+
+def test_listar_hace_una_consulta_por_lote_de_vehiculos_y_otra_de_documentos_sin_n_mas_1():
+    uow = UnidadDeTrabajoEspia()
+    conductores = [guardar_conductor(uow, f"3000000{n}") for n in range(1, 5)]
+    uno, dos, tres, cuatro = conductores
+    guardar_vehiculo(uow, uno.id, "UNO-B")
+    guardar_vehiculo(uow, uno.id, "UNO-A")
+    guardar_licencia(uow, uno.id, "UNO-VENCE-HOY", HOY)
+    guardar_licencia(uow, uno.id, "UNO-VENCIDA", date(2026, 6, 14))
+    guardar_vehiculo(uow, tres.id, "TRES-A")
+    guardar_licencia(uow, tres.id, "TRES-FUTURA", date(2029, 1, 1))
+    for patente in ("CUATRO-C", "CUATRO-A", "CUATRO-B"):
+        guardar_vehiculo(uow, cuatro.id, patente)
+
+    resultado = ListarConductores(uow, RelojFijo(AHORA)).ejecutar()
+
+    llamadas = uow.llamadas
+    assert len(llamadas["vehiculos.listar_por_conductores"]) == 1
+    assert len(llamadas["documentos.listar_por_conductores"]) == 1
+    assert llamadas["vehiculos.listar_por_conductor"] == []
+    assert llamadas["documentos.listar_por_conductor"] == []
+    ids_de_los_lotes = [
+        sorted(llamadas["vehiculos.listar_por_conductores"][0][0]),
+        sorted(llamadas["documentos.listar_por_conductores"][0][0]),
+    ]
+    assert ids_de_los_lotes == [sorted(c.id for c in conductores)] * 2
+
+    assert dnis(resultado) == ["30000001", "30000002", "30000003", "30000004"]
+    assert [[(d.documento.numero, d.estado) for d in x.documentos] for x in resultado] == [
+        [("UNO-VENCE-HOY", EstadoDocumento.VIGENTE), ("UNO-VENCIDA", EstadoDocumento.VENCIDO)],
+        [],
+        [("TRES-FUTURA", EstadoDocumento.VIGENTE)],
+        [],
+    ]
+    assert [[v.patente for v in x.vehiculos] for x in resultado] == [
+        ["UNO-B", "UNO-A"],
+        [],
+        ["TRES-A"],
+        ["CUATRO-C", "CUATRO-A", "CUATRO-B"],
+    ]
+    assert dos.id == resultado[1].conductor.id
+
+
+def test_listar_sin_conductores_no_consulta_vehiculos_ni_documentos_por_conductor():
+    uow = UnidadDeTrabajoEspia()
+
+    assert ListarConductores(uow, RelojFijo(AHORA)).ejecutar() == []
+
+    assert uow.llamadas["vehiculos.listar_por_conductor"] == []
+    assert uow.llamadas["documentos.listar_por_conductor"] == []

@@ -1,5 +1,6 @@
 import copy
-from dataclasses import dataclass, field
+from collections.abc import Sequence
+from dataclasses import dataclass, field, replace
 from types import TracebackType
 from typing import Self
 
@@ -26,6 +27,8 @@ class _Estado:
     documentos: dict[int, tuple[int, Documento]] = field(default_factory=dict)
     eventos_conductor: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
     eventos_vehiculo: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
+    ultimo_id_evento_conductor: int = 0
+    ultimo_id_evento_vehiculo: int = 0
 
     def reemplazar_por(self, otro: "_Estado") -> None:
         self.__dict__.update(otro.__dict__)
@@ -113,6 +116,13 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
             and (habilitacion is None or v.habilitacion is habilitacion)
         ]
 
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
+        por_conductor: dict[int, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
+        for vehiculo in self._estado.vehiculos.values():
+            if vehiculo.id_conductor in por_conductor:
+                por_conductor[vehiculo.id_conductor].append(vehiculo)
+        return por_conductor
+
 
 class RepositorioDocumentosEnMemoria(RepositorioDocumentos):
     def __init__(self, estado: _Estado) -> None:
@@ -131,16 +141,29 @@ class RepositorioDocumentosEnMemoria(RepositorioDocumentos):
             if dueno == id_conductor
         ]
 
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Documento]]:
+        por_conductor: dict[int, list[Documento]] = {id_: [] for id_ in ids_conductor}
+        for dueno, documento in self._estado.documentos.values():
+            if dueno in por_conductor:
+                por_conductor[dueno].append(documento)
+        return por_conductor
+
 
 class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
 
     def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
-        self._estado.eventos_conductor.setdefault(id_conductor, []).append(evento)
+        self._estado.ultimo_id_evento_conductor += 1
+        self._estado.eventos_conductor.setdefault(id_conductor, []).append(
+            replace(evento, id=self._estado.ultimo_id_evento_conductor)
+        )
 
     def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
-        self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(evento)
+        self._estado.ultimo_id_evento_vehiculo += 1
+        self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(
+            replace(evento, id=self._estado.ultimo_id_evento_vehiculo)
+        )
 
     def historial_conductor(self, id_conductor: int) -> list[EventoHabilitacion]:
         return list(self._estado.eventos_conductor.get(id_conductor, []))

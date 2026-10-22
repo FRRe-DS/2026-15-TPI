@@ -77,9 +77,7 @@ def test_motivo_vacio_responde_400(client, headers_operador) -> None:
 
 
 def test_conductor_inexistente_responde_404(client, casos, headers_operador) -> None:
-    casos["accionar_habilitacion_conductor"].error = NoEncontrado(
-        "No existe el conductor 1"
-    )
+    casos["accionar_habilitacion_conductor"].error = NoEncontrado("No existe el conductor 1")
 
     respuesta = client.post(
         URL,

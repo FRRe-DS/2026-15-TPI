@@ -221,3 +221,11 @@ def test_operador_autorizado_puede_habilitar(
 
     assert respuesta.status_code == 200
     assert respuesta.json() == {"id_operador": 12}
+
+
+def test_acepta_emisor_publico_con_jwks_interno(client_protegido, crear_token, monkeypatch):
+    monkeypatch.setenv("KEYCLOAK_URL", "http://keycloak:8080")
+    monkeypatch.setenv("KEYCLOAK_PUBLIC_URL", "http://localhost:8081")
+    token = crear_token(iss="http://localhost:8081/realms/m3")
+    respuesta = client_protegido.get("/api/v1/comun", headers={"Authorization": f"Bearer {token}"})
+    assert respuesta.status_code == 200
