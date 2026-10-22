@@ -82,14 +82,14 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s1-casos-de-uso-vehiculo`
 
-- [ ] T026 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_vehiculo.py`: crea en `PENDIENTE` con tipos de servicio sin habilitar y evento `ALTA`; `PatenteDuplicada`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` sin tipos de servicio
-- [ ] T027 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_vehiculo.py` hasta que pase T026
-- [ ] T028 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_vehiculos.py`: solo los del conductor; filtros `tipo` y `habilitacion`; `NoEncontrado` si el conductor no existe
-- [ ] T029 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_vehiculos.py` hasta que pase T028
-- [ ] T030 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: devuelve el vehículo con `documentos` vacío; un vehículo de otro conductor lanza `NoEncontrado`
-- [ ] T031 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` hasta que pase T030
-- [ ] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
-- [ ] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
+- [X] T026 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_vehiculo.py`: crea en `PENDIENTE` con tipos de servicio sin habilitar y evento `ALTA`; `PatenteDuplicada`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` sin tipos de servicio
+- [X] T027 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_vehiculo.py` hasta que pase T026
+- [X] T028 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_vehiculos.py`: solo los del conductor; filtros `tipo` y `habilitacion`; `NoEncontrado` si el conductor no existe
+- [X] T029 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_vehiculos.py` hasta que pase T028
+- [X] T030 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: devuelve el vehículo con `documentos` vacío; un vehículo de otro conductor lanza `NoEncontrado`
+- [X] T031 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` hasta que pase T030
+- [X] T032 [S1] [US4] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: matriz de transiciones del vehículo; sin regla de licencia; vehículo de otro conductor lanza `NoEncontrado`; guarda el evento con el `id_operador`
+- [X] T033 [S1] [US4] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py` hasta que pase T032
 
 ### PR `feat/s1-repositorios-sql`
 

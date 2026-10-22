@@ -1,9 +1,10 @@
+from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionEventos
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.documento import EstadoDocumento
-from app.dominio.errores import LicenciaVigenteRequerida, NoEncontrado
+from app.dominio.errores import LicenciaVigenteRequerida
 from app.dominio.habilitacion import AccionHabilitacion, aplicar_accion
 
 
@@ -21,9 +22,10 @@ class AccionarHabilitacionConductor:
         id_operador: int,
     ) -> HabilitacionEventos:
         with self._uow:
-            conductor = self._uow.bloquear_conductor(id_conductor)
-            if conductor is None:
-                raise NoEncontrado(f"No existe el conductor {id_conductor}")
+            conductor = exigir_encontrado(
+                self._uow.bloquear_conductor(id_conductor),
+                f"el conductor {id_conductor}",
+            )
             evento = aplicar_accion(
                 conductor.habilitacion,
                 accion,

@@ -1,10 +1,10 @@
 from datetime import date
 
+from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
 from app.aplicacion.casos_de_uso.resultados import DocumentoDeConductor
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.documento import Documento, TipoDocumento
-from app.dominio.errores import NoEncontrado
 
 
 class RegistrarLicencia:
@@ -23,8 +23,10 @@ class RegistrarLicencia:
         url_archivo: str,
     ) -> DocumentoDeConductor:
         with self._uow:
-            if self._uow.conductores.obtener(id_conductor) is None:
-                raise NoEncontrado(f"No existe el conductor {id_conductor}")
+            exigir_encontrado(
+                self._uow.conductores.obtener(id_conductor),
+                f"el conductor {id_conductor}",
+            )
             documento = Documento.crear(
                 tipo=TipoDocumento.LICENCIA,
                 numero=numero,
