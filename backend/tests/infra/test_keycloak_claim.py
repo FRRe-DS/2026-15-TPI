@@ -26,14 +26,15 @@ pytestmark = pytest.mark.integration
 
 def _realm_para_prueba(destino: Path) -> Path:
     contenido = REALM.read_text(encoding="utf-8")
-    for variable, valor in {
+    reemplazos = {
         "KEYCLOAK_M3_CLIENT_SECRET": SECRETO_CLIENTE,
         "M3_OPERADOR_PASSWORD": CLAVE_OPERADOR,
         "M3_CONDUCTOR_PASSWORD": CLAVE_CONDUCTOR,
-    }.items():
+    }
+    for variable, valor in reemplazos.items():
         contenido = contenido.replace(f"${{{variable}}}", valor)
 
-    assert "${" not in contenido
+    assert all(f"${{{variable}}}" not in contenido for variable in reemplazos)
     destino.write_text(contenido, encoding="utf-8")
     return destino
 
