@@ -43,7 +43,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 11. [Integración con otros módulos](#integración-con-otros-módulos)
 12. [Cómo trabajamos](#cómo-trabajamos)
 13. [Estado de la Iteración 1](#estado-de-la-iteración-1)
-14. [Pendientes](#pendientes)
+14. [Pendientes](#pendientes) 
 
 ---
 
@@ -418,3 +418,95 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 | **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
 
 Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, viajes) corresponden a la **Iteración 2**.
+| `400` | Solicitud mal formada |
+| `401` | Token ausente o inválido |
+| `403` | Sin permisos |
+| `404` | Recurso inexistente |
+| `409` | Duplicado o transición inválida |
+| `410` | Oferta vencida |
+| `422` | Incumple una regla de negocio |
+| `500` | Error interno |
+
+---
+
+## Arranque rápido (M3)
+
+El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levanta con Docker Compose.
+
+1. Copiar el archivo de variables y completar **todos** los valores vacíos. No commitear `infra/.env`.
+
+   ```bash
+   cd infra
+   cp .env.example .env
+   ```
+
+   Generar claves con `openssl rand -hex 32`. Se recomienda hexadecimal para que las contraseñas puedan usarse sin URL-encoding dentro de `DATABASE_URL` (el compose la compone a partir de `M3_DB_PASSWORD`).
+
+2. Levantar el stack (la primera vez compila la imagen de la API):
+
+   ```bash
+   docker compose --env-file .env -f docker-compose.yml up --build
+   ```
+
+   El orden está garantizado por healthchecks: PostgreSQL → Keycloak y migraciones → seed → API. El seed es idempotente y puede volver a ejecutarse sin duplicar datos.
+
+3. Verificar los servicios:
+
+   | Servicio | URL / puerto |
+   |---|---|
+   | API (salud) | http://localhost:8080/salud |
+   | Keycloak | http://localhost:8081 (realm `m3`) |
+   | PostgreSQL | localhost:5432 |
+
+   Obtener un token de prueba del operador (cliente confidencial con password grant). Cargar primero las variables en la shell:
+
+   ```bash
+   set -a
+   . ./.env
+   set +a
+   curl -s -X POST http://localhost:8081/realms/m3/protocol/openid-connect/token \
+     -d grant_type=password \
+     -d client_id=m3-api \
+     -d client_secret="$KEYCLOAK_M3_CLIENT_SECRET" \
+     -d username=operador.m3 \
+     -d password="$M3_OPERADOR_PASSWORD"
+   ```
+
+4. Ejecutar las pruebas de infraestructura (requieren Docker para las marcadas como `integration`). Desde `infra`:
+
+   ```bash
+   cd ../backend
+   uv sync --all-groups
+   uv run pytest tests/infra
+   ```
+
+5. Detener el stack. Volver a `infra`:
+
+   ```bash
+   cd ../infra
+   docker compose --env-file .env -f docker-compose.yml down
+   ```
+
+   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose --env-file .env -f docker-compose.yml down -v`.
+
+Para ejecutar migraciones o el seed manualmente contra una base existente, desde la raíz del repositorio:
+
+```bash
+cd backend
+export DATABASE_URL="postgresql+psycopg://m3:CLAVE@localhost:5432/m3"
+uv run alembic -c ../infra/migraciones/alembic.ini upgrade head
+uv run python ../infra/seed/cargar_datos.py
+```
+
+### Verificación pendiente con Docker
+
+El código, el esquema, las migraciones (DDL offline), el seed (simulación) y las pruebas estáticas ya fueron validados. En el entorno de desarrollo usado para preparar esta entrega **no había un daemon de Docker operativo**, por lo que quedan pendientes de ejecutar:
+
+- `docker compose --env-file .env -f docker-compose.yml config` para comprobar la interpolación de variables.
+- El build de `backend/Dockerfile` y del tag temporal `m3-backend:local`.
+- La inicialización de PostgreSQL y el script `infra/postgres/init/01-crear-bases.sh` (creación de roles, bases y revocación de `CONNECT`).
+- `alembic upgrade head` y `alembic downgrade base` contra PostgreSQL real.
+- La ejecución real del seed y su segunda ejecución para confirmar la idempotencia en PostgreSQL.
+- La importación de `realm-m3.json` en Keycloak, la sustitución de `${...}` y la obtención de un token con `operador.m3`.
+- Los healthchecks de Keycloak (puerto de administración 9000) y de la API, y el orden `postgres → keycloak/migraciones → seed → API`.
+- Los 15 tests marcados como `integration` (Testcontainers), omitidos automáticamente al no detectar Docker.
