@@ -67,8 +67,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s1-casos-de-uso-conductor`
 
-- [ ] T014 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_crear_conductor.py`: crea con habilitación `PENDIENTE` y evento `ALTA` (`estado_anterior` nulo, `id_operador` nulo); `DniDuplicado` si el DNI ya existe; `DatosInvalidos` con datos inválidos
-- [ ] T015 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/crear_conductor.py` hasta que pase T014
+- [X] T014 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_crear_conductor.py`: crea con habilitación `PENDIENTE` y evento `ALTA` (`estado_anterior` nulo, `id_operador` nulo); `DniDuplicado` si el DNI ya existe; `DatosInvalidos` con datos inválidos
+- [X] T015 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/crear_conductor.py` hasta que pase T014
 - [ ] T016 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: sin filtros devuelve todos; `habilitado=true` solo con habilitación `APROBADA` y `habilitado=false` con cualquier otro estado; `disponible`; `tipo_vehiculo` (al menos un vehículo de ese tipo); filtros combinados; lista vacía sin error
 - [ ] T017 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` hasta que pase T016
 - [ ] T018 [S1] [US1] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py`: devuelve el conductor con sus documentos (estado calculado) y vehículos resumidos; `NoEncontrado` si no existe
