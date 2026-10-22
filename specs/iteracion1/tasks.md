@@ -194,8 +194,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `test/s4-contrato-openapi`
 
-- [ ] T094 [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_ejemplos.py`: cada cuerpo de petición y cada respuesta `2xx` de las 10 operaciones del alcance tiene al menos un `example`; cada respuesta de error (`400`, `401`, `403`, `404`, `409`, `422`) declarada en esas operaciones tiene un ejemplo `{codigo, mensaje}` con un código del catálogo de [contracts/errores.md](./contracts/errores.md); rutas y nombres consistentes (plural, sin tildes ni espacios)
-- [ ] T095 [S4] [US6] Impl (Green) `docs/contract/openapi.yaml`: agregar los ejemplos y corregir las inconsistencias que marque T094, solo en las 10 operaciones del alcance (no se tocan las de la Iteración 2 ni las de M6). Es un punto de sincronización: va en su propia PR y se avisa a S1, S2 y S5 antes de mergear
+- [x] T094 [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_ejemplos.py`: cada cuerpo de petición y cada respuesta `2xx` de las 10 operaciones del alcance tiene al menos un `example`; cada respuesta de error (`400`, `401`, `403`, `404`, `409`, `422`) declarada en esas operaciones tiene un ejemplo `{codigo, mensaje}` con un código del catálogo de [contracts/errores.md](./contracts/errores.md); rutas y nombres consistentes (plural, sin tildes ni espacios)
+- [x] T095 [S4] [US6] Impl (Green) `docs/contract/openapi.yaml`: agregar los ejemplos y corregir las inconsistencias que marque T094, solo en las 10 operaciones del alcance (no se tocan las de la Iteración 2 ni las de M6). Es un punto de sincronización: va en su propia PR y se avisa a S1, S2 y S5 antes de mergear
 
 ### PR `test/s4-ci`
 
