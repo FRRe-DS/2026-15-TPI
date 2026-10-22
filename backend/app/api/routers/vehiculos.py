@@ -48,9 +48,7 @@ def crear_vehiculo(
         tipos_servicio=[TipoServicioDominio(tipo.value) for tipo in datos.tipos_serv],
     )
     creado = vehiculo_desde_dominio(detalle.vehiculo)
-    response.headers["Location"] = (
-        f"/api/v1/conductores/{id_conductor}/vehiculos/{creado.id}"
-    )
+    response.headers["Location"] = f"/api/v1/conductores/{id_conductor}/vehiculos/{creado.id}"
     return creado
 
 
@@ -69,9 +67,7 @@ def listar_vehiculos(
         id_conductor=id_conductor,
         tipo=TipoVehiculoDominio(tipo.value) if tipo is not None else None,
         habilitacion=(
-            EstadoHabilitacionDominio(habilitacion.value)
-            if habilitacion is not None
-            else None
+            EstadoHabilitacionDominio(habilitacion.value) if habilitacion is not None else None
         ),
     )
     return [vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in vehiculos]

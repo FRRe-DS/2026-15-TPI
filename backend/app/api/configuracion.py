@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     ``ValidationError`` indicando el nombre exacto del campo faltante.
     """
 
+    KEYCLOAK_PUBLIC_URL: str | None = None
     KEYCLOAK_URL: str
     KEYCLOAK_REALM: str
     DATABASE_URL: str

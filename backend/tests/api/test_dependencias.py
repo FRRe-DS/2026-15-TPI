@@ -1,8 +1,6 @@
 """Pruebas del cableado de casos de uso con la unidad de trabajo (T074)."""
 
-import sys
-import types
-from typing import Any
+from unittest.mock import Mock
 
 from app.api import dependencias
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
@@ -21,6 +19,8 @@ from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
+from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
+from sqlalchemy.orm import Session
 
 CASOS = [
     (dependencias.obtener_caso_crear_conductor, CrearConductor),
@@ -49,36 +49,7 @@ class _UnidadDeTrabajoFalsa:
     """Sustituto de la unidad de trabajo de S1."""
 
 
-class _SesionFalsa:
-    def __init__(self) -> None:
-        self.cerrada = False
-
-    def close(self) -> None:
-        self.cerrada = True
-
-
-def _instalar_unidad_de_trabajo_sql(monkeypatch) -> type:
-    """Registra un módulo falso con la unidad de trabajo de S1."""
-
-    modulo = types.ModuleType(
-        "app.infraestructura.repositorios.sql_unidad_de_trabajo"
-    )
-
-    class UnidadDeTrabajoSQL:
-        def __init__(self, sesion: Any) -> None:
-            self.sesion = sesion
-
-    modulo.UnidadDeTrabajoSQL = UnidadDeTrabajoSQL
-    monkeypatch.setitem(
-        sys.modules,
-        "app.infraestructura.repositorios.sql_unidad_de_trabajo",
-        modulo,
-    )
-    return UnidadDeTrabajoSQL
-
-
-def test_construye_cada_caso_de_uso_con_la_unidad_de_trabajo(monkeypatch) -> None:
-    _instalar_unidad_de_trabajo_sql(monkeypatch)
+def test_construye_cada_caso_de_uso_con_la_unidad_de_trabajo() -> None:
 
     for proveedor, esperado in CASOS:
         caso = proveedor(_UnidadDeTrabajoFalsa())
@@ -87,17 +58,19 @@ def test_construye_cada_caso_de_uso_con_la_unidad_de_trabajo(monkeypatch) -> Non
 
 
 def test_entrega_la_unidad_de_trabajo_y_cierra_la_sesion(monkeypatch) -> None:
-    unidad_de_trabajo_sql = _instalar_unidad_de_trabajo_sql(monkeypatch)
-    sesion = _SesionFalsa()
-    monkeypatch.setattr(dependencias, "_fabrica_de_sesiones", lambda: lambda: sesion)
+    sesion = Mock(spec=Session)
+    fabrica = Mock(return_value=sesion)
+    monkeypatch.setattr(dependencias, "_fabrica_de_sesiones", lambda: fabrica)
 
     generador = dependencias.obtener_unidad_de_trabajo()
     unidad = next(generador)
+    assert isinstance(unidad, SqlUnidadDeTrabajo)
+    fabrica.assert_not_called()
 
-    assert isinstance(unidad, unidad_de_trabajo_sql)
-    assert unidad.sesion is sesion
-    assert not sesion.cerrada
+    with unidad:
+        fabrica.assert_called_once_with()
+        sesion.close.assert_not_called()
 
+    sesion.rollback.assert_called_once_with()
+    sesion.close.assert_called_once_with()
     generador.close()
-
-    assert sesion.cerrada

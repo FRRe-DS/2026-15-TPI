@@ -44,9 +44,7 @@ def test_consulta_estado_e_historial(client, casos, headers_conductor) -> None:
 
 
 def test_conductor_inexistente_responde_404(client, casos, headers_conductor) -> None:
-    casos["consultar_habilitacion_conductor"].error = NoEncontrado(
-        "No existe el conductor 1"
-    )
+    casos["consultar_habilitacion_conductor"].error = NoEncontrado("No existe el conductor 1")
 
     respuesta = client.get(URL, headers=headers_conductor)
 

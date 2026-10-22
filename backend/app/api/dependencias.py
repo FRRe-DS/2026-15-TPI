@@ -1,8 +1,8 @@
 """Proveedores de dependencias de la API.
 
 Cada caso de uso se construye con una unidad de trabajo respaldada por una
-sesión de SQLAlchemy y el reloj del sistema. La sesión se cierra al terminar
-el request. Los tests reemplazan estos proveedores mediante
+fábrica de sesiones de SQLAlchemy y el reloj del sistema. La unidad abre y
+cierra una sesión en cada transacción. Los tests reemplazan estos proveedores mediante
 ``app.dependency_overrides``.
 """
 
@@ -36,11 +36,6 @@ from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.infraestructura.db.sesion import crear_sessionmaker
 
-MENSAJE_SIN_REPOSITORIOS = (
-    "No están disponibles los repositorios SQL de S1 (T035, T037 y T039). "
-    "Integrá la PR feat/s1-repositorios-sql para ejecutar la API contra la base."
-)
-
 
 class RelojDelSistema(Reloj):
     def ahora(self) -> datetime:
@@ -57,19 +52,10 @@ def _fabrica_de_sesiones() -> sessionmaker[Session]:
 
 
 def obtener_unidad_de_trabajo() -> Iterator[UnidadDeTrabajo]:
-    """Entrega la unidad de trabajo del request y cierra su sesión al final."""
-    try:
-        from app.infraestructura.repositorios.sql_unidad_de_trabajo import (
-            UnidadDeTrabajoSQL,
-        )
-    except ImportError as exc:
-        raise RuntimeError(MENSAJE_SIN_REPOSITORIOS) from exc
+    """Entrega una unidad que administra su sesión por transacción."""
+    from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 
-    sesion = _fabrica_de_sesiones()()
-    try:
-        yield UnidadDeTrabajoSQL(sesion)
-    finally:
-        sesion.close()
+    yield SqlUnidadDeTrabajo(_fabrica_de_sesiones())
 
 
 UnidadDeTrabajoInyectada = Annotated[
