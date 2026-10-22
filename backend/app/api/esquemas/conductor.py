@@ -49,10 +49,6 @@ class ConductorConUbicacion(Conductor):
 
 def conductor_desde_detalle(
     detalle: ConductorDetalle,
-    *,
-    latitud: float | None = None,
-    longitud: float | None = None,
-    fecha_act_ubic: datetime | None = None,
 ) -> ConductorConUbicacion:
     conductor = detalle.conductor
     assert conductor.id is not None, "El conductor debe estar persistido"
@@ -71,9 +67,9 @@ def conductor_desde_detalle(
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
         conectado=conductor.conectado,
         disponible=conductor.disponible,
-        latitud=latitud,
-        longitud=longitud,
-        fecha_act_ubic=fecha_act_ubic,
+        latitud=conductor.latitud,
+        longitud=conductor.longitud,
+        fecha_act_ubic=conductor.fecha_act_ubic,
     )
 
 

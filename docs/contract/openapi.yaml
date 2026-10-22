@@ -84,7 +84,7 @@ paths:
     get:
       tags: [Conductores]
       summary: Listar conductores
-      description: Filtros opcionales. Con latitud y longitud ordena por cercanía y excluye ubicaciones vencidas.
+      description: Filtros opcionales de disponibilidad, habilitación y tipo de vehículo. Devuelve la ubicación persistida y su fecha, o null si no existe. En esta iteración latitud, longitud y tipo_servicio se aceptan pero no filtran ni ordenan; no se aplica vencimiento de ubicación.
       operationId: listarConductores
       parameters:
         - name: latitud

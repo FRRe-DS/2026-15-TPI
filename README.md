@@ -413,11 +413,11 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 | Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
 |---|---|---|
 | **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | La ubicación (`latitud`, `longitud`, `fecha_act_ubic`) aparece en `GET /conductores`, `GET /conductores/{id}` y `PATCH /conductores/{id}/estado`. | ⚠️ *Por definir.* |
+| **M4 - Ubicación y Disponibilidad** | Lectura de `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic` en los GET de conductores. | M4 consulta la API autenticada; M3 devuelve los valores persistidos. |
 | **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
 | **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
 
-Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, viajes) corresponden a la **Iteración 2**.
+Las actualizaciones de estado y ubicación, las solicitudes y los viajes corresponden a la **Iteración 2**. La lectura de disponibilidad y ubicación ya está disponible en los GET existentes.
 | `400` | Solicitud mal formada |
 | `401` | Token ausente o inválido |
 | `403` | Sin permisos |
@@ -426,6 +426,17 @@ Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, vi
 | `410` | Oferta vencida |
 | `422` | Incumple una regla de negocio |
 | `500` | Error interno |
+
+### Lecturas para M4
+
+Con un JWT de nuestro realm que tenga rol `conductor` u `operador`:
+
+- `GET /api/v1/conductores?disponible=true&habilitado=true`: lista los conductores disponibles y aprobados. Puede combinarse con `tipo_vehiculo=AUTO` o `MOTO`.
+- `GET /api/v1/conductores/{id_conductor}`: consulta un conductor por su ID entero; un ID inexistente responde `404`.
+
+Ambos devuelven `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic`. Las coordenadas y la fecha salen de PostgreSQL; cuando no están registradas se devuelve `null`. La fecha indica cuándo se registró la ubicación, no cuándo se hizo el GET. Este cambio solo permite leer: no actualiza posiciones ni aplica vencimiento, distancias, cercanía o ETA. Los parámetros de búsqueda `latitud` y `longitud` siguen sin ordenar ni filtrar.
+
+El [esquema preliminar del grupo de M4](https://github.com/FRRe-DS/2026-03-TPI/blob/main/app/schemas/schemas.py) usa otros nombres: `conductor_id`, `lat_conductor`, `lon_conductor` y `tipo_v`. Al consumir M3 deben mapearlos desde `id`, `latitud`, `longitud` y el tipo del vehículo correspondiente en `vehiculos`. M3 usa IDs enteros; su esquema preliminar declara UUID y requiere ajustar ese tipo en M4. No hay una integración ejecutable en ese repositorio que permita verificar todavía el cliente de M4. Las ubicaciones nulas deben tratarse como desconocidas, nunca como `(0, 0)`.
 
 ---
 

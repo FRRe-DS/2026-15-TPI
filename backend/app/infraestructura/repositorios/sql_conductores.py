@@ -27,6 +27,9 @@ def a_dominio(fila: ConductorOrm) -> Conductor:
         conectado=fila.conectado,
         disponible=fila.disponible,
         id=fila.id_conductor,
+        latitud=fila.latitud,
+        longitud=fila.longitud,
+        fecha_act_ubic=fila.fecha_act_ubic,
     )
 
 
