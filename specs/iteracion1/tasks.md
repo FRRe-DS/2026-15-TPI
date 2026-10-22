@@ -199,7 +199,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `test/s4-ci`
 
-- [ ] T096 [S4] [US6] Crear `.github/workflows/ci.yml` que corre en cada PR: `ruff check` y `ruff format --check`; pruebas unitarias y de API con `--cov-fail-under=65`; integración, contrato y concurrencia con Docker; validación de `openapi.yaml`; y, si existe `frontend/package.json`, lint y pruebas del frontend
+- [x] T096 [S4] [US6] Crear `.github/workflows/ci.yml` que corre en cada PR: `ruff check` y `ruff format --check`; pruebas unitarias y de API con `--cov-fail-under=65`; integración, contrato y concurrencia con Docker; validación de `openapi.yaml`; y, si existe `frontend/package.json`, lint y pruebas del frontend
 
 ### PR `test/s4-fixture-integracion`
 
