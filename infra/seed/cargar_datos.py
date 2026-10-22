@@ -11,7 +11,7 @@ Uso:
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,9 +34,10 @@ from app.infraestructura.db.modelos import (  # noqa: E402
 from app.infraestructura.db.sesion import crear_engine, crear_sessionmaker  # noqa: E402
 
 FECHA_BASE = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
-FECHA_EMISION = datetime(2024, 1, 1, 0, 0, tzinfo=UTC)
-FECHA_VIGENTE = datetime(2035, 12, 31, 0, 0, tzinfo=UTC)
-FECHA_VENCIDA = datetime(2020, 12, 31, 0, 0, tzinfo=UTC)
+FECHA_EMISION = date(2024, 1, 1)
+FECHA_EMISION_VENCIDA = date(2016, 1, 1)
+FECHA_VIGENTE = date(2035, 12, 31)
+FECHA_VENCIDA = date(2020, 12, 31)
 ID_OPERADOR_SEED = 101
 
 CONDUCTORES: tuple[dict[str, Any], ...] = (
@@ -112,16 +113,14 @@ DOCUMENTOS: tuple[dict[str, Any], ...] = (
         "categoria": "B1",
         "fecha_emision": FECHA_EMISION,
         "fecha_vencimiento": FECHA_VIGENTE,
-        "estado": "VIGENTE",
         "url_archivo": "https://documentos.m3.local/licencias/30111222.pdf",
     },
     {
         "dni_conductor": "28444555",
         "numero": "LIC-28444555",
         "categoria": "A2",
-        "fecha_emision": FECHA_EMISION,
+        "fecha_emision": FECHA_EMISION_VENCIDA,
         "fecha_vencimiento": FECHA_VENCIDA,
-        "estado": "VENCIDO",
         "url_archivo": "https://documentos.m3.local/licencias/28444555.pdf",
     },
     {
@@ -130,7 +129,6 @@ DOCUMENTOS: tuple[dict[str, Any], ...] = (
         "categoria": "B1",
         "fecha_emision": FECHA_EMISION,
         "fecha_vencimiento": FECHA_VIGENTE,
-        "estado": "VIGENTE",
         "url_archivo": "https://documentos.m3.local/licencias/35777888.pdf",
     },
 )
@@ -141,7 +139,7 @@ EVENTOS_CONDUCTOR: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
     {
@@ -157,7 +155,7 @@ EVENTOS_CONDUCTOR: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
     {
@@ -173,7 +171,7 @@ EVENTOS_CONDUCTOR: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
 )
@@ -184,7 +182,7 @@ EVENTOS_VEHICULO: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
     {
@@ -200,7 +198,7 @@ EVENTOS_VEHICULO: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
     {
@@ -208,7 +206,7 @@ EVENTOS_VEHICULO: tuple[dict[str, Any], ...] = (
         "estado_anterior": None,
         "estado_nuevo": "PENDIENTE",
         "accion": "ALTA",
-        "motivo": None,
+        "motivo": "Alta inicial registrada por el sistema.",
         "id_operador": None,
     },
 )
