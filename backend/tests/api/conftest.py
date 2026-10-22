@@ -248,6 +248,15 @@ PROVEEDORES = (
 )
 
 
+def _devolver(caso: CasoDeUsoFalso):
+    """Crea un proveedor sin parámetros que siempre devuelve el mismo caso."""
+
+    def proveedor() -> CasoDeUsoFalso:
+        return caso
+
+    return proveedor
+
+
 @pytest.fixture
 def client(
     casos: dict[str, CasoDeUsoFalso],
@@ -258,8 +267,9 @@ def client(
     app = crear_app()
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
     for nombre, proveedor in PROVEEDORES:
-        caso = casos[nombre]
-        app.dependency_overrides[proveedor] = lambda caso=caso: caso
+        # Sin argumentos: FastAPI copia los valores por defecto de los
+        # parámetros y devolvería una copia del caso de uso.
+        app.dependency_overrides[proveedor] = _devolver(casos[nombre])
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

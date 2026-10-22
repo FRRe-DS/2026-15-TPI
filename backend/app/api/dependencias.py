@@ -1,13 +1,20 @@
 """Proveedores de dependencias de la API.
 
-En esta PR quedan declarados los puntos de inyección de los casos de uso.
-El cableado con los repositorios SQL y la sesión se completa en T074
-(``feat/s2-endpoints-vehiculo``), cuando S1 y S3 estén integrados.
-Mientras tanto, los tests de la API reemplazan estos proveedores por
-simulados mediante ``app.dependency_overrides``.
+Cada caso de uso se construye con una unidad de trabajo respaldada por una
+fábrica de sesiones de SQLAlchemy y el reloj del sistema. La unidad abre y
+cierra una sesión en cada transacción. Los tests reemplazan estos proveedores mediante
+``app.dependency_overrides``.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterator
+from datetime import UTC, date, datetime
+from functools import lru_cache
+from typing import Annotated
+
+from fastapi import Depends
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
     AccionarHabilitacionConductor,
@@ -25,50 +32,93 @@ from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
+from app.aplicacion.puertos.reloj import Reloj
+from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
+from app.infraestructura.db.sesion import crear_sessionmaker
 
 
-def _pendiente(nombre: str) -> RuntimeError:
-    return RuntimeError(
-        f"El caso de uso {nombre} todavía no está cableado. "
-        "Se completa en T074 cuando estén disponibles los repositorios SQL de S1."
-    )
+class RelojDelSistema(Reloj):
+    def ahora(self) -> datetime:
+        return datetime.now(UTC)
+
+    def hoy(self) -> date:
+        return self.ahora().date()
 
 
-def obtener_caso_crear_conductor() -> CrearConductor:
-    raise _pendiente("crear_conductor")
+@lru_cache(maxsize=1)
+def _fabrica_de_sesiones() -> sessionmaker[Session]:
+    """Crea una única fábrica de sesiones por proceso."""
+    return crear_sessionmaker()
 
 
-def obtener_caso_listar_conductores() -> ListarConductores:
-    raise _pendiente("listar_conductores")
+def obtener_unidad_de_trabajo() -> Iterator[UnidadDeTrabajo]:
+    """Entrega una unidad que administra su sesión por transacción."""
+    from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
+
+    yield SqlUnidadDeTrabajo(_fabrica_de_sesiones())
 
 
-def obtener_caso_obtener_conductor() -> ObtenerConductor:
-    raise _pendiente("obtener_conductor")
+UnidadDeTrabajoInyectada = Annotated[
+    UnidadDeTrabajo,
+    Depends(obtener_unidad_de_trabajo),
+]
 
 
-def obtener_caso_consultar_habilitacion_conductor() -> ConsultarHabilitacionConductor:
-    raise _pendiente("consultar_habilitacion_conductor")
+def obtener_caso_crear_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> CrearConductor:
+    return CrearConductor(uow, RelojDelSistema())
 
 
-def obtener_caso_accionar_habilitacion_conductor() -> AccionarHabilitacionConductor:
-    raise _pendiente("accionar_habilitacion_conductor")
+def obtener_caso_listar_conductores(
+    uow: UnidadDeTrabajoInyectada,
+) -> ListarConductores:
+    return ListarConductores(uow, RelojDelSistema())
 
 
-def obtener_caso_registrar_licencia() -> RegistrarLicencia:
-    raise _pendiente("registrar_licencia")
+def obtener_caso_obtener_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> ObtenerConductor:
+    return ObtenerConductor(uow, RelojDelSistema())
 
 
-def obtener_caso_registrar_vehiculo() -> RegistrarVehiculo:
-    raise _pendiente("registrar_vehiculo")
+def obtener_caso_consultar_habilitacion_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> ConsultarHabilitacionConductor:
+    return ConsultarHabilitacionConductor(uow)
 
 
-def obtener_caso_listar_vehiculos() -> ListarVehiculos:
-    raise _pendiente("listar_vehiculos")
+def obtener_caso_accionar_habilitacion_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> AccionarHabilitacionConductor:
+    return AccionarHabilitacionConductor(uow, RelojDelSistema())
 
 
-def obtener_caso_obtener_vehiculo() -> ObtenerVehiculo:
-    raise _pendiente("obtener_vehiculo")
+def obtener_caso_registrar_licencia(
+    uow: UnidadDeTrabajoInyectada,
+) -> RegistrarLicencia:
+    return RegistrarLicencia(uow, RelojDelSistema())
 
 
-def obtener_caso_accionar_habilitacion_vehiculo() -> AccionarHabilitacionVehiculo:
-    raise _pendiente("accionar_habilitacion_vehiculo")
+def obtener_caso_registrar_vehiculo(
+    uow: UnidadDeTrabajoInyectada,
+) -> RegistrarVehiculo:
+    return RegistrarVehiculo(uow, RelojDelSistema())
+
+
+def obtener_caso_listar_vehiculos(
+    uow: UnidadDeTrabajoInyectada,
+) -> ListarVehiculos:
+    return ListarVehiculos(uow)
+
+
+def obtener_caso_obtener_vehiculo(
+    uow: UnidadDeTrabajoInyectada,
+) -> ObtenerVehiculo:
+    return ObtenerVehiculo(uow)
+
+
+def obtener_caso_accionar_habilitacion_vehiculo(
+    uow: UnidadDeTrabajoInyectada,
+) -> AccionarHabilitacionVehiculo:
+    return AccionarHabilitacionVehiculo(uow, RelojDelSistema())
