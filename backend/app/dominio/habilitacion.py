@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
@@ -50,6 +50,7 @@ class EventoHabilitacion:
     motivo: str
     id_operador: int | None
     fecha: datetime
+    id: int | None = field(default=None, compare=False)
 
 
 def aplicar_accion(

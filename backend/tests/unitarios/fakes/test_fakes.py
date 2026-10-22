@@ -427,6 +427,24 @@ def test_historial_sin_eventos_devuelve_lista_vacia(uow):
     assert uow.habilitaciones.historial_vehiculo(1) == []
 
 
+def test_los_eventos_del_historial_traen_id_incremental_por_tipo_de_entidad(uow):
+    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-primero"))
+    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-primero"))
+    uow.habilitaciones.registrar_evento_conductor(2, nuevo_evento("c2-primero"))
+    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-segundo"))
+    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-segundo"))
+
+    ids_conductor_1 = [e.id for e in uow.habilitaciones.historial_conductor(1)]
+    ids_conductor_2 = [e.id for e in uow.habilitaciones.historial_conductor(2)]
+    ids_vehiculo_1 = [e.id for e in uow.habilitaciones.historial_vehiculo(1)]
+
+    # la numeracion es por tipo de entidad (como dos tablas) y sigue el orden de registro
+    assert ids_conductor_1 == [1, 3]
+    assert ids_conductor_2 == [2]
+    assert ids_vehiculo_1 == [1, 2]
+    assert all(type(i) is int for i in ids_conductor_1 + ids_conductor_2 + ids_vehiculo_1)
+
+
 # --- Unidad de trabajo: bloqueo y transaccion ---
 
 

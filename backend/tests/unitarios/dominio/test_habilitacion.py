@@ -5,6 +5,7 @@ Firma bajo prueba:
 El evento expone: accion, estado_anterior, estado_nuevo, motivo, id_operador, fecha.
 """
 
+import dataclasses
 import itertools
 from datetime import UTC, datetime
 
@@ -109,3 +110,35 @@ def test_rechaza_motivo_vacio_o_solo_espacios(motivo):
             id_operador=ID_OPERADOR,
             fecha=FECHA,
         )
+
+
+# --- Identidad del evento (caracterizacion: pasan de entrada, sin fase Red) ---
+# El id lo asigna el repositorio al persistir; el dominio no lo usa para comparar eventos.
+
+
+def test_el_evento_nuevo_no_tiene_id_hasta_que_se_persiste():
+    evento = aplicar_accion(
+        estado_actual=PENDIENTE,
+        accion=APROBAR,
+        motivo="Documentacion revisada",
+        id_operador=ID_OPERADOR,
+        fecha=FECHA,
+    )
+
+    assert evento.id is None
+
+
+def test_dos_eventos_que_solo_difieren_en_el_id_son_iguales():
+    evento = aplicar_accion(
+        estado_actual=PENDIENTE,
+        accion=APROBAR,
+        motivo="Documentacion revisada",
+        id_operador=ID_OPERADOR,
+        fecha=FECHA,
+    )
+
+    con_id = dataclasses.replace(evento, id=5)
+
+    assert con_id.id == 5
+    assert con_id == evento
+    assert dataclasses.replace(evento, id=6) == con_id

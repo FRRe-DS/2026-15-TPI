@@ -362,3 +362,29 @@ def test_los_tipos_de_servicio_siguen_sin_habilitar_tras_aprobar(accionar, uow):
 
     guardado = uow.vehiculos.obtener(conductor.id, vehiculo.id)
     assert [s.habilitado for s in guardado.tipos_servicio] == [False, False]
+
+
+def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_alta(accionar, uow):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+    sembrar_evento_de_alta(uow, vehiculo.id)
+
+    accionar.ejecutar(
+        id_conductor=conductor.id,
+        id_vehiculo=vehiculo.id,
+        accion=APROBAR,
+        motivo=MOTIVO,
+        id_operador=ID_OPERADOR,
+    )
+    resultado = accionar.ejecutar(
+        id_conductor=conductor.id,
+        id_vehiculo=vehiculo.id,
+        accion=SUSPENDER,
+        motivo=MOTIVO,
+        id_operador=ID_OPERADOR,
+    )
+
+    ids = [evento.id for evento in resultado.eventos]
+    assert len(ids) == 3
+    assert all(id_evento is not None for id_evento in ids)
+    assert ids == sorted(set(ids))  # distintos y crecientes: el alta primero, el nuevo ultimo

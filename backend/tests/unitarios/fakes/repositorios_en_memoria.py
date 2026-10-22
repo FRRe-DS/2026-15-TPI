@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import TracebackType
 from typing import Self
 
@@ -27,6 +27,8 @@ class _Estado:
     documentos: dict[int, tuple[int, Documento]] = field(default_factory=dict)
     eventos_conductor: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
     eventos_vehiculo: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
+    ultimo_id_evento_conductor: int = 0
+    ultimo_id_evento_vehiculo: int = 0
 
     def reemplazar_por(self, otro: "_Estado") -> None:
         self.__dict__.update(otro.__dict__)
@@ -152,10 +154,16 @@ class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
         self._estado = estado
 
     def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
-        self._estado.eventos_conductor.setdefault(id_conductor, []).append(evento)
+        self._estado.ultimo_id_evento_conductor += 1
+        self._estado.eventos_conductor.setdefault(id_conductor, []).append(
+            replace(evento, id=self._estado.ultimo_id_evento_conductor)
+        )
 
     def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
-        self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(evento)
+        self._estado.ultimo_id_evento_vehiculo += 1
+        self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(
+            replace(evento, id=self._estado.ultimo_id_evento_vehiculo)
+        )
 
     def historial_conductor(self, id_conductor: int) -> list[EventoHabilitacion]:
         return list(self._estado.eventos_conductor.get(id_conductor, []))
