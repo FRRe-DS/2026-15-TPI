@@ -205,12 +205,14 @@ El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levan
    uv run pytest tests/infra
    ```
 
-5. Detener el stack. `-v` elimina también el volumen de PostgreSQL y fuerza la re-inicialización de las bases. Volver a `infra`:
+5. Detener el stack. Volver a `infra`:
 
    ```bash
    cd ../infra
    docker compose --env-file .env -f docker-compose.yml down
    ```
+
+   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose --env-file .env -f docker-compose.yml down -v`.
 
 Para ejecutar migraciones o el seed manualmente contra una base existente, desde la raíz del repositorio:
 
