@@ -1,0 +1,14 @@
+# Contexto de build: sólo se necesitan pyproject.toml, uv.lock, app e infra.
+.git
+.gitignore
+.dockerignore
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.coverage
+**/htmlcov
+infra/.env
+*.pdf
+README.md

@@ -6,7 +6,7 @@ from collections.abc import Iterator
 
 import pytest
 from app.infraestructura.db.modelos import Base
-from sqlalchemy import CheckConstraint, UniqueConstraint, create_engine, text
+from sqlalchemy import CheckConstraint, Date, UniqueConstraint, create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
@@ -69,6 +69,40 @@ def test_checks_de_estados_tipos_y_acciones_en_el_metadata() -> None:
     for accion in ("ALTA", "APROBAR", "OBSERVAR", "SUSPENDER", "RECHAZAR"):
         assert accion in checks_evento_conductor
         assert accion in checks_evento_vehiculo
+
+
+def test_documento_sin_estado_con_fechas_date_y_solo_licencia() -> None:
+    documento = Base.metadata.tables["documento_conductor"]
+
+    assert "estado" not in documento.c
+    assert isinstance(documento.c.fecha_emision.type, Date)
+    assert isinstance(documento.c.fecha_vencimiento.type, Date)
+
+    checks = _checks("documento_conductor")
+    assert "'LICENCIA'" in checks
+    assert "'SEGURO'" not in checks
+    assert "fecha_vencimiento > fecha_emision" in checks
+
+
+def test_eventos_con_motivo_obligatorio_y_fk_restrict() -> None:
+    for nombre in (
+        "habilitacion_evento_conductor",
+        "habilitacion_evento_vehiculo",
+    ):
+        tabla = Base.metadata.tables[nombre]
+        assert tabla.c.motivo.nullable is False
+        checks = _checks(nombre)
+        assert "length(trim(motivo)) > 0" in checks
+        assert "accion = 'ALTA'" not in checks
+        assert all(fk.ondelete == "RESTRICT" for fk in tabla.foreign_keys)
+
+
+def test_conductor_tiene_ubicacion_opcional() -> None:
+    conductor = Base.metadata.tables["conductor"]
+
+    for columna in ("latitud", "longitud", "fecha_act_ubic"):
+        assert columna in conductor.c
+        assert conductor.c[columna].nullable is True
 
 
 def test_defaults_de_habilitacion_y_estado_operativo_en_el_metadata() -> None:
@@ -140,6 +174,31 @@ def test_postgres_contiene_todas_las_tablas(m3_migrada: str) -> None:
 
     assert TABLAS <= tablas
     assert "alembic_version" in tablas
+
+
+@pytest.mark.integration
+def test_postgres_documento_sin_estado_y_eventos_restrict(m3_migrada: str) -> None:
+    from sqlalchemy import inspect
+
+    engine = create_engine(m3_migrada)
+    try:
+        inspector = inspect(engine)
+        documento = {
+            columna["name"]: columna for columna in inspector.get_columns("documento_conductor")
+        }
+        assert "estado" not in documento
+        assert isinstance(documento["fecha_emision"]["type"], Date)
+        assert isinstance(documento["fecha_vencimiento"]["type"], Date)
+
+        for tabla in ("habilitacion_evento_conductor", "habilitacion_evento_vehiculo"):
+            motivo = next(
+                columna for columna in inspector.get_columns(tabla) if columna["name"] == "motivo"
+            )
+            assert motivo["nullable"] is False
+            claves = inspector.get_foreign_keys(tabla)
+            assert all(clave["options"].get("ondelete") == "RESTRICT" for clave in claves)
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.integration

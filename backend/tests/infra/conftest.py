@@ -7,6 +7,8 @@ esquema y del realm corren siempre.
 
 from __future__ import annotations
 
+import importlib.util
+import os
 import time
 import uuid
 from collections.abc import Iterator
@@ -21,8 +23,10 @@ from psycopg import sql
 from sqlalchemy import URL
 
 RAIZ = Path(__file__).resolve().parents[3]
+BACKEND = RAIZ / "backend"
 ALEMBIC_INI = RAIZ / "infra" / "migraciones" / "alembic.ini"
 INIT_SCRIPT = RAIZ / "infra" / "postgres" / "init" / "01-crear-bases.sh"
+SEED = RAIZ / "infra" / "seed" / "cargar_datos.py"
 
 POSTGRES_IMAGE = "postgres:17.11-alpine"
 SUPERUSER = "postgres"
@@ -219,3 +223,16 @@ def base_temporal_migrada(base_temporal: str) -> str:
     aplicar_migraciones(base_temporal)
     return base_temporal
 
+
+@pytest.fixture(scope="session")
+def seed_module() -> Any:
+    """Importa infra/seed/cargar_datos.py como módulo ejecutable."""
+
+    if str(BACKEND) not in os.sys.path:
+        os.sys.path.insert(0, str(BACKEND))
+    spec = importlib.util.spec_from_file_location("m3_seed", SEED)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("No se pudo cargar el script de seed.")
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    return modulo
