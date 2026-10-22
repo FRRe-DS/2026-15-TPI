@@ -17,7 +17,6 @@ Los fakes se comportan como los repositorios SQL (T034-T039) frente a los puerto
 from datetime import UTC, date, datetime
 
 import pytest
-
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
@@ -35,6 +34,7 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -155,9 +155,7 @@ def test_guardar_de_nuevo_un_conductor_existente_lo_actualiza_sin_duplicar(uow):
     actualizado = uow.conductores.guardar(conductor)
 
     assert actualizado.id == conductor.id
-    assert uow.conductores.obtener(conductor.id).habilitacion is (
-        EstadoHabilitacion.APROBADA
-    )
+    assert uow.conductores.obtener(conductor.id).habilitacion is (EstadoHabilitacion.APROBADA)
     assert len(uow.conductores.listar()) == 1
 
 
@@ -238,18 +236,12 @@ def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_
 
 def test_listar_conductores_combina_los_filtros(uow):
     aprobado_disponible = uow.conductores.guardar(
-        nuevo_conductor(
-            dni="30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True
-        )
+        nuevo_conductor(dni="30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True)
     )
     aprobado_no_disponible = uow.conductores.guardar(
-        nuevo_conductor(
-            dni="30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False
-        )
+        nuevo_conductor(dni="30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False)
     )
-    pendiente_disponible = uow.conductores.guardar(
-        nuevo_conductor(dni="30000003", disponible=True)
-    )
+    pendiente_disponible = uow.conductores.guardar(nuevo_conductor(dni="30000003", disponible=True))
     for conductor, patente in [
         (aprobado_disponible, "AAA111"),
         (aprobado_no_disponible, "BBB222"),
@@ -484,9 +476,7 @@ def test_rollback_deshace_las_modificaciones_no_confirmadas(uow):
 
     uow.rollback()
 
-    assert uow.conductores.obtener(conductor.id).habilitacion is (
-        EstadoHabilitacion.PENDIENTE
-    )
+    assert uow.conductores.obtener(conductor.id).habilitacion is (EstadoHabilitacion.PENDIENTE)
     assert uow.habilitaciones.historial_conductor(conductor.id) == []
 
 

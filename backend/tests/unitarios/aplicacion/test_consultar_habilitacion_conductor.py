@@ -13,7 +13,6 @@ El estado es el actual del conductor; el historial va en orden cronologico ascen
 from datetime import UTC, datetime
 
 import pytest
-
 from app.aplicacion.casos_de_uso.consultar_habilitacion_conductor import (
     ConsultarHabilitacionConductor,
 )
@@ -25,6 +24,7 @@ from app.dominio.habilitacion import (
     EstadoHabilitacion,
     EventoHabilitacion,
 )
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -94,12 +94,8 @@ def test_un_conductor_recien_creado_muestra_pendiente_con_el_alta_como_primer_ev
     assert resumen.historial[0].fecha == AHORA
 
 
-def test_devuelve_el_estado_actual_del_conductor_y_su_historial(
-    consultar_habilitacion, uow
-):
-    conductor = guardar_conductor(
-        uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA
-    )
+def test_devuelve_el_estado_actual_del_conductor_y_su_historial(consultar_habilitacion, uow):
+    conductor = guardar_conductor(uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA)
     alta = registrar_evento(
         uow,
         conductor.id,
@@ -129,9 +125,7 @@ def test_devuelve_el_estado_actual_del_conductor_y_su_historial(
 def test_el_historial_va_en_orden_cronologico_por_fecha_y_no_por_registro(
     consultar_habilitacion, uow
 ):
-    conductor = guardar_conductor(
-        uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA
-    )
+    conductor = guardar_conductor(uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA)
     suspension = registrar_evento(
         uow,
         conductor.id,

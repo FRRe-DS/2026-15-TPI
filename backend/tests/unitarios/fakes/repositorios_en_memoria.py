@@ -73,9 +73,7 @@ class RepositorioConductoresEnMemoria(RepositorioConductores):
             conductores = [c for c in conductores if c.disponible == disponible]
         if tipo_vehiculo is not None:
             con_ese_tipo = {
-                v.id_conductor
-                for v in self._estado.vehiculos.values()
-                if v.tipo is tipo_vehiculo
+                v.id_conductor for v in self._estado.vehiculos.values() if v.tipo is tipo_vehiculo
             }
             conductores = [c for c in conductores if c.id in con_ese_tipo]
         return conductores
@@ -91,9 +89,7 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
             for otro in self._estado.vehiculos.values()
         )
         if patente_en_uso:
-            raise PatenteDuplicada(
-                f"Ya existe un vehiculo con la patente {vehiculo.patente}"
-            )
+            raise PatenteDuplicada(f"Ya existe un vehiculo con la patente {vehiculo.patente}")
         return _guardar(self._estado.vehiculos, vehiculo)
 
     def obtener(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
@@ -140,14 +136,10 @@ class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
 
-    def registrar_evento_conductor(
-        self, id_conductor: int, evento: EventoHabilitacion
-    ) -> None:
+    def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
         self._estado.eventos_conductor.setdefault(id_conductor, []).append(evento)
 
-    def registrar_evento_vehiculo(
-        self, id_vehiculo: int, evento: EventoHabilitacion
-    ) -> None:
+    def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
         self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(evento)
 
     def historial_conductor(self, id_conductor: int) -> list[EventoHabilitacion]:

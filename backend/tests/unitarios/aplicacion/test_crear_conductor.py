@@ -15,10 +15,10 @@ dentro del `with uow:`; ante un error no queda nada persistido.
 from datetime import UTC, datetime
 
 import pytest
-
 from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.dominio.errores import DatosInvalidos, DniDuplicado
 from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -92,9 +92,7 @@ def test_el_conductor_queda_confirmado_en_la_unidad_de_trabajo(crear_conductor, 
     assert len(uow.habilitaciones.historial_conductor(id_conductor)) == 1
 
 
-def test_rechaza_dni_duplicado_sin_dejar_conductor_ni_evento_extra(
-    crear_conductor, uow
-):
+def test_rechaza_dni_duplicado_sin_dejar_conductor_ni_evento_extra(crear_conductor, uow):
     primero = crear_conductor.ejecutar(**DATOS_VALIDOS).conductor
 
     with pytest.raises(DniDuplicado):
@@ -115,9 +113,7 @@ def test_rechaza_dni_duplicado_sin_dejar_conductor_ni_evento_extra(
     ],
     ids=["dni_con_letra", "dni_corto", "email_sin_formato", "nombre_vacio"],
 )
-def test_rechaza_datos_invalidos_sin_persistir_nada(
-    crear_conductor, uow, dato_invalido
-):
+def test_rechaza_datos_invalidos_sin_persistir_nada(crear_conductor, uow, dato_invalido):
     with pytest.raises(DatosInvalidos):
         crear_conductor.ejecutar(**{**DATOS_VALIDOS, **dato_invalido})
 

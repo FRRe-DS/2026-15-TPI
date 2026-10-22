@@ -17,12 +17,12 @@ Ante un error no se persiste nada. Registrar una licencia no cambia la habilitac
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
-
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.dominio.conductor import Conductor
 from app.dominio.documento import EstadoDocumento, TipoDocumento
 from app.dominio.errores import DatosInvalidos, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -92,9 +92,7 @@ def test_devuelve_el_estado_calculado_con_la_fecha_del_reloj(
 def test_guarda_la_licencia_confirmada_y_la_devuelve_con_su_id(registrar_licencia, uow):
     conductor = sembrar_conductor(uow)
 
-    resultado = registrar_licencia.ejecutar(
-        id_conductor=conductor.id, **datos_de_licencia()
-    )
+    resultado = registrar_licencia.ejecutar(id_conductor=conductor.id, **datos_de_licencia())
 
     assert resultado.id_conductor == conductor.id
     assert resultado.documento.id is not None
@@ -131,22 +129,16 @@ def test_la_licencia_de_un_conductor_no_aparece_en_otro(registrar_licencia, uow)
     assert uow.documentos.listar_por_conductor(conductor_b.id) == []
 
 
-def test_registrar_una_licencia_no_cambia_la_habilitacion_del_conductor(
-    registrar_licencia, uow
-):
+def test_registrar_una_licencia_no_cambia_la_habilitacion_del_conductor(registrar_licencia, uow):
     conductor = sembrar_conductor(uow)
 
     registrar_licencia.ejecutar(id_conductor=conductor.id, **datos_de_licencia())
 
-    assert uow.conductores.obtener(conductor.id).habilitacion is (
-        EstadoHabilitacion.PENDIENTE
-    )
+    assert uow.conductores.obtener(conductor.id).habilitacion is (EstadoHabilitacion.PENDIENTE)
     assert uow.habilitaciones.historial_conductor(conductor.id) == []
 
 
-def test_lanza_no_encontrado_si_el_conductor_no_existe_y_no_guarda_nada(
-    registrar_licencia, uow
-):
+def test_lanza_no_encontrado_si_el_conductor_no_existe_y_no_guarda_nada(registrar_licencia, uow):
     existente = sembrar_conductor(uow)
     id_inexistente = existente.id + 1
 
@@ -176,14 +168,10 @@ def test_lanza_no_encontrado_si_el_conductor_no_existe_y_no_guarda_nada(
         "numero_solo_espacios",
     ],
 )
-def test_datos_invalidos_lanzan_error_y_no_persisten_nada(
-    registrar_licencia, uow, dato_invalido
-):
+def test_datos_invalidos_lanzan_error_y_no_persisten_nada(registrar_licencia, uow, dato_invalido):
     conductor = sembrar_conductor(uow)
 
     with pytest.raises(DatosInvalidos):
-        registrar_licencia.ejecutar(
-            id_conductor=conductor.id, **datos_de_licencia(**dato_invalido)
-        )
+        registrar_licencia.ejecutar(id_conductor=conductor.id, **datos_de_licencia(**dato_invalido))
 
     assert uow.documentos.listar_por_conductor(conductor.id) == []

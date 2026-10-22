@@ -4,9 +4,7 @@ from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.conductor import Conductor
 
 
-def armar_detalle(
-    uow: UnidadDeTrabajo, reloj: Reloj, conductor: Conductor
-) -> ConductorDetalle:
+def armar_detalle(uow: UnidadDeTrabajo, reloj: Reloj, conductor: Conductor) -> ConductorDetalle:
     # Limite conocido: 2 consultas por conductor (los puertos no tienen metodos por lote).
     hoy = reloj.hoy()
     documentos = [

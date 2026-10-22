@@ -14,12 +14,12 @@ conductor como DocumentoConEstado (estado calculado con `reloj.hoy()`) y sus veh
 from datetime import UTC, date, datetime
 
 import pytest
-
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -89,9 +89,7 @@ def test_sin_conductores_devuelve_lista_vacia_sin_error(listar_conductores):
     assert listar_conductores.ejecutar() == []
 
 
-def test_sin_filtros_devuelve_todos_los_conductores_en_orden_de_alta(
-    listar_conductores, uow
-):
+def test_sin_filtros_devuelve_todos_los_conductores_en_orden_de_alta(listar_conductores, uow):
     for dni in ("30000001", "30000002", "30000003"):
         guardar_conductor(uow, dni)
 
@@ -132,9 +130,7 @@ def test_filtra_por_disponible(listar_conductores, uow, disponible, dnis_esperad
     assert dnis(listar_conductores.ejecutar(disponible=disponible)) == dnis_esperados
 
 
-def test_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(
-    listar_conductores, uow
-):
+def test_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(listar_conductores, uow):
     con_auto = guardar_conductor(uow, "30000001")
     con_moto = guardar_conductor(uow, "30000002")
     con_ambos = guardar_conductor(uow, "30000003")
@@ -177,9 +173,7 @@ def test_combina_los_filtros_con_and(listar_conductores, uow):
     assert dnis(resultado) == ["30000001"]
 
 
-def test_filtros_sin_coincidencias_devuelven_lista_vacia_sin_error(
-    listar_conductores, uow
-):
+def test_filtros_sin_coincidencias_devuelven_lista_vacia_sin_error(listar_conductores, uow):
     guardar_conductor(uow, "30000001")
 
     assert listar_conductores.ejecutar(habilitado=True) == []
@@ -202,9 +196,7 @@ def test_cada_conductor_trae_sus_documentos_con_el_estado_calculado_con_el_reloj
     ]
 
 
-def test_cada_conductor_trae_solo_sus_propios_documentos_y_vehiculos(
-    listar_conductores, uow
-):
+def test_cada_conductor_trae_solo_sus_propios_documentos_y_vehiculos(listar_conductores, uow):
     uno = guardar_conductor(uow, "30000001")
     otro = guardar_conductor(uow, "30000002")
     guardar_licencia(uow, uno.id, "LIC-UNO", date(2029, 1, 1))
@@ -221,9 +213,7 @@ def test_cada_conductor_trae_solo_sus_propios_documentos_y_vehiculos(
     assert [v.patente for v in detalle_otro.vehiculos] == ["BBB222", "CCC333"]
 
 
-def test_un_conductor_sin_documentos_ni_vehiculos_los_trae_vacios(
-    listar_conductores, uow
-):
+def test_un_conductor_sin_documentos_ni_vehiculos_los_trae_vacios(listar_conductores, uow):
     guardar_conductor(uow, "30000001")
 
     [detalle] = listar_conductores.ejecutar()

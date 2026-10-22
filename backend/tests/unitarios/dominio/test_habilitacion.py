@@ -9,7 +9,6 @@ import itertools
 from datetime import UTC, datetime
 
 import pytest
-
 from app.dominio.errores import DatosInvalidos, TransicionInvalida
 from app.dominio.habilitacion import (
     AccionHabilitacion,
@@ -52,10 +51,7 @@ MOTIVO = "Documentacion revisada"
 
 @pytest.mark.parametrize(
     ("estado_actual", "accion", "estado_esperado"),
-    [
-        (estado, accion, nuevo)
-        for (estado, accion), nuevo in TRANSICIONES_VALIDAS.items()
-    ],
+    [(estado, accion, nuevo) for (estado, accion), nuevo in TRANSICIONES_VALIDAS.items()],
     ids=lambda valor: valor.name,
 )
 def test_aplica_las_transiciones_de_la_matriz(estado_actual, accion, estado_esperado):

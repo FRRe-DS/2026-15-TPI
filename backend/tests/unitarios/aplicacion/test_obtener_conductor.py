@@ -11,13 +11,13 @@ Devuelve el conductor con sus documentos (estado VIGENTE/VENCIDO calculado con
 from datetime import UTC, date, datetime
 
 import pytest
-
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -98,9 +98,7 @@ def test_devuelve_los_datos_del_conductor(obtener_conductor, uow):
     assert conductor.disponible is True
 
 
-def test_devuelve_solo_el_conductor_pedido_con_sus_documentos_y_vehiculos(
-    obtener_conductor, uow
-):
+def test_devuelve_solo_el_conductor_pedido_con_sus_documentos_y_vehiculos(obtener_conductor, uow):
     pedido = guardar_conductor(uow, "30000001")
     otro = guardar_conductor(uow, "30000002")
     guardar_licencia(uow, pedido.id, "LIC-PEDIDO", date(2029, 1, 1))
@@ -128,9 +126,7 @@ def test_los_documentos_traen_el_estado_calculado_con_el_reloj(obtener_conductor
     ]
 
 
-def test_un_conductor_sin_documentos_ni_vehiculos_los_trae_vacios(
-    obtener_conductor, uow
-):
+def test_un_conductor_sin_documentos_ni_vehiculos_los_trae_vacios(obtener_conductor, uow):
     conductor = guardar_conductor(uow, "30000001")
 
     detalle = obtener_conductor.ejecutar(id_conductor=conductor.id)

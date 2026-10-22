@@ -8,7 +8,6 @@ tipos_servicio, una lista de objetos con `.tipo` (TipoServicio) y `.habilitado`.
 """
 
 import pytest
-
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
@@ -49,9 +48,7 @@ def test_rechaza_tipo_de_vehiculo_desconocido():
 def test_acepta_uno_o_mas_tipos_de_servicio_distintos(tipos_servicio):
     vehiculo = crear(tipos_servicio=tipos_servicio)
 
-    assert {servicio.tipo for servicio in vehiculo.tipos_servicio} == set(
-        tipos_servicio
-    )
+    assert {servicio.tipo for servicio in vehiculo.tipos_servicio} == set(tipos_servicio)
     assert len(vehiculo.tipos_servicio) == len(tipos_servicio)
 
 
@@ -86,9 +83,7 @@ def test_acepta_anio_entero():
     assert crear(anio=2021).anio == 2021
 
 
-@pytest.mark.parametrize(
-    "anio", ["2020", 2020.5, None], ids=["texto", "decimal", "nulo"]
-)
+@pytest.mark.parametrize("anio", ["2020", 2020.5, None], ids=["texto", "decimal", "nulo"])
 def test_rechaza_anio_que_no_es_entero(anio):
     with pytest.raises(DatosInvalidos):
         crear(anio=anio)

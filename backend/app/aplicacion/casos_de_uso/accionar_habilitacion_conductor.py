@@ -50,6 +50,4 @@ class AccionarHabilitacionConductor:
         hoy = self._reloj.hoy()
         documentos = self._uow.documentos.listar_por_conductor(id_conductor)
         if not any(d.estado_al(hoy) is EstadoDocumento.VIGENTE for d in documentos):
-            raise LicenciaVigenteRequerida(
-                "Aprobar requiere al menos una licencia vigente"
-            )
+            raise LicenciaVigenteRequerida("Aprobar requiere al menos una licencia vigente")

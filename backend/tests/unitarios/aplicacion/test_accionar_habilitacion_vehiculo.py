@@ -23,7 +23,6 @@ import itertools
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from app.aplicacion.casos_de_uso.accionar_habilitacion_vehiculo import (
     AccionarHabilitacionVehiculo,
 )
@@ -35,6 +34,7 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -146,10 +146,7 @@ def estado_guardado(uow, id_conductor, id_vehiculo):
 
 @pytest.mark.parametrize(
     ("estado_inicial", "accion", "estado_esperado"),
-    [
-        (estado, accion, nuevo)
-        for (estado, accion), nuevo in TRANSICIONES_VALIDAS.items()
-    ],
+    [(estado, accion, nuevo) for (estado, accion), nuevo in TRANSICIONES_VALIDAS.items()],
     ids=lambda valor: valor.name,
 )
 def test_aplica_las_transiciones_de_la_matriz_y_registra_el_evento(
@@ -224,9 +221,7 @@ def test_aprobar_no_exige_licencia_ni_documentos_del_conductor(accionar, uow):
     assert resultado.estado is APROBADA
 
 
-def test_suspender_y_luego_aprobar_quedan_ambos_en_el_historial_en_orden(
-    accionar, uow, reloj
-):
+def test_suspender_y_luego_aprobar_quedan_ambos_en_el_historial_en_orden(accionar, uow, reloj):
     conductor = sembrar_conductor(uow)
     vehiculo = sembrar_vehiculo(uow, conductor.id, APROBADA)
 
@@ -319,9 +314,7 @@ def test_toma_el_vehiculo_con_bloqueo_de_fila_una_sola_vez(accionar, uow):
     assert uow.vehiculos_bloqueados == [(conductor.id, vehiculo.id)]
 
 
-def test_el_historial_no_mezcla_eventos_de_otro_vehiculo_ni_del_conductor(
-    accionar, uow
-):
+def test_el_historial_no_mezcla_eventos_de_otro_vehiculo_ni_del_conductor(accionar, uow):
     conductor = sembrar_conductor(uow)
     vehiculo = sembrar_vehiculo(uow, conductor.id, patente="AAA111")
     otro_vehiculo = sembrar_vehiculo(uow, conductor.id, patente="BBB222")

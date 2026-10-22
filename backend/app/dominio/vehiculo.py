@@ -62,9 +62,7 @@ class Vehiculo:
             marca=marca,
             modelo=modelo,
             anio=anio,
-            tipos_servicio=[
-                ServicioDelVehiculo(servicio) for servicio in tipos_servicio
-            ],
+            tipos_servicio=[ServicioDelVehiculo(servicio) for servicio in tipos_servicio],
         )
 
 
