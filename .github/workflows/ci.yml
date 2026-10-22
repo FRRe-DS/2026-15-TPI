@@ -1,0 +1,145 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Lint y formato
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Instalar dependencias
+        run: uv sync --frozen --group dev
+      - name: ruff check
+        run: uv run ruff check .
+      - name: ruff format --check
+        run: uv run ruff format --check .
+
+  contrato:
+    name: Contrato OpenAPI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Instalar dependencias
+        run: uv sync --frozen --all-groups
+      - name: Validar openapi.yaml
+        run: |
+          uv run python - <<'PY'
+          import yaml
+          from openapi_spec_validator import validate
+
+          with open("../docs/contract/openapi.yaml", encoding="utf-8") as archivo:
+              validate(yaml.safe_load(archivo))
+          PY
+      - name: Pruebas de contrato
+        run: uv run pytest tests/contrato -v
+
+  test:
+    name: Suite completa con PostgreSQL y Keycloak
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Instalar dependencias
+        run: uv sync --frozen --all-groups
+      - name: Comprobar Docker
+        run: docker info
+      - name: Pruebas completas con cobertura
+        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=65
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detectar frontend
+        id: detectar
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No existe frontend/package.json; se omite el frontend."
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detectar.outputs.existe == 'true'
+        with:
+          node-version: "24"
+      - name: Instalar dependencias
+        if: steps.detectar.outputs.existe == 'true'
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+      - name: Lint
+        if: steps.detectar.outputs.existe == 'true'
+        working-directory: frontend
+        run: npm run lint --if-present
+      - name: Pruebas
+        if: steps.detectar.outputs.existe == 'true'
+        working-directory: frontend
+        run: npm run test --if-present -- --run
+
+      - name: Compilar frontend
+        if: steps.detectar.outputs.existe == 'true'
+        working-directory: frontend
+        run: npm run build
+
+  ci:
+    name: ci
+    if: always()
+    needs:
+      - lint
+      - test
+      - contrato
+      - frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar resultado de los jobs
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error::Algún job de CI falló o fue cancelado."
+          exit 1
+      - name: CI en verde
+        run: echo "Todos los jobs de CI pasaron."

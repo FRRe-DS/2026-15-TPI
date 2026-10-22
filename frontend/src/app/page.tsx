@@ -3,6 +3,8 @@ import { listarConductores } from "../lib/api";
 import { ListadoConductores } from "../components/ListadoConductores";
 import type { ConductorConUbicacion } from "../lib/tipos";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   let conductores: ConductorConUbicacion[] = [];
   let error: string | null = null;
