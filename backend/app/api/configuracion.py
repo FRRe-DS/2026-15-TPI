@@ -1,9 +1,12 @@
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Configuración de la API obtenida del entorno."""
+    """Configuración de la API obtenida del entorno.
+
+    Las tres variables son obligatorias. Si falta alguna, Pydantic muestra un
+    ``ValidationError`` indicando el nombre exacto del campo faltante.
+    """
 
     KEYCLOAK_URL: str
     KEYCLOAK_REALM: str
