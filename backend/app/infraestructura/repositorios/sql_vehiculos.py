@@ -19,7 +19,7 @@ from app.infraestructura.repositorios._sesion_sql import flush_aislado
 RESTRICCION_PATENTE_UNICA = "uq_vehiculo_patente"
 
 
-def _a_dominio(fila: VehiculoOrm) -> Vehiculo:
+def a_dominio(fila: VehiculoOrm) -> Vehiculo:
     return Vehiculo(
         tipo=TipoVehiculo(fila.tipo),
         patente=fila.patente,
@@ -80,7 +80,7 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
             VehiculoOrm.id_conductor == id_conductor,
         )
         fila = self._sesion.scalars(consulta).first()
-        return None if fila is None else _a_dominio(fila)
+        return None if fila is None else a_dominio(fila)
 
     def listar_por_conductor(
         self,
@@ -98,7 +98,7 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
             consulta = consulta.where(VehiculoOrm.tipo == tipo.value)
         if habilitacion is not None:
             consulta = consulta.where(VehiculoOrm.estado_habilitacion == habilitacion.value)
-        return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]
+        return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
     def _fila_a_guardar(self, vehiculo: Vehiculo) -> VehiculoOrm:
         if vehiculo.id is None:

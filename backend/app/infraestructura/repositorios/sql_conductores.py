@@ -15,7 +15,7 @@ from app.infraestructura.repositorios._sesion_sql import flush_aislado
 RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 
 
-def _a_dominio(fila: ConductorOrm) -> Conductor:
+def a_dominio(fila: ConductorOrm) -> Conductor:
     return Conductor(
         dni=fila.dni,
         nombre=fila.nombre,
@@ -55,7 +55,7 @@ class SqlRepositorioConductores(RepositorioConductores):
 
     def obtener(self, id_conductor: int) -> Conductor | None:
         fila = self._sesion.get(ConductorOrm, id_conductor)
-        return None if fila is None else _a_dominio(fila)
+        return None if fila is None else a_dominio(fila)
 
     def listar(
         self,
@@ -75,7 +75,7 @@ class SqlRepositorioConductores(RepositorioConductores):
             consulta = consulta.where(
                 ConductorOrm.vehiculos.any(VehiculoOrm.tipo == tipo_vehiculo.value)
             )
-        return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]
+        return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
     def _fila_a_guardar(self, conductor: Conductor) -> ConductorOrm:
         if conductor.id is None:
