@@ -67,9 +67,7 @@ def conductor_desde_detalle(
             documento_desde_dominio(conductor.id, documento.documento, documento.estado)
             for documento in detalle.documentos
         ],
-        vehiculos=[
-            vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos
-        ],
+        vehiculos=[vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos],
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
         conectado=conductor.conectado,
         disponible=conductor.disponible,

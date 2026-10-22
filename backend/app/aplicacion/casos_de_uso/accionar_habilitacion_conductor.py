@@ -1,4 +1,4 @@
-from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
+from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionEventos
 from app.aplicacion.puertos.reloj import Reloj
@@ -22,10 +22,7 @@ class AccionarHabilitacionConductor:
         id_operador: int,
     ) -> HabilitacionEventos:
         with self._uow:
-            conductor = exigir_encontrado(
-                self._uow.bloquear_conductor(id_conductor),
-                f"el conductor {id_conductor}",
-            )
+            conductor = exigir_conductor(self._uow.bloquear_conductor(id_conductor), id_conductor)
             evento = aplicar_accion(
                 conductor.habilitacion,
                 accion,
@@ -49,5 +46,8 @@ class AccionarHabilitacionConductor:
     def _exigir_licencia_vigente(self, id_conductor: int) -> None:
         hoy = self._reloj.hoy()
         documentos = self._uow.documentos.listar_por_conductor(id_conductor)
-        if not any(d.estado_al(hoy) is EstadoDocumento.VIGENTE for d in documentos):
+        tiene_licencia_vigente = any(
+            documento.estado_al(hoy) is EstadoDocumento.VIGENTE for documento in documentos
+        )
+        if not tiene_licencia_vigente:
             raise LicenciaVigenteRequerida("Aprobar requiere al menos una licencia vigente")

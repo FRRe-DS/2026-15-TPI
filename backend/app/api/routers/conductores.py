@@ -70,9 +70,7 @@ def listar_conductores(
         habilitado=habilitado,
         disponible=disponible,
         tipo_vehiculo=(
-            TipoVehiculoDominio(tipo_vehiculo.value)
-            if tipo_vehiculo is not None
-            else None
+            TipoVehiculoDominio(tipo_vehiculo.value) if tipo_vehiculo is not None else None
         ),
     )
     return [conductor_desde_detalle(detalle) for detalle in conductores]

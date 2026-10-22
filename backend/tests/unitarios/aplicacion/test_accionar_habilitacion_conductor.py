@@ -340,3 +340,20 @@ def test_toma_el_conductor_con_bloqueo_de_fila(accionar, uow):
     )
 
     assert uow.conductores_bloqueados == [conductor.id]
+
+
+def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_alta(accionar, uow):
+    conductor = sembrar_conductor(uow, PENDIENTE, [MANANA])
+    sembrar_evento_de_alta(uow, conductor.id)
+
+    accionar.ejecutar(
+        id_conductor=conductor.id, accion=APROBAR, motivo=MOTIVO, id_operador=ID_OPERADOR
+    )
+    resultado = accionar.ejecutar(
+        id_conductor=conductor.id, accion=SUSPENDER, motivo=MOTIVO, id_operador=ID_OPERADOR
+    )
+
+    ids = [evento.id for evento in resultado.eventos]
+    assert len(ids) == 3
+    assert all(id_evento is not None for id_evento in ids)
+    assert ids == sorted(set(ids))  # distintos y crecientes: el alta primero, el nuevo ultimo

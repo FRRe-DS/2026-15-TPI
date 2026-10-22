@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
+from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.resultados import DocumentoDeConductor
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
@@ -23,10 +23,7 @@ class RegistrarLicencia:
         url_archivo: str,
     ) -> DocumentoDeConductor:
         with self._uow:
-            exigir_encontrado(
-                self._uow.conductores.obtener(id_conductor),
-                f"el conductor {id_conductor}",
-            )
+            exigir_conductor(self._uow.conductores.obtener(id_conductor), id_conductor)
             documento = Documento.crear(
                 tipo=TipoDocumento.LICENCIA,
                 numero=numero,

@@ -427,6 +427,24 @@ def test_historial_sin_eventos_devuelve_lista_vacia(uow):
     assert uow.habilitaciones.historial_vehiculo(1) == []
 
 
+def test_los_eventos_del_historial_traen_id_incremental_por_tipo_de_entidad(uow):
+    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-primero"))
+    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-primero"))
+    uow.habilitaciones.registrar_evento_conductor(2, nuevo_evento("c2-primero"))
+    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-segundo"))
+    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-segundo"))
+
+    ids_conductor_1 = [e.id for e in uow.habilitaciones.historial_conductor(1)]
+    ids_conductor_2 = [e.id for e in uow.habilitaciones.historial_conductor(2)]
+    ids_vehiculo_1 = [e.id for e in uow.habilitaciones.historial_vehiculo(1)]
+
+    # la numeracion es por tipo de entidad (como dos tablas) y sigue el orden de registro
+    assert ids_conductor_1 == [1, 3]
+    assert ids_conductor_2 == [2]
+    assert ids_vehiculo_1 == [1, 2]
+    assert all(type(i) is int for i in ids_conductor_1 + ids_conductor_2 + ids_vehiculo_1)
+
+
 # --- Unidad de trabajo: bloqueo y transaccion ---
 
 
@@ -533,3 +551,85 @@ def test_avanzar_un_dia_cruza_el_cambio_de_fecha():
     reloj.avanzar(dias=1)
 
     assert reloj.hoy() == date(2026, 7, 1)
+
+
+# --- Listado por lote (vehiculos y documentos) ---
+
+
+def sembrar_vehiculo_etiquetado(uow, id_conductor, etiqueta):
+    uow.vehiculos.guardar(nuevo_vehiculo(id_conductor, patente=etiqueta))
+
+
+def sembrar_documento_etiquetado(uow, id_conductor, etiqueta):
+    uow.documentos.guardar(id_conductor, nueva_licencia(etiqueta))
+
+
+POR_LOTE = pytest.mark.parametrize(
+    ("repositorio", "sembrar", "etiqueta"),
+    [
+        pytest.param("vehiculos", sembrar_vehiculo_etiquetado, lambda v: v.patente, id="vehiculos"),
+        pytest.param(
+            "documentos", sembrar_documento_etiquetado, lambda d: d.numero, id="documentos"
+        ),
+    ],
+)
+
+
+@POR_LOTE
+def test_listar_por_conductores_devuelve_una_clave_por_id_pedido_incluso_sin_datos(
+    uow, repositorio, sembrar, etiqueta
+):
+    con_datos = uow.conductores.guardar(nuevo_conductor("30000001"))
+    sin_datos = uow.conductores.guardar(nuevo_conductor("30000002"))
+    sembrar(uow, con_datos.id, "A-1")
+
+    resultado = getattr(uow, repositorio).listar_por_conductores([con_datos.id, sin_datos.id])
+
+    assert set(resultado) == {con_datos.id, sin_datos.id}
+    assert [etiqueta(x) for x in resultado[con_datos.id]] == ["A-1"]
+    assert resultado[sin_datos.id] == []
+
+
+@POR_LOTE
+def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
+    uow, repositorio, sembrar, etiqueta
+):
+    uno = uow.conductores.guardar(nuevo_conductor("30000001"))
+    otro = uow.conductores.guardar(nuevo_conductor("30000002"))
+    for id_conductor, nombre in [(uno.id, "C"), (otro.id, "X"), (uno.id, "A"), (otro.id, "Y")]:
+        sembrar(uow, id_conductor, nombre)
+
+    resultado = getattr(uow, repositorio).listar_por_conductores([otro.id, uno.id])
+
+    assert [etiqueta(x) for x in resultado[uno.id]] == ["C", "A"]
+    assert [etiqueta(x) for x in resultado[otro.id]] == ["X", "Y"]
+
+
+@POR_LOTE
+def test_listar_por_conductores_no_mezcla_los_ids_no_pedidos(uow, repositorio, sembrar, etiqueta):
+    pedido = uow.conductores.guardar(nuevo_conductor("30000001"))
+    no_pedido = uow.conductores.guardar(nuevo_conductor("30000002"))
+    sembrar(uow, pedido.id, "PEDIDO")
+    sembrar(uow, no_pedido.id, "AJENO")
+
+    resultado = getattr(uow, repositorio).listar_por_conductores([pedido.id])
+
+    assert set(resultado) == {pedido.id}
+    assert [etiqueta(x) for x in resultado[pedido.id]] == ["PEDIDO"]
+
+
+@POR_LOTE
+def test_listar_por_conductores_sin_ids_devuelve_un_diccionario_vacio(
+    uow, repositorio, sembrar, etiqueta
+):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+    sembrar(uow, conductor.id, "A-1")
+
+    assert getattr(uow, repositorio).listar_por_conductores([]) == {}
+
+
+@POR_LOTE
+def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(
+    uow, repositorio, sembrar, etiqueta
+):
+    assert getattr(uow, repositorio).listar_por_conductores([998, 999]) == {998: [], 999: []}
