@@ -1,5 +1,5 @@
 from app.aplicacion.casos_de_uso.detalle_conductor import armar_detalle
-from app.aplicacion.casos_de_uso.encontrado import exigir_encontrado
+from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
@@ -12,8 +12,5 @@ class ObtenerConductor:
 
     def ejecutar(self, *, id_conductor: int) -> ConductorDetalle:
         with self._uow:
-            conductor = exigir_encontrado(
-                self._uow.conductores.obtener(id_conductor),
-                f"el conductor {id_conductor}",
-            )
+            conductor = exigir_conductor(self._uow.conductores.obtener(id_conductor), id_conductor)
             return armar_detalle(self._uow, self._reloj, conductor)

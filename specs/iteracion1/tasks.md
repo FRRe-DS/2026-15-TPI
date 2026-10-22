@@ -101,7 +101,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [X] T037 [S1] [US4] Impl (Green) `backend/app/infraestructura/repositorios/sql_vehiculos.py` hasta que pase T036
 - [X] T038 [S1] [US2] Test (Red) `backend/tests/integracion/repositorios/test_sql_habilitaciones.py`: los eventos son de solo escritura y el historial vuelve en orden; el estado y el evento se guardan en la misma transacción; la unidad de trabajo bloquea la fila (`SELECT ... FOR UPDATE`); licencias guardadas y consultadas
 - [X] T039 [S1] [US2] Impl (Green) `backend/app/infraestructura/repositorios/sql_documentos.py`, `sql_habilitaciones.py` y `sql_unidad_de_trabajo.py` hasta que pase T038
-- [ ] T040 [S1] Refactor con la suite en verde: pasar `ruff`, aplicar la skill `clean-code` a `backend/app/dominio/` y `backend/app/aplicacion/`, y verificar con `uv run pytest backend/tests/unitarios --cov=app`
+- [X] T040 [S1] Refactor con la suite en verde: pasar `ruff`, aplicar la skill `clean-code` a `backend/app/dominio/` y `backend/app/aplicacion/`, y verificar con `uv run pytest backend/tests/unitarios --cov=app`
 
 ---
 

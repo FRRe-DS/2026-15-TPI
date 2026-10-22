@@ -52,10 +52,10 @@ def _copiar_a_fila(vehiculo: Vehiculo, fila: VehiculoOrm) -> None:
 def _sincronizar_servicios(servicios: list[ServicioDelVehiculo], fila: VehiculoOrm) -> None:
     """Actualiza, agrega y quita los servicios por tipo, sin recrear los existentes."""
     habilitado_por_tipo = {servicio.tipo.value: servicio.habilitado for servicio in servicios}
-    existentes = {hijo.tipo_servicio: hijo for hijo in fila.tipos_servicio}
-    for tipo, hijo in existentes.items():
+    existentes = {servicio.tipo_servicio: servicio for servicio in fila.tipos_servicio}
+    for tipo, servicio_existente in existentes.items():
         if tipo not in habilitado_por_tipo:
-            fila.tipos_servicio.remove(hijo)
+            fila.tipos_servicio.remove(servicio_existente)
     for tipo, habilitado in habilitado_por_tipo.items():
         if tipo in existentes:
             existentes[tipo].habilitado = habilitado

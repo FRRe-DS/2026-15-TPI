@@ -13,6 +13,7 @@ from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
 from app.infraestructura.repositorios._sesion_sql import flush_aislado
 
 RESTRICCION_DNI_UNICO = "uq_conductor_dni"
+ESTADO_APROBADA = EstadoHabilitacion.APROBADA.value
 
 
 def a_dominio(fila: ConductorOrm) -> Conductor:
@@ -66,9 +67,9 @@ class SqlRepositorioConductores(RepositorioConductores):
     ) -> list[Conductor]:
         consulta = select(ConductorOrm).order_by(ConductorOrm.id_conductor)
         if habilitado is True:
-            consulta = consulta.where(ConductorOrm.estado_habilitacion == "APROBADA")
+            consulta = consulta.where(ConductorOrm.estado_habilitacion == ESTADO_APROBADA)
         elif habilitado is False:
-            consulta = consulta.where(ConductorOrm.estado_habilitacion != "APROBADA")
+            consulta = consulta.where(ConductorOrm.estado_habilitacion != ESTADO_APROBADA)
         if disponible is not None:
             consulta = consulta.where(ConductorOrm.disponible == disponible)
         if tipo_vehiculo is not None:
