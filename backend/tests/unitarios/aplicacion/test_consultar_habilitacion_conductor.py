@@ -199,3 +199,34 @@ def test_lanza_no_encontrado_si_el_conductor_no_existe(consultar_habilitacion, u
 
     with pytest.raises(NoEncontrado):
         consultar_habilitacion.ejecutar(id_conductor=existente.id + 1)
+
+
+def test_los_eventos_del_historial_traen_id_distinto_y_el_posterior_es_mayor(
+    consultar_habilitacion, uow
+):
+    conductor = guardar_conductor(uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA)
+    registrar_evento(
+        uow,
+        conductor.id,
+        AccionHabilitacion.ALTA,
+        None,
+        EstadoHabilitacion.PENDIENTE,
+        hora=9,
+        motivo="Alta",
+    )
+    registrar_evento(
+        uow,
+        conductor.id,
+        AccionHabilitacion.APROBAR,
+        EstadoHabilitacion.PENDIENTE,
+        EstadoHabilitacion.APROBADA,
+        hora=10,
+        motivo="Aprobacion",
+    )
+
+    resumen = consultar_habilitacion.ejecutar(id_conductor=conductor.id)
+
+    ids = [evento.id for evento in resumen.historial]
+    assert len(ids) == 2
+    assert all(id_evento is not None for id_evento in ids)
+    assert ids == sorted(set(ids))  # el alta (anterior) tiene menor id que la aprobacion

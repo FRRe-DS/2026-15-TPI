@@ -236,3 +236,62 @@ def test_registrar_para_una_entidad_inexistente_propaga_el_integrity_error_de_la
     assert getattr(repositorio, historial)(999) == []
     getattr(repositorio, registrar)(1, evento())  # la sesion sigue usable
     assert len(getattr(repositorio, historial)(1)) == 1
+
+
+# --- Id del evento ---
+
+POR_ENTIDAD_Y_TABLA = pytest.mark.parametrize(
+    ("registrar", "historial", "tabla", "columna_de_la_entidad"),
+    [
+        pytest.param(*CONDUCTOR, "habilitacion_evento_conductor", "id_conductor", id="conductor"),
+        pytest.param(*VEHICULO, "habilitacion_evento_vehiculo", "id_vehiculo", id="vehiculo"),
+    ],
+)
+
+
+@POR_ENTIDAD_Y_TABLA
+def test_el_historial_trae_el_id_de_la_fila_de_cada_evento(
+    repositorio,
+    entidades,
+    sesion_bd,
+    fabrica_sesiones,
+    registrar,
+    historial,
+    tabla,
+    columna_de_la_entidad,
+):
+    getattr(repositorio, registrar)(1, evento("primero"))
+    getattr(repositorio, registrar)(2, evento("de otra entidad"))
+    getattr(repositorio, registrar)(1, evento("segundo"))
+    getattr(repositorio, registrar)(1, evento("tercero"))
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        ids_en_la_base = (
+            otra_sesion.execute(
+                text(
+                    f"SELECT id_evento FROM {tabla} "
+                    f"WHERE {columna_de_la_entidad} = 1 ORDER BY id_evento"
+                )
+            )
+            .scalars()
+            .all()
+        )
+        ids_del_historial = [
+            e.id for e in getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(1)
+        ]
+
+    assert len(ids_en_la_base) == 3
+    assert ids_del_historial == ids_en_la_base
+    assert ids_en_la_base == sorted(set(ids_en_la_base))  # incrementales en orden de registro
+
+
+def test_los_ids_de_los_eventos_de_conductor_y_de_vehiculo_se_cuentan_por_separado(
+    repositorio, entidades
+):
+    repositorio.registrar_evento_conductor(1, evento("c1"))
+    repositorio.registrar_evento_vehiculo(1, evento("v1"))
+    repositorio.registrar_evento_conductor(1, evento("c2"))
+
+    assert [e.id for e in repositorio.historial_conductor(1)] == [1, 2]
+    assert [e.id for e in repositorio.historial_vehiculo(1)] == [1]

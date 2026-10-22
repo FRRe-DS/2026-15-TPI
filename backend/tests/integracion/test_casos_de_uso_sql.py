@@ -735,3 +735,44 @@ def test_accionar_la_habilitacion_toma_la_fila_con_for_update(
 
     assert any("FOR UPDATE" in s.upper() for s in del_conductor)
     assert any("FOR UPDATE" in s.upper() for s in del_vehiculo)
+
+
+# --- Id de los eventos que devuelven los casos de uso ---
+
+
+@pytest.fixture(params=["fake", "sql"])
+def uow_de_cada_backend(request, uow_sql):
+    return UnidadDeTrabajoEnMemoria() if request.param == "fake" else uow_sql
+
+
+def test_accionar_devuelve_eventos_con_id_no_nulo_y_distinto(uow_de_cada_backend):
+    reloj = RelojFijo(AHORA)
+    id_conductor = crear_conductor_sql(uow_de_cada_backend, reloj).conductor.id
+
+    resultado = AccionarHabilitacionConductor(uow_de_cada_backend, reloj).ejecutar(
+        id_conductor=id_conductor, accion=OBSERVAR, motivo="Falta foto", id_operador=ID_OPERADOR
+    )
+
+    ids = [evento.id for evento in resultado.eventos]
+    assert len(ids) == 2  # el alta y la observacion
+    assert all(id_evento is not None for id_evento in ids)
+    assert ids == sorted(set(ids))
+
+
+def test_los_ids_de_los_eventos_devueltos_son_los_de_la_base(uow_sql, fabrica_sesiones):
+    reloj = RelojFijo(AHORA)
+    id_conductor = crear_conductor_sql(uow_sql, reloj).conductor.id
+
+    resultado = AccionarHabilitacionConductor(uow_sql, reloj).ejecutar(
+        id_conductor=id_conductor, accion=OBSERVAR, motivo="Falta foto", id_operador=ID_OPERADOR
+    )
+
+    with fabrica_sesiones() as sesion:
+        ids_en_la_base = (
+            sesion.execute(
+                text("SELECT id_evento FROM habilitacion_evento_conductor ORDER BY id_evento")
+            )
+            .scalars()
+            .all()
+        )
+    assert [evento.id for evento in resultado.eventos] == ids_en_la_base

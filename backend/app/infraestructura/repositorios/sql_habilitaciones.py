@@ -19,6 +19,7 @@ EventoOrm = EventoConductorOrm | EventoVehiculoOrm
 def _a_dominio(fila: EventoOrm) -> EventoHabilitacion:
     estado_anterior = fila.estado_anterior
     return EventoHabilitacion(
+        id=fila.id_evento,
         accion=AccionHabilitacion(fila.accion),
         estado_anterior=None if estado_anterior is None else EstadoHabilitacion(estado_anterior),
         estado_nuevo=EstadoHabilitacion(fila.estado_nuevo),
