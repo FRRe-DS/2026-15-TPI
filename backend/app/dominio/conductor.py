@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -20,6 +21,9 @@ class Conductor:
     conectado: bool = False
     disponible: bool = False
     id: int | None = None
+    latitud: float | None = None
+    longitud: float | None = None
+    fecha_act_ubic: datetime | None = None
 
     @classmethod
     def crear(
