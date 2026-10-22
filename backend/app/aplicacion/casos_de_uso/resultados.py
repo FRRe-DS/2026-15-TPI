@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento, EstadoDocumento
+from app.dominio.habilitacion import EstadoHabilitacion, EventoHabilitacion
 from app.dominio.vehiculo import Vehiculo
 
 
@@ -16,3 +17,10 @@ class ConductorDetalle:
     conductor: Conductor
     documentos: list[DocumentoConEstado]
     vehiculos: list[Vehiculo]
+
+
+@dataclass
+class HabilitacionResumen:
+    id_conductor: int
+    estado: EstadoHabilitacion
+    historial: list[EventoHabilitacion]
