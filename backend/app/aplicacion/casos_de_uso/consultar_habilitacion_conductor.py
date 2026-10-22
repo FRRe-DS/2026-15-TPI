@@ -1,3 +1,4 @@
+from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionResumen
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.errores import NoEncontrado
@@ -16,5 +17,5 @@ class ConsultarHabilitacionConductor:
             return HabilitacionResumen(
                 id_conductor=id_conductor,
                 estado=conductor.habilitacion,
-                historial=sorted(historial, key=lambda evento: evento.fecha),
+                historial=en_orden_cronologico(historial),
             )

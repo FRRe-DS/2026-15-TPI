@@ -75,8 +75,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [X] T019 [S1] [US1] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_conductor.py` hasta que pase T018
 - [X] T020 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_consultar_habilitacion_conductor.py`: devuelve estado actual e historial en orden cronológico; `NoEncontrado`
 - [X] T021 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/consultar_habilitacion_conductor.py` hasta que pase T020
-- [ ] T022 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_conductor.py`: `APROBAR` con licencia `VIGENTE` pasa a `APROBADA` y guarda el evento con el `id_operador`; `APROBAR` sin licencia o con licencia `VENCIDO` lanza `LicenciaVigenteRequerida` y el estado no cambia; transición no permitida lanza `TransicionInvalida`; `SUSPENDER` y luego `APROBAR` son válidos y quedan en el historial; `NoEncontrado`; se pide el bloqueo de fila a la unidad de trabajo
-- [ ] T023 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_conductor.py` hasta que pase T022
+- [X] T022 [S1] [US2] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_conductor.py`: `APROBAR` con licencia `VIGENTE` pasa a `APROBADA` y guarda el evento con el `id_operador`; `APROBAR` sin licencia o con licencia `VENCIDO` lanza `LicenciaVigenteRequerida` y el estado no cambia; transición no permitida lanza `TransicionInvalida`; `SUSPENDER` y luego `APROBAR` son válidos y quedan en el historial; `NoEncontrado`; se pide el bloqueo de fila a la unidad de trabajo
+- [X] T023 [S1] [US2] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_conductor.py` hasta que pase T022
 - [ ] T024 [S1] [US3] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_licencia.py`: guarda la licencia y devuelve el estado calculado `VIGENTE` o `VENCIDO`; `NoEncontrado` si el conductor no existe; `DatosInvalidos` si el vencimiento no es posterior a la emisión
 - [ ] T025 [S1] [US3] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_licencia.py` hasta que pase T024
 

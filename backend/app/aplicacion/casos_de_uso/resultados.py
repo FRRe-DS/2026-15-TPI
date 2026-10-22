@@ -24,3 +24,10 @@ class HabilitacionResumen:
     id_conductor: int
     estado: EstadoHabilitacion
     historial: list[EventoHabilitacion]
+
+
+@dataclass
+class HabilitacionEventos:
+    id_conductor: int
+    estado: EstadoHabilitacion
+    eventos: list[EventoHabilitacion]
