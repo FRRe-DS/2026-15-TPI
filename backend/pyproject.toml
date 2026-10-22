@@ -1,0 +1,43 @@
+[project]
+name = "m3-conductores-vehiculos"
+version = "0.1.0"
+description = "Módulo 3 (Conductores y Vehículos) - Iteración 1"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+# Un grupo por stack para que cada uno sume solo lo suyo y evitar conflictos.
+[dependency-groups]
+dev = [          # Stack 1: lógica
+    "pytest>=9.1,<9.2",
+    "pytest-cov>=7.1,<7.2",
+    "ruff>=0.17,<0.18",
+]
+api = []         # Stack 2: servidor HTTP
+db = [           # Stack 3: datos y seguridad
+    "sqlalchemy>=2.1,<2.2",
+    "alembic>=1.20,<1.21",
+    "psycopg[binary]>=3.3,<3.4",
+]
+test = [         # Stack 4: testing y CI; Testcontainers lo usa también S3 (T078)
+    "testcontainers[postgres]>=4.15,<4.16",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "integration: requiere Docker/Testcontainers y se omite si el daemon no está disponible",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
