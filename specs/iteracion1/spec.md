@@ -113,7 +113,7 @@ Se registra un vehículo (auto o moto) de un conductor con al menos un tipo de s
 
 ### Historia 5 - Entorno ejecutable, seguridad y datos de prueba (Prioridad: P5)
 
-El equipo levanta todo el entorno local con un único comando, con una base de datos propia de M3, un servicio de identidad con usuarios y roles de prueba, y datos de prueba cargados.
+El equipo levanta la API, la base de datos y el servicio de identidad con un único comando, con una base de datos propia de M3, un servicio de identidad con usuarios y roles de prueba, y datos de prueba cargados.
 
 **Por qué esta prioridad**: Habilita que los demás grupos trabajen en paralelo sobre un entorno común y reproducible.
 
@@ -187,7 +187,7 @@ Una persona abre una única pantalla que muestra el listado de conductores obten
 - **FR-007**: El sistema DEBE registrar la licencia del conductor y calcular su estado (`VIGENTE` o `VENCIDO`) según la fecha de vencimiento.
 - **FR-008**: El sistema DEBE permitir registrar vehículos de tipo `AUTO` o `MOTO` con al menos un tipo de servicio (`PASAJEROS`, `ENVIOS`), inicialmente sin habilitar, y listarlos y consultarlos por conductor.
 - **FR-009**: Todas las respuestas, incluidos los errores, DEBEN cumplir `docs/contract/openapi.yaml`, con errores en formato `{codigo, mensaje}`.
-- **FR-010**: El entorno completo DEBE poder levantarse con un único comando documentado, con una base de datos propia de M3 y datos de prueba.
+- **FR-010**: La API, la base de datos y el servicio de identidad DEBEN poder levantarse con un único comando documentado, con una base de datos propia de M3 y datos de prueba. La pantalla se ejecuta aparte.
 - **FR-011**: El esquema de datos DEBE gestionarse con migraciones versionadas.
 - **FR-012**: La configuración y los secretos DEBEN estar fuera del repositorio; las imágenes DEBEN tener versiones fijas.
 - **FR-013**: Cada cambio propuesto DEBE ser verificado automáticamente (estilo, pruebas, umbral de cobertura y contrato).
@@ -209,7 +209,7 @@ Una persona abre una única pantalla que muestra el listado de conductores obten
 
 ### Resultados Medibles
 
-- **SC-001**: Una persona nueva levanta el entorno completo con un solo comando en menos de 10 minutos.
+- **SC-001**: Una persona nueva levanta la API, la base de datos y el servicio de identidad con un solo comando en menos de 10 minutos.
 - **SC-002**: Los 10 endpoints en alcance responden conforme al contrato en el 100% de las pruebas de contrato.
 - **SC-003**: La cobertura de pruebas sobre lo implementado es de al menos 65–70%.
 - **SC-004**: El 100% de los cambios propuestos pasa por la verificación automática antes de integrarse.

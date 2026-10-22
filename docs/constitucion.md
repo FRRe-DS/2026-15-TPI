@@ -41,14 +41,14 @@ Las operaciones críticas MUST tolerar solicitudes simultáneas sin duplicar efe
 
 - **Backend**: FastAPI (Python), SQLAlchemy + Alembic, pytest + pytest-cov, ruff.
 - **Datos**: PostgreSQL. **Autenticación**: Keycloak (OIDC/JWT).
-- **Entorno**: Docker Compose levanta todo con un único comando; imágenes OCI reproducibles y versionadas.
+- **Entorno**: Docker Compose levanta API, PostgreSQL y Keycloak con un único comando; imágenes OCI reproducibles y versionadas.
 - **Frontend**: Next.js + React + TypeScript (una sola pantalla), a cargo de quien se incorpora al final.
 - **Equipo**: Backend, Datos y seguridad, Testing y Frontend (este último entra al final).
 
 ## Flujo de Trabajo y Git
 
 - Ramas: `main` (estable), `dev` (integración) y una rama por tarea.
-- PRs chicas apiladas sobre `dev`. Commits y PRs en español con formato convencional (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- Trabajo en stacks de PRs por grupo (lógica del backend, servidor HTTP, datos y seguridad, testing y CI, frontend), todas contra `dev`; el responsable las integra y mergea. Commits y PRs en español con formato convencional (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 - Una PR se mergea con tests en verde, cobertura sobre el umbral y una revisión.
 - **Definición de terminado**: el test falló primero y ahora pasa, el contrato está actualizado, la cobertura no baja del umbral, ruff pasa y la PR está aprobada.
 
