@@ -205,7 +205,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 > **Depende de** S3 (T083). Desbloquea a S1 (T034).
 
-- [ ] T097 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083)
+- [X] T097 [S4] [US6] Impl `backend/tests/integracion/conftest.py` con Testcontainers: PostgreSQL con la misma imagen y versión que el Compose, migraciones de Alembic aplicadas y sesiones por prueba, más `test_conftest.py` de verificación. **Depende de** S3 (T083) (hecha en la rama `feat/s1-repositorios-sql` por S1, porque desbloquea T034)
 
 ### PR `test/s4-contrato`
 
