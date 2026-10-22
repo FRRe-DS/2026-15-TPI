@@ -10,6 +10,7 @@ from app.dominio.vehiculo import TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
+from app.infraestructura.repositorios._sesion_sql import flush_aislado
 
 RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 
@@ -48,7 +49,7 @@ class SqlRepositorioConductores(RepositorioConductores):
     def guardar(self, conductor: Conductor) -> Conductor:
         fila = self._fila_a_guardar(conductor)
         _copiar_a_fila(conductor, fila)
-        self._flush_aislado(fila)
+        self._guardar_traduciendo_duplicado(fila)
         conductor.id = fila.id_conductor
         return conductor
 
@@ -85,12 +86,10 @@ class SqlRepositorioConductores(RepositorioConductores):
             raise NoEncontrado(f"No existe el conductor {conductor.id}")
         return fila
 
-    def _flush_aislado(self, fila: ConductorOrm) -> None:
-        """Flush dentro de un SAVEPOINT: si falla, la sesion sigue siendo usable."""
+    def _guardar_traduciendo_duplicado(self, fila: ConductorOrm) -> None:
+        """Flush aislado que traduce la violacion de unicidad a error de dominio."""
         try:
-            with self._sesion.begin_nested():
-                self._sesion.add(fila)
-                self._sesion.flush()
+            flush_aislado(self._sesion, fila)
         except IntegrityError as error:
             if nombre_de_restriccion(error) == RESTRICCION_DNI_UNICO:
                 raise DniDuplicado("Ya existe un conductor con ese DNI") from error

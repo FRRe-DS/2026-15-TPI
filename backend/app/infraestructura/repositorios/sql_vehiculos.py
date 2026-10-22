@@ -14,6 +14,7 @@ from app.dominio.vehiculo import (
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.db.modelos import VehiculoTipoServicio as ServicioOrm
 from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
+from app.infraestructura.repositorios._sesion_sql import flush_aislado
 
 RESTRICCION_PATENTE_UNICA = "uq_vehiculo_patente"
 
@@ -69,7 +70,7 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
     def guardar(self, vehiculo: Vehiculo) -> Vehiculo:
         fila = self._fila_a_guardar(vehiculo)
         _copiar_a_fila(vehiculo, fila)
-        self._flush_aislado(fila)
+        self._guardar_traduciendo_duplicado(fila)
         vehiculo.id = fila.id_vehiculo
         return vehiculo
 
@@ -108,12 +109,10 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
             raise NoEncontrado(f"No existe el vehiculo {vehiculo.id}")
         return fila
 
-    def _flush_aislado(self, fila: VehiculoOrm) -> None:
-        """Flush dentro de un SAVEPOINT: si falla, la sesion sigue siendo usable."""
+    def _guardar_traduciendo_duplicado(self, fila: VehiculoOrm) -> None:
+        """Flush aislado que traduce la violacion de unicidad a error de dominio."""
         try:
-            with self._sesion.begin_nested():
-                self._sesion.add(fila)
-                self._sesion.flush()
+            flush_aislado(self._sesion, fila)
         except IntegrityError as error:
             if nombre_de_restriccion(error) == RESTRICCION_PATENTE_UNICA:
                 raise PatenteDuplicada("Ya existe un vehiculo con esa patente") from error
