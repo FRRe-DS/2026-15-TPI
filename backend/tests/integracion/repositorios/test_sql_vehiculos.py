@@ -14,10 +14,13 @@ Se comporta como el fake `RepositorioVehiculosEnMemoria` (ver `tests/unitarios/f
   `habilitacion` combinados con AND.
 Los tipos de servicio vuelven en el orden del modelo ORM: los tests los comparan como
 conjunto de pares (tipo, habilitado).
+Los dos ultimos tests de la seccion "caracterizacion" (quitar un tipo de servicio al
+actualizar y guardar con un id inexistente) son de CARACTERIZACION: fijan decisiones tomadas
+en la implementacion y pasan de entrada, sin fase Red.
 """
 
 import pytest
-from app.dominio.errores import PatenteDuplicada
+from app.dominio.errores import NoEncontrado, PatenteDuplicada
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import ServicioDelVehiculo, TipoServicio, TipoVehiculo, Vehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
@@ -455,3 +458,41 @@ def test_listar_por_conductor_hace_una_cantidad_constante_de_selects_sin_n_mas_1
 
     assert con_uno == con_cinco
     assert con_cinco <= 2
+
+
+# --- Caracterizacion: decisiones de la implementacion fijadas despues de escribirla ---
+
+
+def test_guardar_un_vehiculo_que_paso_de_dos_tipos_de_servicio_a_uno_quita_la_fila_sobrante(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    """Caracterizacion: el comportamiento ya existia cuando se escribio este test."""
+    id_conductor = sembrar_conductor(sesion_bd)
+    vehiculo = nuevo_vehiculo(id_conductor, tipos_servicio=(PASAJEROS, ENVIOS))
+    vehiculo.tipos_servicio[1].habilitado = True  # ENVIOS habilitado, PASAJEROS no
+    repositorio.guardar(vehiculo)
+    sesion_bd.commit()
+    vehiculo.tipos_servicio = [s for s in vehiculo.tipos_servicio if s.tipo is ENVIOS]
+
+    repositorio.guardar(vehiculo)
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        assert contar_tipos_de_servicio(otra_sesion) == 1
+        leido = SqlRepositorioVehiculos(otra_sesion).obtener(id_conductor, vehiculo.id)
+        assert pares(leido) == {(ENVIOS, True)}
+
+
+def test_guardar_un_vehiculo_con_id_inexistente_lanza_no_encontrado_y_no_deja_filas(
+    repositorio, sesion_bd
+):
+    """Caracterizacion: los ids los genera la base; un id inexistente no es un alta."""
+    id_conductor = sembrar_conductor(sesion_bd)
+    vehiculo = nuevo_vehiculo(id_conductor)
+    vehiculo.id = 999
+
+    with pytest.raises(NoEncontrado):
+        repositorio.guardar(vehiculo)
+
+    assert repositorio.listar_por_conductor(id_conductor) == []
+    assert contar_tipos_de_servicio(sesion_bd) == 0
