@@ -8,10 +8,15 @@ from fastapi import Depends, FastAPI
 from fastapi.routing import APIRouter
 
 from app.api.errores import registrar_manejadores
+from app.api.routers import conductores, documentacion, habilitacion
 from app.api.seguridad import requerir_usuario
 
 # Cada PR del Stack 2 suma sus routers a esta lista.
-ROUTERS: tuple[APIRouter, ...] = ()
+ROUTERS: tuple[APIRouter, ...] = (
+    conductores.router,
+    habilitacion.router,
+    documentacion.router,
+)
 
 
 def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
