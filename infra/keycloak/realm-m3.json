@@ -1,0 +1,153 @@
+{
+  "realm": "m3",
+  "displayName": "M3 - Conductores y Vehiculos",
+  "displayNameHtml": "<strong>M3</strong> Conductores y Vehiculos",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "defaultRoles": [],
+  "roles": {
+    "realm": [
+      {
+        "name": "operador",
+        "description": "Operador autorizado para gestionar habilitaciones de M3",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "conductor",
+        "description": "Conductor habilitado para operar en la plataforma",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "m3-api",
+      "name": "API del modulo M3",
+      "description": "Cliente confidencial con concesion de contrasena para pruebas",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_M3_CLIENT_SECRET}",
+      "fullScopeAllowed": true,
+      "attributes": {
+        "access.token.lifespan": "300",
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "id_operador",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "id_operador",
+            "claim.name": "id_operador",
+            "jsonType.label": "int",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "id_conductor",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "id_conductor",
+            "claim.name": "id_conductor",
+            "jsonType.label": "int",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "id": "6c1f0f5e-6f1e-4b7a-9d2e-3a5f8c9b0d11",
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}}},{\"name\":\"email\",\"displayName\":\"${email}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}}},{\"name\":\"id_operador\",\"displayName\":\"ID de operador\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"validations\":{\"integer\":{\"min\":1},\"length\":{\"max\":19}},\"multivalued\":false},{\"name\":\"id_conductor\",\"displayName\":\"ID de conductor\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"validations\":{\"integer\":{\"min\":1},\"length\":{\"max\":19}},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}]}"
+          ]
+        }
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "operador.m3",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Operador",
+      "lastName": "M3",
+      "email": "operador.m3@m3.local",
+      "attributes": {
+        "id_operador": [
+          "101"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${M3_OPERADOR_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "operador"
+      ],
+      "requiredActions": []
+    },
+    {
+      "username": "conductor.m3",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Conductor",
+      "lastName": "M3",
+      "email": "conductor.m3@m3.local",
+      "attributes": {
+        "id_conductor": [
+          "1"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${M3_CONDUCTOR_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "conductor"
+      ],
+      "requiredActions": []
+    }
+  ]
+}

@@ -46,3 +46,10 @@ temp/
 *~
 .DS_Store
 Thumbs.db
+# Resultados de pruebas y empaquetado
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
