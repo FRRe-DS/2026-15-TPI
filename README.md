@@ -10,21 +10,20 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 > Este README es la documentación del módulo y se va completando a medida que avanza el trabajo. Todo lo que figura acá sale del contrato [`openapi.yaml`](./docs/contract/openapi.yaml) y del documento de planificación de la Iteración 1. Lo que todavía no está definido está marcado como **Pendiente**.
 
 ---
- 
+
 ## De qué trata este módulo
- 
+
 **M3 es el servicio de la plataforma de movilidad que gestiona a los conductores y sus vehículos.**
- 
+
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 16 endpoints; 10 de ellos se construyen en la Iteración 1.
-- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador y de conductor.
-- Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos.
-- Una pantalla web muestra el listado de conductores.
-- Todo se levanta con Docker Compose, y cada cambio pasa por un CI antes de integrarse.
-- Se integra con los módulos M1, M4, M5 y M6.
-
+- Expone una API REST de 16 endpoints ([ver contrato](#contrato-de-la-api)); 10 de ellos se construyen en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)).
+- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador y de conductor ([ver autenticación](#autenticación-y-roles)).
+- Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos ([ver base de datos](#base-de-datos)).
+- Una pantalla web muestra el listado de conductores ([ver frontend](#frontend)).
+- Todo se levanta con Docker Compose ([ver arranque rápido](#arranque-rápido)), y cada cambio pasa por un CI antes de integrarse.
+- Se integra con los módulos M1, M4, M5 y M6 ([ver integración](#integración-con-otros-módulos)).
 
 ---
 
@@ -33,17 +32,16 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 1. [Alcance de la Iteración 1](#alcance-de-la-iteración-1)
 2. [Arquitectura y estructura del repositorio](#arquitectura-y-estructura-del-repositorio)
 3. [Contrato de la API](#contrato-de-la-api)
-4. [Reglas de negocio](#reglas-de-negocio)
-5. [Errores](#errores)
-6. [Autenticación y roles](#autenticación-y-roles)
-7. [Base de datos](#base-de-datos)
-8. [Entorno con Docker Compose](#entorno-con-docker-compose)
-9. [Testing y CI](#testing-y-ci)
-10. [Frontend](#frontend)
-11. [Integración con otros módulos](#integración-con-otros-módulos)
-12. [Cómo trabajamos](#cómo-trabajamos)
-13. [Estado de la Iteración 1](#estado-de-la-iteración-1)
-14. [Pendientes](#pendientes) 
+4. [Integración con otros módulos](#integración-con-otros-módulos)
+5. [Reglas de negocio](#reglas-de-negocio)
+6. [Errores](#errores)
+7. [Autenticación y roles](#autenticación-y-roles)
+8. [Base de datos](#base-de-datos)
+9. [Entorno con Docker Compose](#entorno-con-docker-compose)
+   - [Arranque rápido](#arranque-rápido)
+   - [Verificación pendiente con Docker](#verificación-pendiente-con-docker)
+10. [Testing](#testing)
+11. [Frontend](#frontend)
 
 ---
 
@@ -63,7 +61,7 @@ Los 10 endpoints de la Iteración 1:
 
 ## Arquitectura y estructura del repositorio
 
-M3 tiene una **API en FastAPI**, su **propia base PostgreSQL**, **Keycloak** para los tokens y un **frontend en Next.js**. La API, PostgreSQL y Keycloak se levantan con Docker Compose; el frontend se ejecuta con npm.
+M3 tiene una **API en FastAPI**, su **propia base PostgreSQL**, **Keycloak** para los tokens y un **frontend en Next.js**. Todo se levanta con Docker Compose.
 
 El backend se divide en dos mitades que se comunican por interfaces (puertos) definidas en `specs/iteracion1/contracts/casos-de-uso.md`:
 
@@ -84,7 +82,6 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | Contenedores | Docker y Docker Compose |
 | CI | GitHub Actions |
 
-> La justificación de la elección del stack (RNF-01) va en `docs/justificacion-stack.md`.
 
 ### Estructura de carpetas
 
@@ -156,7 +153,6 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. | 2 |
 | `POST` | `/viajes/{id_viaje}/calificacion-cliente` | Calificar al cliente. | 2 |
 
-
 ### Detalle de los endpoints de la Iteración 1
 
 **Conductores**
@@ -194,6 +190,21 @@ Están en el contrato bajo el tag **Externo (M6)**: _implementado por M6, solo c
 | `GET` | `/viajes/{id_viaje}` | Consultar estado y resumen del viaje. |
 | `POST` | `/viajes/{id_viaje}/finalizar` | Finalizar un viaje en curso. Body: `tiempo` (minutos), `distancia` (km), `cierre`. |
 | `POST` | `/viajes/{id_viaje}/cancelar` | Cancelar un viaje. Motivos: `OTRO`, `DEFECTO MECANICO`, `PASAJERO NO VINO`. |
+
+---
+
+## Integración con otros módulos
+
+Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta tabla muestra qué aparece hoy en el contrato.
+
+| Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
+|---|---|---|
+| **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
+| **M4 - Ubicación y Disponibilidad** | La ubicación (`latitud`, `longitud`, `fecha_act_ubic`) aparece en `GET /conductores`, `GET /conductores/{id}` y `PATCH /conductores/{id}/estado`. | ⚠️ *Por definir.* |
+| **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
+| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
+
+Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, viajes) corresponden a la **Iteración 2**.
 
 ---
 
@@ -262,11 +273,11 @@ Todos los errores usan el mismo formato:
 | `409` | `DNI_DUPLICADO` | Ya existe un conductor con ese DNI. |
 | `409` | `PATENTE_DUPLICADA` | Ya existe un vehículo con esa patente. |
 | `409` | `TRANSICION_INVALIDA` | La transición de habilitación no está permitida. |
+| `410` | _(por definir)_ | La oferta de una solicitud venció (`POST /solicitudes/{id_solicitud}`, Iteración 2). |
 | `422` | `LICENCIA_VIGENTE_REQUERIDA` | Se intenta aprobar un conductor sin licencia vigente. |
 | `422` | `DATOS_INVALIDOS` | Se incumple una regla de negocio (por ejemplo, vencimiento anterior a la emisión). |
 | `500` | `ERROR_INTERNO` | Error inesperado. No expone detalles internos. |
 
-El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 
 ---
 
@@ -284,8 +295,6 @@ El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 - Roles `operador` y `conductor`, con usuarios de prueba.
 - Cliente confidencial con concesión de contraseña habilitada.
 - No contiene secretos ni contraseñas literales: se sustituyen por variables de entorno (`${VARIABLE}`).
-
-> ⚠️ **Pendiente:** definir cómo se relaciona este Keycloak con el módulo **M1 (Identidad y Acceso)**.
 
 ---
 
@@ -341,7 +350,7 @@ Un único comando levanta API, PostgreSQL y Keycloak.
 | `migraciones` y `seed` | Se ejecutan una sola vez: aplican las migraciones y cargan los datos de prueba. |
 | `api` | La API de M3, construida con `backend/Dockerfile`. |
 
-Puertos: `5432`, `8081` y `8080`. La API usa el `8080`.
+Puertos: PostgreSQL `5432`, Keycloak `8081` y API `8080`.
 
 - Los servicios tienen chequeos de salud y `depends_on` con condición.
 - Las imágenes tienen versión fija, **nunca `latest`**.
@@ -349,87 +358,6 @@ Puertos: `5432`, `8081` y `8080`. La API usa el `8080`.
 - El `Dockerfile` usa una imagen `python:3.12` de versión fija, corre con un usuario sin privilegios e inicia la API con `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`.
 
 ### Arranque rápido
-
-> ⚠️ **Pendiente:** completar con los comandos de `quickstart.md`. El objetivo es que API, base e identidad levanten en menos de 10 minutos con un solo comando.
-
----
-
-## Testing y CI
-
-Se trabaja con **TDD**: primero un test que falla, después el código mínimo para que pase y, si hace falta, un refactor. Una tarea sin test no está terminada.
-
-### Tipos de test
-
-| Tipo | Carpeta | Qué verifica |
-|---|---|---|
-| Unitarios | `backend/tests/unitarios/` | Dominio y casos de uso, con repositorios en memoria. |
-| API | `backend/tests/api/` | Endpoints, seguridad y errores, con casos de uso simulados y tokens de prueba. |
-| Integración | `backend/tests/integracion/` | Repositorios SQL contra PostgreSQL real (Testcontainers). |
-| Infraestructura | `backend/tests/infra/` | Bases, esquema, migraciones, seed y realm de Keycloak. |
-| Contrato | `backend/tests/contrato/` | Validez y ejemplos del OpenAPI. La suite automática contra respuestas reales queda para Iteración 2. |
-| Concurrencia (pendiente) | T104–T106 | Pruebas simultáneas de DNI, patente y habilitación para Iteración 2. |
-| Humo automático (pendiente) | T107 | El Compose se verificó manualmente; falta incorporar la prueba al CI. |
-
-### Comandos
-
-```bash
-cd backend
-uv sync --frozen --all-groups                          # instalar todos los stacks
-uv run pytest tests/unitarios --cov=app         # tests unitarios con cobertura
-uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobertura mínima
-```
-
-**Cobertura:** mínimo **65%** en la API (`fail_under = 65` en `backend/.coveragerc`). El objetivo es estar entre 65% y 70% o más sobre lo implementado.
-    
-
----
-
-## Frontend
-
-Una sola pantalla que muestra el **listado de conductores** consumiendo la API.
-
-- Stack: Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, Node 24 (`.nvmrc`). Tests con Vitest y Testing Library.
-- La pantalla (`frontend/src/app/page.tsx`) es un **componente de servidor**: el servidor de Next pide el token a Keycloak y llama a la API, así que las credenciales nunca llegan al navegador.
-- El token se pide a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña y se reutiliza hasta su vencimiento.
-- Muestra nombre, apellido, DNI y habilitación de cada conductor. Tiene un estado vacío ("No hay conductores") y un estado de error con un mensaje claro.
-
-**Variables de entorno** (`frontend/.env.example`): `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER`, `TEST_PASSWORD`.
-
-**Scripts**
-
-```bash
-npm run dev     # correr la pantalla
-npm run build
-npm run lint
-npm run test
-```
-
----
-
-## Integración con otros módulos
-
-Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta tabla muestra qué aparece hoy en el contrato.
-
-| Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
-|---|---|---|
-| **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | La ubicación (`latitud`, `longitud`, `fecha_act_ubic`) aparece en `GET /conductores`, `GET /conductores/{id}` y `PATCH /conductores/{id}/estado`. | ⚠️ *Por definir.* |
-| **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
-| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
-
-Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, viajes) corresponden a la **Iteración 2**.
-| `400` | Solicitud mal formada |
-| `401` | Token ausente o inválido |
-| `403` | Sin permisos |
-| `404` | Recurso inexistente |
-| `409` | Duplicado o transición inválida |
-| `410` | Oferta vencida |
-| `422` | Incumple una regla de negocio |
-| `500` | Error interno |
-
----
-
-## Arranque rápido (M3)
 
 El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levanta con Docker Compose.
 
@@ -498,22 +426,70 @@ uv run alembic -c ../infra/migraciones/alembic.ini upgrade head
 uv run python ../infra/seed/cargar_datos.py
 ```
 
-### Integración verificada (22/10/2026)
+### Verificación pendiente con Docker
 
-Se verificaron PostgreSQL, migraciones, seed idempotente, Keycloak con tokens reales y la API en Compose. Se recorrieron las 10 operaciones del alcance y se validaron 17 respuestas reales contra OpenAPI, incluidos errores y eventos con ID entero. El frontend se ejecutó con `npm run dev` y mostró conductores reales.
+El código, el esquema, las migraciones (DDL offline), el seed (simulación) y las pruebas estáticas ya fueron validados. En el entorno de desarrollo usado para preparar esta entrega **no había un daemon de Docker operativo**, por lo que quedan pendientes de ejecutar:
 
-El frontend se levanta por separado:
+- `docker compose --env-file .env -f docker-compose.yml config` para comprobar la interpolación de variables.
+- El build de `backend/Dockerfile` y del tag temporal `m3-backend:local`.
+- La inicialización de PostgreSQL y el script `infra/postgres/init/01-crear-bases.sh` (creación de roles, bases y revocación de `CONNECT`).
+- `alembic upgrade head` y `alembic downgrade base` contra PostgreSQL real.
+- La ejecución real del seed y su segunda ejecución para confirmar la idempotencia en PostgreSQL.
+- La importación de `realm-m3.json` en Keycloak, la sustitución de `${...}` y la obtención de un token con `operador.m3`.
+- Los healthchecks de Keycloak (puerto de administración 9000) y de la API, y el orden `postgres → keycloak/migraciones → seed → API`.
+- Los 15 tests marcados como `integration` (Testcontainers), omitidos automáticamente al no detectar Docker.
+
+---
+
+## Testing
+
+Se trabaja con **TDD**: primero un test que falla, después el código mínimo para que pase y, si hace falta, un refactor. Una tarea sin test no está terminada.
+
+### Tipos de test
+
+| Tipo | Carpeta | Qué verifica |
+|---|---|---|
+| Unitarios | `backend/tests/unitarios/` | Dominio y casos de uso, con repositorios en memoria. |
+| API | `backend/tests/api/` | Endpoints, seguridad y errores, con casos de uso simulados y tokens de prueba. |
+| Integración | `backend/tests/integracion/` | Repositorios SQL contra PostgreSQL real (Testcontainers). |
+| Infraestructura | `backend/tests/infra/` | Bases, esquema, migraciones, seed y realm de Keycloak. |
+| Contrato | `backend/tests/contrato/` | Las respuestas cumplen el `openapi.yaml`. |
+| Concurrencia | `backend/tests/integracion/concurrencia/` | 20 solicitudes simultáneas con el mismo DNI dan exactamente un `201` y 19 `409`. Lo mismo con la patente. Dos acciones de habilitación simultáneas: una se aplica y la otra recibe `409`. |
+| Humo | `.github/scripts/humo.sh` | Levanta el Compose, pide un token de operador a Keycloak y verifica que `GET /api/v1/conductores` dé `200` con al menos un conductor y `401` sin token. |
+
+### Comandos
 
 ```bash
-cd frontend
-npm ci
-cp .env.example .env.local
-# Completar con las mismas credenciales usadas en infra/.env.
-npm run dev
+cd backend
+uv sync --group dev                                     # instalar dependencias
+uv run pytest tests/unitarios --cov=app                 # tests unitarios con cobertura
+uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobertura mínima
 ```
 
-Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` de `infra/.env`. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
+**Cobertura:** mínimo **65%** en la API (`fail_under = 65` en `backend/.coveragerc`). El objetivo es estar entre 65% y 70% o más sobre lo implementado.
 
-El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
+Los tests de infraestructura se ejecutan con el entorno descrito en [Arranque rápido](#arranque-rápido).
 
-Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas. No se abre una PR a main en esta integración.
+---
+
+## Frontend
+
+Una sola pantalla que muestra el **listado de conductores** consumiendo la API.
+
+- Stack: Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, Node 24 (`.nvmrc`). Tests con Vitest y Testing Library.
+- La pantalla (`frontend/src/app/page.tsx`) es un **componente de servidor**: el servidor de Next pide el token a Keycloak y llama a la API, así que las credenciales nunca llegan al navegador.
+- El token se pide a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña y se reutiliza hasta su vencimiento.
+- Muestra nombre, apellido, DNI y habilitación de cada conductor. Tiene un estado vacío ("No hay conductores") y un estado de error con un mensaje claro.
+
+Para tener la API y Keycloak corriendo, ver [Arranque rápido](#arranque-rápido).
+
+**Variables de entorno** (`frontend/.env.example`): `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER`, `TEST_PASSWORD`.
+
+**Scripts**
+
+```bash
+npm run dev     # correr la pantalla
+npm run build
+npm run lint
+npm run test
+```
