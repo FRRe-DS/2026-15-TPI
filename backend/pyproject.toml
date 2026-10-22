@@ -12,7 +12,12 @@ dev = [          # Stack 1: lógica
     "pytest-cov>=7.1,<7.2",
     "ruff>=0.17,<0.18",
 ]
-api = []         # Stack 2: servidor HTTP
+api = [          # Stack 2: servidor HTTP
+    "fastapi>=0.159,<0.160",
+    "uvicorn[standard]>=0.32,<1",
+    "pydantic-settings>=2.7,<3",
+    "pyjwt[crypto]>=2.15,<2.16",
+]
 db = [           # Stack 3: datos y seguridad
     "sqlalchemy>=2.1,<2.2",
     "alembic>=1.20,<1.21",
