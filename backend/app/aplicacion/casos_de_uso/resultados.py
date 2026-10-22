@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento, EstadoDocumento
@@ -38,3 +38,9 @@ class DocumentoDeConductor:
     id_conductor: int
     documento: Documento
     estado: EstadoDocumento
+
+
+@dataclass
+class VehiculoDetalle:
+    vehiculo: Vehiculo
+    documentos: list = field(default_factory=list)
