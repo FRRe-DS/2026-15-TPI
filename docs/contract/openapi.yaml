@@ -1307,7 +1307,7 @@ components:
           $ref: '#/components/schemas/AccionHabilitacion'
         estado_anterior:
           type: string
-          enum: [PENDIENTE, OBSERVADA, APROBADA, SUSPENDIDA, RECHAZADA]
+          enum: [PENDIENTE, OBSERVADA, APROBADA, SUSPENDIDA, RECHAZADA, null]
           nullable: true
           description: null en el evento ALTA
         estado_nuevo:

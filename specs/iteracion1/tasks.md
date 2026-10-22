@@ -111,47 +111,47 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s2-base-api`
 
-- [ ] T041 [S2] Agregar al grupo `api` de `backend/pyproject.toml` (solo ese grupo): fastapi, uvicorn, pydantic-settings y pyjwt con extra `crypto`, con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
-- [ ] T042 [S2] Crear `backend/tests/api/conftest.py`: genera una clave RSA de prueba, expone su JWKS, ofrece `crear_token(roles, id_operador, exp, iss)` y un cliente de pruebas con los casos de uso reemplazados por simulados (según [contracts/token-jwt.md](./contracts/token-jwt.md))
-- [ ] T043 [P] [S2] Test (Red) `backend/tests/api/test_configuracion.py`: la configuración lee `KEYCLOAK_URL`, `KEYCLOAK_REALM` y `DATABASE_URL` del entorno y falla con un mensaje claro si falta alguna
-- [ ] T044 [S2] Impl (Green) `backend/app/api/__init__.py` y `backend/app/api/configuracion.py` con pydantic-settings hasta que pase T043
-- [ ] T045 [S2] [US5] Test (Red) `backend/tests/api/test_seguridad.py`: `401` sin encabezado, token malformado, firma inválida, vencido o de otro emisor; `200` con rol `conductor` u `operador` en endpoints comunes; `403` en una acción de habilitación sin rol `operador`; `403` si el operador no trae `id_operador` numérico
-- [ ] T046 [S2] [US5] Impl (Green) `backend/app/api/seguridad.py`: validación local con PyJWT y JWKS con caché, y dependencias `requerir_usuario` y `requerir_operador`, hasta que pase T045
-- [ ] T047 [S2] Test (Red) `backend/tests/api/test_errores.py`: cada error de dominio responde el HTTP y el `{codigo, mensaje}` de [contracts/errores.md](./contracts/errores.md); validación de forma → `400` `SOLICITUD_INVALIDA`; excepción inesperada → `500` `ERROR_INTERNO` sin detalles internos
-- [ ] T048 [S2] Impl (Green) `backend/app/api/errores.py` con los manejadores de excepciones hasta que pase T047
-- [ ] T049 [P] [S2] Test (Red) `backend/tests/api/test_esquemas.py`: restricciones de entrada del OpenAPI, entre ellas DNI `^[0-9]{7,8}$`, email válido, `motivo` con `minLength: 1`, `tipos_serv` con `minItems: 1` y `uniqueItems`, fechas en formato `date` y `url_archivo` con formato `uri`
-- [ ] T050 [S2] Impl (Green) `backend/app/api/esquemas/{conductor,vehiculo,documento,habilitacion,error}.py` con los nombres del OpenAPI hasta que pase T049
-- [ ] T051 [S2] Test (Red) `backend/tests/api/test_main.py`: todas las rutas cuelgan de `/api/v1` y requieren autenticación
-- [ ] T052 [S2] Impl (Green) `backend/app/api/main.py` con `crear_app()`, prefijo `/api/v1`, manejadores y seguridad, hasta que pase T051
+- [x] T041 [S2] Agregar al grupo `api` de `backend/pyproject.toml` (solo ese grupo): fastapi, uvicorn, pydantic-settings y pyjwt con extra `crypto`, con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
+- [x] T042 [S2] Crear `backend/tests/api/conftest.py`: genera una clave RSA de prueba, expone su JWKS, ofrece `crear_token(roles, id_operador, exp, iss)` y un cliente de pruebas con los casos de uso reemplazados por simulados (según [contracts/token-jwt.md](./contracts/token-jwt.md))
+- [x] T043 [P] [S2] Test (Red) `backend/tests/api/test_configuracion.py`: la configuración lee `KEYCLOAK_URL`, `KEYCLOAK_REALM` y `DATABASE_URL` del entorno y falla con un mensaje claro si falta alguna
+- [x] T044 [S2] Impl (Green) `backend/app/api/__init__.py` y `backend/app/api/configuracion.py` con pydantic-settings hasta que pase T043
+- [x] T045 [S2] [US5] Test (Red) `backend/tests/api/test_seguridad.py`: `401` sin encabezado, token malformado, firma inválida, vencido o de otro emisor; `200` con rol `conductor` u `operador` en endpoints comunes; `403` en una acción de habilitación sin rol `operador`; `403` si el operador no trae `id_operador` numérico
+- [x] T046 [S2] [US5] Impl (Green) `backend/app/api/seguridad.py`: validación local con PyJWT y JWKS con caché, y dependencias `requerir_usuario` y `requerir_operador`, hasta que pase T045
+- [x] T047 [S2] Test (Red) `backend/tests/api/test_errores.py`: cada error de dominio responde el HTTP y el `{codigo, mensaje}` de [contracts/errores.md](./contracts/errores.md); validación de forma → `400` `SOLICITUD_INVALIDA`; excepción inesperada → `500` `ERROR_INTERNO` sin detalles internos
+- [x] T048 [S2] Impl (Green) `backend/app/api/errores.py` con los manejadores de excepciones hasta que pase T047
+- [x] T049 [P] [S2] Test (Red) `backend/tests/api/test_esquemas.py`: restricciones de entrada del OpenAPI, entre ellas DNI `^[0-9]{7,8}$`, email válido, `motivo` con `minLength: 1`, `tipos_serv` con `minItems: 1` y `uniqueItems`, fechas en formato `date` y `url_archivo` con formato `uri`
+- [x] T050 [S2] Impl (Green) `backend/app/api/esquemas/{conductor,vehiculo,documento,habilitacion,error}.py` con los nombres del OpenAPI hasta que pase T049
+- [x] T051 [S2] Test (Red) `backend/tests/api/test_main.py`: todas las rutas cuelgan de `/api/v1` y requieren autenticación
+- [x] T052 [S2] Impl (Green) `backend/app/api/main.py` con `crear_app()`, prefijo `/api/v1`, manejadores y seguridad, hasta que pase T051
 
 ### PR `feat/s2-endpoints-conductor`
 
-- [ ] T053 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_crear.py`: `POST /conductores` → `201` con encabezado `Location` y cuerpo `Conductor`; `400` por DNI inválido; `409` `DNI_DUPLICADO`; `401` sin token
-- [ ] T054 [S2] [US1] Impl (Green) `backend/app/api/routers/conductores.py` (crear) hasta que pase T053
-- [ ] T055 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_listar.py`: `GET /conductores` con `habilitado`, `disponible` y `tipo_vehiculo`; `400` ante un valor inválido; los parámetros `latitud` y `longitud` se aceptan y se ignoran (no filtran ni ordenan, quedan para la Iteración 2)
-- [ ] T056 [S2] [US1] Impl (Green) listar en `backend/app/api/routers/conductores.py` hasta que pase T055
-- [ ] T057 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_obtener.py`: `GET /conductores/{id_conductor}` → `200` y `404` `NO_ENCONTRADO`
-- [ ] T058 [S2] [US1] Impl (Green) obtener en `backend/app/api/routers/conductores.py` hasta que pase T057
-- [ ] T059 [S2] [US2] Test (Red) `backend/tests/api/test_habilitacion_consultar.py`: `GET /conductores/{id_conductor}/habilitacion` → `200` con `HabilitacionResumen` y `404`
-- [ ] T060 [S2] [US2] Impl (Green) `backend/app/api/routers/habilitacion.py` (consultar) hasta que pase T059
-- [ ] T061 [S2] [US2] Test (Red) `backend/tests/api/test_habilitacion_accionar.py`: `POST /conductores/{id_conductor}/habilitacion` → `200` con `HabilitacionEventos`; pasa al caso de uso el `id_operador` del token; `403` sin rol `operador`; `400` con `motivo` vacío; `404`; `409` `TRANSICION_INVALIDA`; `422` `LICENCIA_VIGENTE_REQUERIDA`
-- [ ] T062 [S2] [US2] Impl (Green) accionar en `backend/app/api/routers/habilitacion.py` hasta que pase T061
-- [ ] T063 [S2] [US3] Test (Red) `backend/tests/api/test_documentacion_licencia.py`: `POST /conductores/{id_conductor}/documentacion` → `201` con estado `VIGENTE` o `VENCIDO`; `400` por URL o fechas inválidas; `404`; `422` `DATOS_INVALIDOS`
-- [ ] T064 [S2] [US3] Impl (Green) `backend/app/api/routers/documentacion.py` hasta que pase T063
+- [x] T053 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_crear.py`: `POST /conductores` → `201` con encabezado `Location` y cuerpo `Conductor`; `400` por DNI inválido; `409` `DNI_DUPLICADO`; `401` sin token
+- [x] T054 [S2] [US1] Impl (Green) `backend/app/api/routers/conductores.py` (crear) hasta que pase T053
+- [x] T055 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_listar.py`: `GET /conductores` con `habilitado`, `disponible` y `tipo_vehiculo`; `400` ante un valor inválido; los parámetros `latitud` y `longitud` se aceptan y se ignoran (no filtran ni ordenan, quedan para la Iteración 2)
+- [x] T056 [S2] [US1] Impl (Green) listar en `backend/app/api/routers/conductores.py` hasta que pase T055
+- [x] T057 [S2] [US1] Test (Red) `backend/tests/api/test_conductores_obtener.py`: `GET /conductores/{id_conductor}` → `200` y `404` `NO_ENCONTRADO`
+- [x] T058 [S2] [US1] Impl (Green) obtener en `backend/app/api/routers/conductores.py` hasta que pase T057
+- [x] T059 [S2] [US2] Test (Red) `backend/tests/api/test_habilitacion_consultar.py`: `GET /conductores/{id_conductor}/habilitacion` → `200` con `HabilitacionResumen` y `404`
+- [x] T060 [S2] [US2] Impl (Green) `backend/app/api/routers/habilitacion.py` (consultar) hasta que pase T059
+- [x] T061 [S2] [US2] Test (Red) `backend/tests/api/test_habilitacion_accionar.py`: `POST /conductores/{id_conductor}/habilitacion` → `200` con `HabilitacionEventos`; pasa al caso de uso el `id_operador` del token; `403` sin rol `operador`; `400` con `motivo` vacío; `404`; `409` `TRANSICION_INVALIDA`; `422` `LICENCIA_VIGENTE_REQUERIDA`
+- [x] T062 [S2] [US2] Impl (Green) accionar en `backend/app/api/routers/habilitacion.py` hasta que pase T061
+- [x] T063 [S2] [US3] Test (Red) `backend/tests/api/test_documentacion_licencia.py`: `POST /conductores/{id_conductor}/documentacion` → `201` con estado `VIGENTE` o `VENCIDO`; `400` por URL o fechas inválidas; `404`; `422` `DATOS_INVALIDOS`
+- [x] T064 [S2] [US3] Impl (Green) `backend/app/api/routers/documentacion.py` hasta que pase T063
 
 ### PR `feat/s2-endpoints-vehiculo`
 
-- [ ] T065 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_crear.py`: `POST /conductores/{id_conductor}/vehiculos` → `201`; `400` sin tipos de servicio; `404`; `409` `PATENTE_DUPLICADA`
-- [ ] T066 [S2] [US4] Impl (Green) `backend/app/api/routers/vehiculos.py` (crear) hasta que pase T065
-- [ ] T067 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_listar.py`: `GET /conductores/{id_conductor}/vehiculos` con filtros `tipo` y `habilitacion`; `404`
-- [ ] T068 [S2] [US4] Impl (Green) listar en `backend/app/api/routers/vehiculos.py` hasta que pase T067
-- [ ] T069 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_obtener.py`: `GET /conductores/{id_conductor}/vehiculos/{id_vehiculo}` → `200` y `404` (también si el vehículo es de otro conductor)
-- [ ] T070 [S2] [US4] Impl (Green) obtener en `backend/app/api/routers/vehiculos.py` hasta que pase T069
-- [ ] T071 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_habilitacion.py`: `POST /conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` → `200` con `HabilitacionVehiculoEventos`; `403` sin rol `operador`; `409`; `404`
-- [ ] T072 [S2] [US4] Impl (Green) `backend/app/api/routers/vehiculos_habilitacion.py` hasta que pase T071
-- [ ] T073 [S2] Test (Red) `backend/tests/api/test_paridad_rutas.py`: el `openapi.json` que genera FastAPI contiene exactamente los 10 pares ruta y método del alcance, con los mismos `operationId` de `docs/contract/openapi.yaml`
-- [ ] T074 [S2] Impl (Green) `backend/app/api/dependencias.py`: cableado de los casos de uso con los repositorios SQL y la sesión. **Depende de** S1 (T035, T037, T039) y S3 (T081). Verificar con T073
-- [ ] T075 [S2] Crear `backend/Dockerfile` con imagen base `python:3.12` de versión fija (nunca `latest`), `uv sync --frozen --no-dev --group api --group db` (las dependencias de ejecución viven en esos grupos), usuario sin privilegios y `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`
+- [x] T065 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_crear.py`: `POST /conductores/{id_conductor}/vehiculos` → `201`; `400` sin tipos de servicio; `404`; `409` `PATENTE_DUPLICADA`
+- [x] T066 [S2] [US4] Impl (Green) `backend/app/api/routers/vehiculos.py` (crear) hasta que pase T065
+- [x] T067 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_listar.py`: `GET /conductores/{id_conductor}/vehiculos` con filtros `tipo` y `habilitacion`; `404`
+- [x] T068 [S2] [US4] Impl (Green) listar en `backend/app/api/routers/vehiculos.py` hasta que pase T067
+- [x] T069 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_obtener.py`: `GET /conductores/{id_conductor}/vehiculos/{id_vehiculo}` → `200` y `404` (también si el vehículo es de otro conductor)
+- [x] T070 [S2] [US4] Impl (Green) obtener en `backend/app/api/routers/vehiculos.py` hasta que pase T069
+- [x] T071 [S2] [US4] Test (Red) `backend/tests/api/test_vehiculos_habilitacion.py`: `POST /conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` → `200` con `HabilitacionVehiculoEventos`; `403` sin rol `operador`; `409`; `404`
+- [x] T072 [S2] [US4] Impl (Green) `backend/app/api/routers/vehiculos_habilitacion.py` hasta que pase T071
+- [x] T073 [S2] Test (Red) `backend/tests/api/test_paridad_rutas.py`: el `openapi.json` que genera FastAPI contiene exactamente los 10 pares ruta y método del alcance, con los mismos `operationId` de `docs/contract/openapi.yaml`
+- [x] T074 [S2] Impl (Green) `backend/app/api/dependencias.py`: cableado de los casos de uso con los repositorios SQL y la sesión. **Depende de** S1 (T035, T037, T039) y S3 (T081). Verificar con T073
+- [x] T075 [S2] Crear `backend/Dockerfile` con imagen base `python:3.12` de versión fija (nunca `latest`), `uv sync --frozen --no-dev --group api --group db` (las dependencias de ejecución viven en esos grupos), usuario sin privilegios y `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`
 
 ---
 
@@ -161,23 +161,23 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `feat/s3-esquema`
 
-- [ ] T076 [S3] Agregar al grupo `db` de `backend/pyproject.toml` (solo ese grupo): sqlalchemy, alembic y psycopg con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
-- [ ] T077 [P] [S3] Crear `infra/.env.example` con todas las variables (puertos, nombres de bases y usuarios, claves del realm, usuarios de prueba) sin valores reales
-- [ ] T078 [S3] [US5] Test (Red) `backend/tests/infra/test_init_postgres.py` (con `conftest.py` propio y Testcontainers): existen las bases `m3` y `keycloak`, y el usuario de `m3` no puede conectarse a la base de `keycloak` (RNF-05)
-- [ ] T079 [S3] [US5] Impl (Green) `infra/postgres/init/01-crear-bases.sh`: crea las dos bases con usuarios distintos, con contraseñas tomadas de variables de entorno, hasta que pase T078
-- [ ] T080 [S3] [US1] Test (Red) `backend/tests/infra/test_esquema.py`: existen `conductor`, `vehiculo`, `vehiculo_tipo_servicio`, `documento_conductor`, `habilitacion_evento_conductor` y `habilitacion_evento_vehiculo`; `conductor.dni` único; `vehiculo.patente` única; restricciones `CHECK` en los estados de habilitación (`PENDIENTE`, `OBSERVADA`, `APROBADA`, `SUSPENDIDA`, `RECHAZADA`), `tipo` (`AUTO`/`MOTO`), tipos de servicio (`PASAJEROS`/`ENVIOS`) y `accion`; claves foráneas; `habilitacion` inicial `PENDIENTE`; `conectado` y `disponible` por defecto falsos
-- [ ] T081 [S3] [US1] Impl (Green) `backend/app/infraestructura/db/__init__.py`, `modelos.py` y `sesion.py` (modelos SQLAlchemy según [data-model.md](./data-model.md); sesión por `DATABASE_URL`) hasta que pase T080
-- [ ] T082 [S3] [US1] Test (Red) `backend/tests/infra/test_migraciones.py`: `alembic upgrade head` crea el esquema de T080 y `alembic downgrade base` lo elimina
-- [ ] T083 [S3] [US1] Impl (Green) `infra/migraciones/alembic.ini`, `env.py` y `versions/0001_esquema_inicial.py` hasta que pase T082
+- [x] T076 [S3] Agregar al grupo `db` de `backend/pyproject.toml` (solo ese grupo): sqlalchemy, alembic y psycopg con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
+- [x] T077 [P] [S3] Crear `infra/.env.example` con todas las variables (puertos, nombres de bases y usuarios, claves del realm, usuarios de prueba) sin valores reales
+- [x] T078 [S3] [US5] Test (Red) `backend/tests/infra/test_init_postgres.py` (con `conftest.py` propio y Testcontainers): existen las bases `m3` y `keycloak`, y el usuario de `m3` no puede conectarse a la base de `keycloak` (RNF-05)
+- [x] T079 [S3] [US5] Impl (Green) `infra/postgres/init/01-crear-bases.sh`: crea las dos bases con usuarios distintos, con contraseñas tomadas de variables de entorno, hasta que pase T078
+- [x] T080 [S3] [US1] Test (Red) `backend/tests/infra/test_esquema.py`: existen `conductor`, `vehiculo`, `vehiculo_tipo_servicio`, `documento_conductor`, `habilitacion_evento_conductor` y `habilitacion_evento_vehiculo`; `conductor.dni` único; `vehiculo.patente` única; restricciones `CHECK` en los estados de habilitación (`PENDIENTE`, `OBSERVADA`, `APROBADA`, `SUSPENDIDA`, `RECHAZADA`), `tipo` (`AUTO`/`MOTO`), tipos de servicio (`PASAJEROS`/`ENVIOS`) y `accion`; claves foráneas; `habilitacion` inicial `PENDIENTE`; `conectado` y `disponible` por defecto falsos
+- [x] T081 [S3] [US1] Impl (Green) `backend/app/infraestructura/db/__init__.py`, `modelos.py` y `sesion.py` (modelos SQLAlchemy según [data-model.md](./data-model.md); sesión por `DATABASE_URL`) hasta que pase T080
+- [x] T082 [S3] [US1] Test (Red) `backend/tests/infra/test_migraciones.py`: `alembic upgrade head` crea el esquema de T080 y `alembic downgrade base` lo elimina
+- [x] T083 [S3] [US1] Impl (Green) `infra/migraciones/alembic.ini`, `env.py` y `versions/0001_esquema_inicial.py` hasta que pase T082
 
 ### PR `feat/s3-seed-realm-compose`
 
-- [ ] T084 [S3] [US5] Test (Red) `backend/tests/infra/test_seed.py`: el seed es idempotente (correrlo dos veces no duplica); carga conductores en distintos estados de habilitación, al menos uno con licencia `VIGENTE` y otro con licencia `VENCIDO`, al menos uno con `conectado` y `disponible` verdaderos (para probar el filtro `disponible`), al menos un vehículo, y un evento `ALTA` por cada entidad
-- [ ] T085 [S3] [US5] Impl (Green) `infra/seed/cargar_datos.py` determinista hasta que pase T084
-- [ ] T086 [S3] [US5] Test (Red) `backend/tests/infra/test_realm.py`: el JSON es válido; realm `m3`; roles `operador` y `conductor`; usuario operador con atributo numérico `id_operador` y mapeador que lo incluye como claim entero; cliente confidencial con concesión de contraseña habilitada; ningún secreto ni contraseña literal (solo `${VARIABLE}`)
-- [ ] T087 [S3] [US5] Impl (Green) `infra/keycloak/realm-m3.json` con sustitución de variables de entorno hasta que pase T086
-- [ ] T088 [S3] [US5] Impl `infra/docker-compose.yml`: `postgres` (versión fija de [research.md](./research.md)), `keycloak` (26.8.1, importa el realm), `migraciones` y `seed` (una sola vez) y `api` (usa `backend/Dockerfile` de S2); puertos 5432, 8081 y 8080; chequeos de salud y `depends_on` con condición; sin `latest`. Lo valida la prueba de humo T107
-- [ ] T089 [S3] [US5] Agregar a `README.md` la sección "Arranque rápido" con los comandos de [quickstart.md](./quickstart.md), sin duplicar su contenido
+- [x] T084 [S3] [US5] Test (Red) `backend/tests/infra/test_seed.py`: el seed es idempotente (correrlo dos veces no duplica); carga conductores en distintos estados de habilitación, al menos uno con licencia `VIGENTE` y otro con licencia `VENCIDO`, al menos uno con `conectado` y `disponible` verdaderos (para probar el filtro `disponible`), al menos un vehículo, y un evento `ALTA` por cada entidad
+- [x] T085 [S3] [US5] Impl (Green) `infra/seed/cargar_datos.py` determinista hasta que pase T084
+- [x] T086 [S3] [US5] Test (Red) `backend/tests/infra/test_realm.py`: el JSON es válido; realm `m3`; roles `operador` y `conductor`; usuario operador con atributo numérico `id_operador` y mapeador que lo incluye como claim entero; cliente confidencial con concesión de contraseña habilitada; ningún secreto ni contraseña literal (solo `${VARIABLE}`)
+- [x] T087 [S3] [US5] Impl (Green) `infra/keycloak/realm-m3.json` con sustitución de variables de entorno hasta que pase T086
+- [x] T088 [S3] [US5] Impl `infra/docker-compose.yml`: `postgres` (versión fija de [research.md](./research.md)), `keycloak` (26.8.1, importa el realm), `migraciones` y `seed` (una sola vez) y `api` (usa `backend/Dockerfile` de S2); puertos 5432, 8081 y 8080; chequeos de salud y `depends_on` con condición; sin `latest`. Lo valida la prueba de humo T107
+- [x] T089 [S3] [US5] Agregar a `README.md` la sección "Arranque rápido" con los comandos de [quickstart.md](./quickstart.md), sin duplicar su contenido
 
 ---
 
@@ -187,10 +187,10 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 ### PR `test/s4-base-ci`
 
-- [ ] T090 [S4] Agregar al grupo `test` de `backend/pyproject.toml` (solo ese grupo): testcontainers, openapi-core, httpx y un validador de especificaciones OpenAPI, con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
-- [ ] T091 [P] [S4] Crear `backend/ruff.toml` (lint y formato, Python 3.12)
-- [ ] T092 [P] [S4] Crear `backend/.coveragerc` con `source = app`, ramas activadas y `fail_under = 65`
-- [ ] T093 [P] [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_valido.py`: `docs/contract/openapi.yaml` es una especificación válida y define las 10 operaciones del alcance con sus respuestas `401`, `403` y de error
+- [x] T090 [S4] Agregar al grupo `test` de `backend/pyproject.toml` (solo ese grupo): testcontainers, openapi-core, httpx y un validador de especificaciones OpenAPI, con las versiones de [research.md](./research.md); regenerar `backend/uv.lock`
+- [x] T091 [P] [S4] Configurar Ruff en `backend/pyproject.toml` (lint y formato, Python 3.12; configuración unificada al integrar)
+- [x] T092 [P] [S4] Crear `backend/.coveragerc` con `source = app`, ramas activadas y `fail_under = 65`
+- [x] T093 [P] [S4] [US6] Test (Red) `backend/tests/contrato/test_openapi_valido.py`: `docs/contract/openapi.yaml` es una especificación válida y define las 10 operaciones del alcance con sus respuestas `401`, `403` y de error
 
 ### PR `test/s4-contrato-openapi`
 
@@ -298,3 +298,7 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 4. **Cierre**: Fase 6 y PR de `dev` hacia `main`.
 
 Cada hito deja la rama `dev` en verde.
+
+## Alcance integrado al 22/10/2026
+
+S1–S5 integrados hasta T097 y T119. T098–T108 y las tareas de cierre no marcadas quedan pendientes para Iteración 2. El recorrido manual de Compose y las respuestas reales no equivale a las suites automáticas pendientes. El frontend se ejecuta con npm, separado de Compose.

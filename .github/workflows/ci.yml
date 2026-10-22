@@ -52,7 +52,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - name: Instalar dependencias
-        run: uv sync --frozen --group test
+        run: uv sync --frozen --all-groups
       - name: Validar openapi.yaml
         run: |
           uv run python - <<'PY'
@@ -66,7 +66,7 @@ jobs:
         run: uv run pytest tests/contrato -v
 
   test:
-    name: Unitarias y API con cobertura
+    name: Suite completa con PostgreSQL y Keycloak
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -79,48 +79,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: backend/uv.lock
       - name: Instalar dependencias
-        run: uv sync --frozen --group test
-      - name: Pruebas unitarias y de API con cobertura
-        run: |
-          if [ ! -d app ]; then
-            echo "::warning::backend/app todavía no existe; se omite la cobertura."
-            exit 0
-          fi
-          rutas=()
-          if [ -d tests/unitarios ]; then
-            rutas+=("tests/unitarios")
-          fi
-          if [ -d tests/api ]; then
-            rutas+=("tests/api")
-          fi
-          if [ ${#rutas[@]} -eq 0 ]; then
-            echo "::error::backend/app existe pero no hay tests/unitarios ni tests/api."
-            exit 1
-          fi
-          uv run pytest "${rutas[@]}" --cov=app --cov-report=term-missing --cov-fail-under=65
-
-  integracion:
-    name: Integración y concurrencia
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: backend/uv.lock
-      - name: Instalar dependencias
-        run: uv sync --frozen --group test
-      - name: Pruebas de integración y concurrencia
-        run: |
-          if [ ! -d tests/integracion ]; then
-            echo "::warning::Todavía no existe tests/integracion; se omite."
-            exit 0
-          fi
-          uv run pytest tests/integracion -v
+        run: uv sync --frozen --all-groups
+      - name: Comprobar Docker
+        run: docker info
+      - name: Pruebas completas con cobertura
+        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=65
 
   frontend:
     name: Frontend
@@ -158,6 +121,11 @@ jobs:
         working-directory: frontend
         run: npm run test --if-present -- --run
 
+      - name: Compilar frontend
+        if: steps.detectar.outputs.existe == 'true'
+        working-directory: frontend
+        run: npm run build
+
   ci:
     name: ci
     if: always()
@@ -165,7 +133,6 @@ jobs:
       - lint
       - test
       - contrato
-      - integracion
       - frontend
     runs-on: ubuntu-latest
     steps:
