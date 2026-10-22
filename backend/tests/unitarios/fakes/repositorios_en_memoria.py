@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from types import TracebackType
 from typing import Self
@@ -113,6 +114,13 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
             and (habilitacion is None or v.habilitacion is habilitacion)
         ]
 
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
+        por_conductor: dict[int, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
+        for vehiculo in self._estado.vehiculos.values():
+            if vehiculo.id_conductor in por_conductor:
+                por_conductor[vehiculo.id_conductor].append(vehiculo)
+        return por_conductor
+
 
 class RepositorioDocumentosEnMemoria(RepositorioDocumentos):
     def __init__(self, estado: _Estado) -> None:
@@ -130,6 +138,13 @@ class RepositorioDocumentosEnMemoria(RepositorioDocumentos):
             for dueno, documento in self._estado.documentos.values()
             if dueno == id_conductor
         ]
+
+    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Documento]]:
+        por_conductor: dict[int, list[Documento]] = {id_: [] for id_ in ids_conductor}
+        for dueno, documento in self._estado.documentos.values():
+            if dueno in por_conductor:
+                por_conductor[dueno].append(documento)
+        return por_conductor
 
 
 class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
