@@ -1,5 +1,4 @@
 import pytest
-
 from app.dominio.conductor import Conductor
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -22,9 +21,7 @@ def test_acepta_dni_de_7_u_8_digitos(dni):
     assert crear(dni=dni).dni == dni
 
 
-@pytest.mark.parametrize(
-    "dni", ["1234567a", "123456", "123456789", "", "12 34567", "١٢٣٤٥٦٧"]
-)
+@pytest.mark.parametrize("dni", ["1234567a", "123456", "123456789", "", "12 34567", "١٢٣٤٥٦٧"])
 def test_rechaza_dni_invalido(dni):
     with pytest.raises(DatosInvalidos):
         crear(dni=dni)

@@ -32,6 +32,4 @@ class Conductor:
         exigir_texto("telefono", telefono)
         if not PATRON_EMAIL.fullmatch(email):
             raise DatosInvalidos("El email no tiene un formato válido")
-        return cls(
-            dni=dni, nombre=nombre, apellido=apellido, telefono=telefono, email=email
-        )
+        return cls(dni=dni, nombre=nombre, apellido=apellido, telefono=telefono, email=email)

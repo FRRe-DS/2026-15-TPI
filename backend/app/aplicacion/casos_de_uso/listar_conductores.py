@@ -23,7 +23,4 @@ class ListarConductores:
                 disponible=disponible,
                 tipo_vehiculo=tipo_vehiculo,
             )
-            return [
-                armar_detalle(self._uow, self._reloj, conductor)
-                for conductor in conductores
-            ]
+            return [armar_detalle(self._uow, self._reloj, conductor) for conductor in conductores]

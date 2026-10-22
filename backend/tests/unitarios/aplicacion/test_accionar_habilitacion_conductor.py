@@ -22,7 +22,6 @@ gana; cada test deja en falta una sola regla.
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
-
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
     AccionarHabilitacionConductor,
 )
@@ -39,6 +38,7 @@ from app.dominio.habilitacion import (
     EstadoHabilitacion,
     EventoHabilitacion,
 )
+
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -250,9 +250,7 @@ def test_observar_rechazar_y_suspender_no_exigen_licencia(
     assert evento.estado_nuevo is estado_esperado
 
 
-def test_suspender_y_luego_aprobar_quedan_ambos_en_el_historial_en_orden(
-    accionar, uow, reloj
-):
+def test_suspender_y_luego_aprobar_quedan_ambos_en_el_historial_en_orden(accionar, uow, reloj):
     conductor = sembrar_conductor(uow, APROBADA, [date(2029, 1, 1)])
 
     accionar.ejecutar(

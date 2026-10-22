@@ -5,15 +5,11 @@ from app.dominio.habilitacion import EventoHabilitacion
 
 class RepositorioHabilitaciones(ABC):
     @abstractmethod
-    def registrar_evento_conductor(
-        self, id_conductor: int, evento: EventoHabilitacion
-    ) -> None:
+    def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
         """Agrega un evento al historial de habilitación del conductor."""
 
     @abstractmethod
-    def registrar_evento_vehiculo(
-        self, id_vehiculo: int, evento: EventoHabilitacion
-    ) -> None:
+    def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
         """Agrega un evento al historial de habilitación del vehículo."""
 
     @abstractmethod

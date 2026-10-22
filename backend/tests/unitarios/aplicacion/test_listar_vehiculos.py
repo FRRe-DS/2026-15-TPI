@@ -10,12 +10,12 @@ Lanza NoEncontrado si el conductor no existe.
 """
 
 import pytest
-
 from app.aplicacion.casos_de_uso.listar_vehiculos import ListarVehiculos
 from app.dominio.conductor import Conductor
 from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
+
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 AUTO = TipoVehiculo.AUTO
@@ -67,9 +67,7 @@ def patentes(vehiculos):
     return [vehiculo.patente for vehiculo in vehiculos]
 
 
-def test_sin_filtros_devuelve_los_vehiculos_del_conductor_en_orden_de_alta(
-    listar_vehiculos, uow
-):
+def test_sin_filtros_devuelve_los_vehiculos_del_conductor_en_orden_de_alta(listar_vehiculos, uow):
     conductor = sembrar_conductor(uow)
     for patente in ("AAA111", "BBB222", "CCC333"):
         sembrar_vehiculo(uow, conductor.id, patente)
@@ -125,9 +123,7 @@ def test_filtra_por_tipo_y_por_habilitacion_combinando_con_and(
     assert patentes(resultado) == patentes_esperadas
 
 
-def test_los_filtros_se_aplican_solo_a_los_vehiculos_del_conductor_pedido(
-    listar_vehiculos, uow
-):
+def test_los_filtros_se_aplican_solo_a_los_vehiculos_del_conductor_pedido(listar_vehiculos, uow):
     pedido = sembrar_conductor(uow, "30000001")
     otro = sembrar_conductor(uow, "30000002")
     sembrar_vehiculo(uow, pedido.id, "AAA111", AUTO)
@@ -136,21 +132,14 @@ def test_los_filtros_se_aplican_solo_a_los_vehiculos_del_conductor_pedido(
     assert listar_vehiculos.ejecutar(id_conductor=pedido.id, tipo=MOTO) == []
 
 
-def test_filtros_sin_coincidencias_devuelven_lista_vacia_sin_error(
-    listar_vehiculos, uow
-):
+def test_filtros_sin_coincidencias_devuelven_lista_vacia_sin_error(listar_vehiculos, uow):
     conductor = sembrar_conductor(uow)
     sembrar_vehiculo(uow, conductor.id, "AAA111", AUTO, PENDIENTE)
 
-    assert (
-        listar_vehiculos.ejecutar(id_conductor=conductor.id, habilitacion=APROBADA)
-        == []
-    )
+    assert listar_vehiculos.ejecutar(id_conductor=conductor.id, habilitacion=APROBADA) == []
 
 
-def test_un_conductor_sin_vehiculos_devuelve_lista_vacia_sin_error(
-    listar_vehiculos, uow
-):
+def test_un_conductor_sin_vehiculos_devuelve_lista_vacia_sin_error(listar_vehiculos, uow):
     conductor = sembrar_conductor(uow)
 
     assert listar_vehiculos.ejecutar(id_conductor=conductor.id) == []

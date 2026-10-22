@@ -72,9 +72,7 @@ def keycloak(requiere_docker: None, tmp_path_factory: pytest.TempPathFactory) ->
     contenedor = DockerContainer("quay.io/keycloak/keycloak:26.8.1")
     contenedor.with_command("start-dev --import-realm")
     contenedor.with_exposed_ports(8080)
-    contenedor.with_volume_mapping(
-        str(realm), "/opt/keycloak/data/import/realm-m3.json", "ro"
-    )
+    contenedor.with_volume_mapping(str(realm), "/opt/keycloak/data/import/realm-m3.json", "ro")
     contenedor.waiting_for(HttpWaitStrategy(8080, "/realms/m3").for_status_code(200))
     contenedor.start()
     try:

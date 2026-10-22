@@ -8,7 +8,6 @@ Firmas bajo prueba:
 from datetime import date, timedelta
 
 import pytest
-
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.errores import DatosInvalidos
 
@@ -38,9 +37,7 @@ def crear(**cambios):
     ids=["vence_manana", "vence_hoy", "vencio_ayer"],
 )
 def test_estado_se_calcula_segun_la_fecha_de_hoy(fecha_vencimiento, estado_esperado):
-    documento = crear(
-        fecha_emision=date(2020, 1, 1), fecha_vencimiento=fecha_vencimiento
-    )
+    documento = crear(fecha_emision=date(2020, 1, 1), fecha_vencimiento=fecha_vencimiento)
 
     assert documento.estado_al(HOY) is estado_esperado
 
