@@ -32,6 +32,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ConductorCreate'
+            example:
+              dni: "30123456"
+              nombre: Ana
+              apellido: Gómez
+              telefono: "+5491176543210"
+              email: ana.gomez@example.com
       responses:
         '201':
           description: Conductor creado
@@ -44,6 +50,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conductor'
+              example:
+                id: 1
+                dni: "30123456"
+                nombre: Ana
+                apellido: Gómez
+                telefono: "+5491176543210"
+                email: ana.gomez@example.com
+                documentos: []
+                vehiculos: []
+                habilitacion: PENDIENTE
+                conectado: false
+                disponible: false
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -51,7 +69,14 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          $ref: '#/components/responses/Conflict'
+          description: Ya existe un conductor con ese DNI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: DNI_DUPLICADO
+                mensaje: Ya existe un conductor con ese DNI.
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -104,6 +129,21 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ConductorConUbicacion'
+              example:
+                - id: 1
+                  dni: "30123456"
+                  nombre: Ana
+                  apellido: Gómez
+                  telefono: "+5491176543210"
+                  email: ana.gomez@example.com
+                  documentos: []
+                  vehiculos: []
+                  habilitacion: APROBADA
+                  conectado: true
+                  disponible: true
+                  latitud: -27.4511
+                  longitud: -58.9867
+                  fecha_act_ubic: "2026-10-22T10:15:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -127,6 +167,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConductorConUbicacion'
+              example:
+                id: 1
+                dni: "30123456"
+                nombre: Ana
+                apellido: Gómez
+                telefono: "+5491176543210"
+                email: ana.gomez@example.com
+                documentos: []
+                vehiculos: []
+                habilitacion: APROBADA
+                conectado: true
+                disponible: true
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: "2026-10-22T10:15:00Z"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -150,6 +205,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HabilitacionResumen'
+              example:
+                id_conductor: 1
+                estado: APROBADA
+                historial:
+                  - estado: PENDIENTE
+                    motivo: Alta del conductor
+                    id_operador: null
+                    fecha: "2026-10-22T10:00:00Z"
+                  - estado: APROBADA
+                    motivo: Licencia vigente y documentación completa
+                    id_operador: 7
+                    fecha: "2026-10-22T12:30:00Z"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -169,6 +236,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HabilitacionAccionRequest'
+            example:
+              accion: APROBAR
+              motivo: Licencia vigente y documentación completa
       responses:
         '200':
           description: Acción aplicada
@@ -176,6 +246,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HabilitacionEventos'
+              example:
+                id_conductor: 1
+                estado: APROBADA
+                eventos:
+                  - id: 1
+                    accion: ALTA
+                    estado_anterior: null
+                    estado_nuevo: PENDIENTE
+                    motivo: Alta del conductor
+                    id_operador: null
+                    fecha: "2026-10-22T10:00:00Z"
+                  - id: 2
+                    accion: APROBAR
+                    estado_anterior: PENDIENTE
+                    estado_nuevo: APROBADA
+                    motivo: Licencia vigente y documentación completa
+                    id_operador: 7
+                    fecha: "2026-10-22T12:30:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -187,7 +275,14 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: El conductor no tiene una licencia vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: LICENCIA_VIGENTE_REQUERIDA
+                mensaje: El conductor no tiene una licencia vigente cargada.
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -204,6 +299,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DocumentoConductorCreate'
+            example:
+              tipo: LICENCIA
+              numero: LIC-12345678
+              categoria: B1
+              fecha_emision: "2024-05-10"
+              fecha_vencimiento: "2028-05-10"
+              url_archivo: https://storage.example.com/licencias/1.pdf
       responses:
         '201':
           description: Documento registrado
@@ -211,6 +313,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentoConductor'
+              example:
+                tipo: LICENCIA
+                numero: LIC-12345678
+                categoria: B1
+                fecha_emision: "2024-05-10"
+                fecha_vencimiento: "2028-05-10"
+                url_archivo: https://storage.example.com/licencias/1.pdf
+                id_conductor: 1
+                estado: VIGENTE
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -219,8 +330,6 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -240,6 +349,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VehiculoCreate'
+            example:
+              tipo: AUTO
+              patente: AB123CD
+              marca: Toyota
+              modelo: Corolla
+              anio: 2022
+              tipos_serv: [PASAJEROS]
       responses:
         '201':
           description: Vehículo registrado
@@ -252,6 +368,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vehiculo'
+              example:
+                id: 1
+                id_conductor: 1
+                tipo: AUTO
+                patente: AB123CD
+                marca: Toyota
+                modelo: Corolla
+                anio: 2022
+                tipos_serv:
+                  - tipo: PASAJEROS
+                    habilitado: false
+                documentos: []
+                habilitacion: PENDIENTE
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -261,7 +390,14 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          $ref: '#/components/responses/Conflict'
+          description: Ya existe un vehículo con esa patente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: PATENTE_DUPLICADA
+                mensaje: Ya existe un vehículo con esa patente.
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -288,6 +424,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/VehiculoResumen'
+              example:
+                - id: 1
+                  tipo: AUTO
+                  patente: AB123CD
+                  marca: Toyota
+                  modelo: Corolla
+                  anio: 2022
+                  habilitacion: PENDIENTE
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -312,6 +456,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vehiculo'
+              example:
+                id: 1
+                id_conductor: 1
+                tipo: AUTO
+                patente: AB123CD
+                marca: Toyota
+                modelo: Corolla
+                anio: 2022
+                tipos_serv:
+                  - tipo: PASAJEROS
+                    habilitado: false
+                documentos: []
+                habilitacion: PENDIENTE
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -398,6 +555,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HabilitacionAccionRequest'
+            example:
+              accion: APROBAR
+              motivo: Documentación del vehículo validada
       responses:
         '200':
           description: Acción aplicada
@@ -405,6 +565,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HabilitacionVehiculoEventos'
+              example:
+                id_vehiculo: 1
+                estado: APROBADA
+                eventos:
+                  - id: 1
+                    accion: ALTA
+                    estado_anterior: null
+                    estado_nuevo: PENDIENTE
+                    motivo: Alta del vehículo
+                    id_operador: null
+                    fecha: "2026-10-22T10:05:00Z"
+                  - id: 2
+                    accion: APROBAR
+                    estado_anterior: PENDIENTE
+                    estado_nuevo: APROBADA
+                    motivo: Documentación del vehículo validada
+                    id_operador: 7
+                    fecha: "2026-10-22T13:00:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -699,30 +877,45 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: SOLICITUD_INVALIDA
+            mensaje: El cuerpo de la solicitud no es válido.
     Unauthorized:
       description: Token ausente o inválido
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: NO_AUTENTICADO
+            mensaje: Token ausente o inválido.
     Forbidden:
       description: Sin permisos
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: SIN_PERMISOS
+            mensaje: Se requiere el rol operador.
     NotFound:
       description: Recurso inexistente
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: NO_ENCONTRADO
+            mensaje: El recurso indicado no existe.
     Conflict:
       description: Duplicado o transición inválida
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: TRANSICION_INVALIDA
+            mensaje: La transición solicitada no está permitida.
     Gone:
       description: Oferta vencida
       content:
@@ -735,12 +928,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: DATOS_INVALIDOS
+            mensaje: Los datos enviados no son válidos.
     InternalError:
       description: Error interno
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: ERROR_INTERNO
+            mensaje: Ocurrió un error interno.
 
   schemas:
     Error:
