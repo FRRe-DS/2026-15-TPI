@@ -1,6 +1,7 @@
 import React from "react";
 import { listarConductores } from "../lib/api";
 import { ListadoConductores } from "../components/ListadoConductores";
+import { MOCK_CONDUCTORES } from "../mocks/conductores.mock";
 import type { ConductorConUbicacion } from "../lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -9,10 +10,15 @@ export default async function Page() {
   let conductores: ConductorConUbicacion[] = [];
   let error: string | null = null;
 
-  try {
-    conductores = await listarConductores();
-  } catch (err: unknown) {
-    error = err instanceof Error ? err.message : String(err);
+  if (process.env.USE_MOCK === "true") {
+    // Modo mock: datos ficticios sin llamar a Keycloak ni a la API
+    conductores = MOCK_CONDUCTORES;
+  } else {
+    try {
+      conductores = await listarConductores();
+    } catch (err: unknown) {
+      error = err instanceof Error ? err.message : String(err);
+    }
   }
 
   return (
