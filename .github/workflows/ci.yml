@@ -126,6 +126,52 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+  e2e:
+    name: E2E con Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            e2e/package-lock.json
+            frontend/package-lock.json
+      - name: Preparar variables de entorno
+        run: bash e2e/scripts/stack.sh generar-env
+      - name: Instalar dependencias E2E
+        working-directory: e2e
+        run: npm ci
+      - name: Instalar Chromium
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Instalar dependencias del frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Escribir entorno del frontend
+        run: bash e2e/scripts/stack.sh frontend-env
+      - name: Levantar el stack
+        run: bash e2e/scripts/stack.sh up
+      - name: Ejecutar Playwright
+        working-directory: e2e
+        env:
+          PW_WEBSERVER: "1"
+        run: npx playwright test
+      - name: Subir reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
+      - name: Bajar el stack
+        if: always()
+        run: bash e2e/scripts/stack.sh down --volumes
+
   ci:
     name: ci
     if: always()
@@ -134,6 +180,7 @@ jobs:
       - test
       - contrato
       - frontend
+      - e2e
     runs-on: ubuntu-latest
     steps:
       - name: Comprobar resultado de los jobs
