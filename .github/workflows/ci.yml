@@ -85,6 +85,31 @@ jobs:
       - name: Pruebas completas con cobertura
         run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=65
 
+  entorno:
+    name: Humo del entorno
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar variables de entorno
+        working-directory: infra
+        run: |
+          cp .env.example .env
+          sed -i \
+            -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^M3_DB_PASSWORD=.*|M3_DB_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^KEYCLOAK_DB_PASSWORD=.*|KEYCLOAK_DB_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^KEYCLOAK_ADMIN=.*|KEYCLOAK_ADMIN=admin|" \
+            -e "s|^KEYCLOAK_ADMIN_PASSWORD=.*|KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^KEYCLOAK_M3_CLIENT_SECRET=.*|KEYCLOAK_M3_CLIENT_SECRET=$(openssl rand -hex 32)|" \
+            -e "s|^M3_OPERADOR_PASSWORD=.*|M3_OPERADOR_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^M3_CONDUCTOR_PASSWORD=.*|M3_CONDUCTOR_PASSWORD=$(openssl rand -hex 16)|" \
+            .env
+      - name: Levantar Compose y ejecutar la prueba de humo
+        env:
+          BORRAR_VOLUMENES: "1"
+        run: bash .github/scripts/humo.sh
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
@@ -133,6 +158,7 @@ jobs:
       - lint
       - test
       - contrato
+      - entorno
       - frontend
     runs-on: ubuntu-latest
     steps:

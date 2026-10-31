@@ -32,7 +32,7 @@ def _crear_conductor(
 def test_veinte_solicitudes_simultaneas_con_el_mismo_dni_dan_un_201_y_diecinueve_409(
     cliente: TestClient,
     headers_conductor: dict[str, str],
-    peticiones_simultaneas: Callable[[Callable[[], httpx.Response]], list[httpx.Response]],
+    peticiones_simultaneas: Callable[..., list[httpx.Response]],
     sesion_bd: Session,
 ) -> None:
     respuestas = peticiones_simultaneas(lambda: _crear_conductor(cliente, headers_conductor))

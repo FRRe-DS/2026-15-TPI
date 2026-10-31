@@ -224,8 +224,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 - [x] T104 [S4] [US1] Test `backend/tests/integracion/concurrencia/test_dni_concurrente.py`: 20 solicitudes simultáneas con el mismo DNI producen exactamente un `201` y 19 `409` (SC-005)
 - [x] T105 [S4] [US4] Test `backend/tests/integracion/concurrencia/test_patente_concurrente.py`: lo mismo con la patente
-- [ ] T106 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
-- [ ] T107 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
+- [x] T106 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
+- [x] T107 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
 - [ ] T108 [S4] **Acción manual del responsable del repositorio** (sin esto SC-004 no se garantiza; conviene hacerla apenas exista el workflow T096, antes de abrir las PRs de implementación): configurar la protección de las ramas `dev` y `main` exigiendo el chequeo `ci` en verde antes de mergear
 
 ---

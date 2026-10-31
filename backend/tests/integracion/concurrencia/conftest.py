@@ -83,6 +83,12 @@ def headers_conductor(crear_token) -> dict[str, str]:
     return {"Authorization": f"Bearer {crear_token(roles=['conductor'])}"}
 
 
+@pytest.fixture
+def headers_operador(crear_token) -> dict[str, str]:
+    token = crear_token(roles=["operador"], id_operador=7)
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.fixture(scope="session")
 def configuracion_concurrencia() -> Settings:
     return Settings(
@@ -120,8 +126,8 @@ def cliente(app_concurrencia: FastAPI) -> Iterator[TestClient]:
 
 
 @pytest.fixture
-def peticiones_simultaneas() -> Callable[[Callable[[], httpx.Response]], list[httpx.Response]]:
-    """Ejecuta 20 peticiones que esperan juntas en una barrera antes de salir."""
+def peticiones_simultaneas() -> Callable[..., list[httpx.Response]]:
+    """Ejecuta peticiones que esperan juntas en una barrera antes de salir."""
 
     def _ejecutar(
         peticion: Callable[[], httpx.Response],
