@@ -218,6 +218,52 @@ def cliente(
         _vaciar_tablas(engine_contrato)
 
 
+CONDUCTOR_DE_PRUEBA = {
+    "dni": "30123456",
+    "nombre": "Ana",
+    "apellido": "Gómez",
+    "telefono": "+5491176543210",
+    "email": "ana.gomez@example.com",
+}
+
+LICENCIA_DE_PRUEBA = {
+    "tipo": "LICENCIA",
+    "numero": "LIC-12345678",
+    "categoria": "B1",
+    "fecha_emision": "2024-05-10",
+    "fecha_vencimiento": "2028-05-10",
+    "url_archivo": "https://storage.example.com/licencias/1.pdf",
+}
+
+
+@pytest.fixture
+def crear_conductor(cliente: TestClient, headers_conductor: dict[str, str]):
+    """Crea un conductor por la API y devuelve su representación."""
+
+    def _crear_conductor(**cambios: str) -> dict[str, Any]:
+        datos = {**CONDUCTOR_DE_PRUEBA, **cambios}
+        respuesta = cliente.post("/api/v1/conductores", json=datos, headers=headers_conductor)
+        assert respuesta.status_code == 201, respuesta.text
+        return respuesta.json()
+
+    return _crear_conductor
+
+
+@pytest.fixture
+def registrar_licencia(cliente: TestClient, headers_conductor: dict[str, str]):
+    """Registra una licencia por la API y devuelve la respuesta HTTP."""
+
+    def _registrar_licencia(id_conductor: int, **cambios: Any) -> httpx.Response:
+        datos = {**LICENCIA_DE_PRUEBA, **cambios}
+        return cliente.post(
+            f"/api/v1/conductores/{id_conductor}/documentacion",
+            json=datos,
+            headers=headers_conductor,
+        )
+
+    return _registrar_licencia
+
+
 @pytest.fixture(scope="session")
 def especificacion() -> OpenAPI:
     assert CONTRATO.exists(), f"No se encontro el contrato en {CONTRATO}"
