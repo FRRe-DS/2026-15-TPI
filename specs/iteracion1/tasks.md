@@ -215,8 +215,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 - [x] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
 - [x] T100 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
 - [x] T101 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
-- [ ] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
-- [ ] T103 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
+- [x] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
+- [x] T103 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
 
 > Los tests T099–T103 pueden fallar hasta que S1, S2 y S3 integren; es lo esperado en su fase Red. No se marcan como `xfail`.
 

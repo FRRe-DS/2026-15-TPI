@@ -235,6 +235,15 @@ LICENCIA_DE_PRUEBA = {
     "url_archivo": "https://storage.example.com/licencias/1.pdf",
 }
 
+VEHICULO_DE_PRUEBA = {
+    "tipo": "AUTO",
+    "patente": "AB123CD",
+    "marca": "Toyota",
+    "modelo": "Corolla",
+    "anio": 2022,
+    "tipos_serv": ["PASAJEROS"],
+}
+
 
 @pytest.fixture
 def crear_conductor(cliente: TestClient, headers_conductor: dict[str, str]):
@@ -264,6 +273,21 @@ def registrar_licencia(cliente: TestClient, headers_conductor: dict[str, str]):
     return _registrar_licencia
 
 
+@pytest.fixture
+def crear_vehiculo(cliente: TestClient, headers_conductor: dict[str, str]):
+    """Registra un vehículo por la API y devuelve la respuesta HTTP."""
+
+    def _crear_vehiculo(id_conductor: int, **cambios: Any) -> httpx.Response:
+        datos = {**VEHICULO_DE_PRUEBA, **cambios}
+        return cliente.post(
+            f"/api/v1/conductores/{id_conductor}/vehiculos",
+            json=datos,
+            headers=headers_conductor,
+        )
+
+    return _crear_vehiculo
+
+
 @pytest.fixture(scope="session")
 def especificacion() -> OpenAPI:
     assert CONTRATO.exists(), f"No se encontro el contrato en {CONTRATO}"
@@ -283,19 +307,37 @@ def _peticion_de(respuesta: httpx.Response) -> MockRequest:
     )
 
 
+def _respuesta_de(respuesta: httpx.Response) -> MockResponse:
+    return MockResponse(
+        data=respuesta.content,
+        status_code=respuesta.status_code,
+        headers=dict(respuesta.headers),
+        content_type=respuesta.headers.get("content-type", ""),
+    )
+
+
 @pytest.fixture
 def validar_contrato(especificacion: OpenAPI):
     """Valida la petición y la respuesta contra el contrato OpenAPI."""
 
     def _validar(respuesta: httpx.Response) -> None:
         peticion = _peticion_de(respuesta)
-        respuesta_simulada = MockResponse(
-            data=respuesta.content,
-            status_code=respuesta.status_code,
-            headers=dict(respuesta.headers),
-            content_type=respuesta.headers.get("content-type", ""),
-        )
         especificacion.validate_request(peticion)
-        especificacion.validate_response(peticion, respuesta_simulada)
+        especificacion.validate_response(peticion, _respuesta_de(respuesta))
+
+    return _validar
+
+
+@pytest.fixture
+def validar_respuesta(especificacion: OpenAPI):
+    """Valida solo la respuesta contra el contrato OpenAPI.
+
+    Se usa cuando la petición no puede validarse por diseño, por ejemplo un
+    ``401`` sin encabezado ``Authorization``.
+    """
+
+    def _validar(respuesta: httpx.Response) -> None:
+        peticion = _peticion_de(respuesta)
+        especificacion.validate_response(peticion, _respuesta_de(respuesta))
 
     return _validar
