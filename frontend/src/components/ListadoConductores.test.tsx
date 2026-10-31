@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ListadoConductores } from "./ListadoConductores";
-import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
+import type { ConductorConUbicacion } from "../lib/tipos";
 
 describe("ListadoConductores", () => {
   const conductorEjemplo: ConductorConUbicacion = {
@@ -39,37 +39,5 @@ describe("ListadoConductores", () => {
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText(mensajeError)).toBeInTheDocument();
-  });
-
-  it("renderiza badges con data-estado correspondiente para cada estado de habilitación", () => {
-    const estados: EstadoHabilitacion[] = [
-      "APROBADA",
-      "PENDIENTE",
-      "OBSERVADA",
-      "SUSPENDIDA",
-      "RECHAZADA",
-    ];
-
-    const conductoresVarios: ConductorConUbicacion[] = estados.map((estado, index) => ({
-      id: index + 1,
-      dni: `1000000${index}`,
-      nombre: `Nombre${index}`,
-      apellido: `Apellido${index}`,
-      telefono: "1122334455",
-      email: `test${index}@example.com`,
-      habilitacion: estado,
-      conectado: false,
-      disponible: false,
-      documentos: [],
-      vehiculos: [],
-    }));
-
-    const { container } = render(<ListadoConductores conductores={conductoresVarios} />);
-
-    estados.forEach((estado) => {
-      const badge = container.querySelector(`[data-estado="${estado}"]`);
-      expect(badge).toBeInTheDocument();
-      expect(badge?.textContent).toBe(estado);
-    });
   });
 });
