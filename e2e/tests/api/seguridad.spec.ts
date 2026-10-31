@@ -82,7 +82,7 @@ test("flujo completo: licencia, aprobación e historial", async ({ apiOperador }
     await apiOperador.get(`/conductores/${conductor.id}/habilitacion`)
   ).json();
   expect(habilitacion.estado).toBe("APROBADA");
-  expect(habilitacion.eventos.map((evento: { accion: string }) => evento.accion)).toEqual([
+  expect(habilitacion.historial.map((evento: { accion: string }) => evento.accion)).toEqual([
     "ALTA",
     "APROBAR",
   ]);
