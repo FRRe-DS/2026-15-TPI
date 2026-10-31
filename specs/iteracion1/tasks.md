@@ -211,8 +211,8 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 > **Depende de** S1, S2 y S3 integrados.
 
-- [ ] T098 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T097, S1, S2 y S3
-- [ ] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
+- [x] T098 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T097, S1, S2 y S3
+- [x] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
 - [ ] T100 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
 - [ ] T101 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
 - [ ] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
