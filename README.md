@@ -18,7 +18,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 18 endpoints (16 de negocio y 2 de integración con M4 y M6); 10 de ellos se construyen en la Iteración 1.
+- Expone una API REST de 20 endpoints (18 de negocio y 2 de integración con M4 y M6); 10 de ellos se construyen en la Iteración 1.
 - Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (M4 y M6).
 - Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos.
 - Una pantalla web muestra el listado de conductores.
@@ -49,7 +49,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 
 ## Alcance de la Iteración 1
 
-La API de M3 tiene **18 endpoints propios**: 16 de negocio y 2 de integración (uno con M4 y otro con M6). En la Iteración 1 se cubren **10**.
+La API de M3 tiene **20 endpoints propios**: 18 de negocio y 2 de integración (uno con M4 y otro con M6). En la Iteración 1 se cubren **10**.
 
 Los 10 endpoints de la Iteración 1:
 
@@ -151,7 +151,9 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` | Aprobar, observar, suspender o rechazar vehículo. Solo operadores. | 1 |
 | `GET` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` | Tipos de servicio del vehículo y su habilitación. | 2 |
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion` | Registrar documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). | 2 |
+| `GET` | `/conductores/{id_conductor}/estado` | Consultar conexión, disponibilidad, vehículo activo y última ubicación. Lo consulta M4. | 2 |
 | `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar conexión, disponibilidad y ubicación. | 2 |
+| `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
 | `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. | 2 |
 | `POST` | `/viajes/{id_viaje}/calificacion-cliente` | Calificar al cliente. | 2 |
@@ -424,7 +426,7 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 | Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
 |---|---|---|
 | **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | Lectura de `conectado`, `disponible`, `latitud`, `longitud`, `fecha_act_ubic` en los GET de conductores (el contrato suma `id_vehiculo_activo`, que se implementa en la Iteración 2); `PATCH /integraciones/m4/.../disponibilidad` (M4 → M3); y `PUT /integraciones/m4/.../ubicacion` (M3 → M4, ruta provisoria). | M4 consulta la API y nos informa cuándo un conductor queda ocupado o libre; M3 le envía el conductor y su ubicación (simulada). |
+| **M4 - Ubicación y Disponibilidad** | Lectura de `conectado`, `disponible`, `latitud`, `longitud`, `fecha_act_ubic` en los GET de conductores (y, en el contrato, `GET .../estado` y `GET .../ubicacion` por conductor) (el contrato suma `id_vehiculo_activo`, que se implementa en la Iteración 2); `PATCH /integraciones/m4/.../disponibilidad` (M4 → M3); y `PUT /integraciones/m4/.../ubicacion` (M3 → M4, ruta provisoria). | M4 consulta la API y nos informa cuándo un conductor queda ocupado o libre; M3 le envía el conductor y su ubicación (simulada). |
 | **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
 | **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. M6 nos informa los viajes finalizados con `POST /integraciones/m6/viajes/{id}/finalizacion`. Lo demás, ⚠️ *Por definir.* |
 

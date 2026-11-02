@@ -9,7 +9,7 @@ info:
 
     | Módulo | Sentido | Operación |
     |---|---|---|
-    | M4 | M4 → M3 | `GET /conductores` y `GET /conductores/{id_conductor}`: lectura de estado, disponibilidad y ubicación |
+    | M4 | M4 → M3 | `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`: lectura de estado, disponibilidad y ubicación |
     | M4 | M4 → M3 | `PATCH /integraciones/m4/conductores/{id_conductor}/disponibilidad` |
     | M4 | M3 → M4 | `PUT /integraciones/m4/conductores/{id_conductor}/ubicacion` (Externo (M4), ruta provisoria) |
     | M6 | M6 → M3 | `POST /integraciones/m6/viajes/{id_viaje}/finalizacion` |
@@ -620,6 +620,35 @@ paths:
   /conductores/{id_conductor}/estado:
     parameters:
       - $ref: '#/components/parameters/IdConductor'
+    get:
+      tags: [Disponibilidad]
+      summary: Consultar el estado del conductor
+      description: Devuelve la conexión, la disponibilidad, el vehículo activo y la última ubicación registrada. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
+      operationId: obtenerEstadoConductor
+      responses:
+        '200':
+          description: Estado vigente del conductor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoConductor'
+              example:
+                id_conductor: 15
+                conectado: true
+                disponible: true
+                id_vehiculo_activo: 7
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: '2026-11-02T01:30:00Z'
+                actualizado: '2026-11-02T01:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
       tags: [Disponibilidad]
       summary: Actualizar conexión y disponibilidad
@@ -656,6 +685,35 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conductores/{id_conductor}/ubicacion:
+    parameters:
+      - $ref: '#/components/parameters/IdConductor'
+    get:
+      tags: [Disponibilidad]
+      summary: Consultar la ubicación del conductor
+      description: Devuelve la última ubicación registrada y su fecha. Si todavía no hay ninguna, responde 200 con los tres campos en null, que debe tratarse como ubicación desconocida y nunca como (0, 0). No aplica vencimiento de ubicación. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
+      operationId: obtenerUbicacionConductor
+      responses:
+        '200':
+          description: Última ubicación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UbicacionConductor'
+              example:
+                id_conductor: 15
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: '2026-11-02T01:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1314,6 +1372,27 @@ components:
         actualizado:
           type: string
           format: date-time
+
+    UbicacionConductor:
+      type: object
+      required: [id_conductor, latitud, longitud, fecha_act_ubic]
+      properties:
+        id_conductor:
+          type: integer
+          format: int64
+        latitud:
+          type: number
+          format: double
+          nullable: true
+        longitud:
+          type: number
+          format: double
+          nullable: true
+        fecha_act_ubic:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuándo se registró la ubicación, no cuándo se hizo la consulta.
 
     VehiculoCreate:
       type: object
