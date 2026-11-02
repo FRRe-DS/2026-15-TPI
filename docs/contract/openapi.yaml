@@ -1,8 +1,21 @@
 openapi: 3.0.3
 info:
   title: API M3 - Conductores y Vehículos
-  version: 1.0.0
-  description: Contrato del módulo M3 - Conductores y Vehículos.
+  version: 1.1.0
+  description: |
+    Contrato del módulo M3 - Conductores y Vehículos.
+
+    Describe lo que M3 expone. Las operaciones de otros módulos que M3 consume figuran con los tags `Externo (M4)` y `Externo (M6)`.
+
+    | Módulo | Sentido | Operación |
+    |---|---|---|
+    | M4 | M4 → M3 | `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`: lectura de estado, disponibilidad y ubicación |
+    | M4 | M4 → M3 | `PATCH /integraciones/m4/conductores/{id_conductor}/disponibilidad` |
+    | M4 | M3 → M4 | `PUT /integraciones/m4/conductores/{id_conductor}/ubicacion` (Externo (M4), ruta provisoria) |
+    | M6 | M6 → M3 | `POST /integraciones/m6/viajes/{id_viaje}/finalizacion` |
+    | M6 | M3 → M6 | `GET /viajes/{id_viaje}`, `POST /viajes/{id_viaje}/finalizar` y `POST /viajes/{id_viaje}/cancelar` (Externo (M6)) |
+
+    Todas las fechas y horas están en UTC (ISO 8601 con `Z`).
 servers:
   - url: http://localhost:8080/api/v1
     description: Desarrollo local
@@ -18,6 +31,12 @@ tags:
   - name: Calificación
   - name: Externo (M6)
     description: Implementado por M6, solo consumido por M3
+  - name: Externo (M4)
+    description: Implementado por M4, solo consumido por M3. La ruta es provisoria hasta que M4 la confirme.
+  - name: Integración M4
+    description: Operaciones de M3 que invoca M4. Exigen el rol servicio.
+  - name: Integración M6
+    description: Operaciones de M3 que invoca M6. Exigen el rol servicio.
 
 paths:
   /conductores:
@@ -601,10 +620,45 @@ paths:
   /conductores/{id_conductor}/estado:
     parameters:
       - $ref: '#/components/parameters/IdConductor'
+    get:
+      tags: [Disponibilidad]
+      summary: Consultar el estado del conductor
+      description: Devuelve la conexión, la disponibilidad, el vehículo activo y la última ubicación registrada. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
+      operationId: obtenerEstadoConductor
+      responses:
+        '200':
+          description: Estado vigente del conductor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoConductor'
+              example:
+                id_conductor: 15
+                conectado: true
+                disponible: true
+                id_vehiculo_activo: 7
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: '2026-11-02T01:30:00Z'
+                actualizado: '2026-11-02T01:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
       tags: [Disponibilidad]
       summary: Actualizar conexión y disponibilidad
-      description: Requiere conductor y vehículo activo habilitados. Opcionalmente actualiza la ubicación.
+      description: |
+        Lo usa el conductor (o un operador) para informar conexión, disponibilidad, vehículo activo y ubicación.
+
+        - Para quedar disponible, el conductor debe estar conectado y tener habilitación APROBADA, y el vehículo activo también.
+        - Un conductor desconectado queda siempre no disponible.
+        - Si se informan `latitud` y `longitud` (siempre juntas), M3 las guarda y fija `fecha_act_ubic` con la hora del servidor. Si no se informan, M3 puede simular la ubicación porque el TPI no tiene una app móvil que reporte GPS.
+        - M4 puede cambiar solo `disponible` con `PATCH /integraciones/m4/conductores/{id_conductor}/disponibilidad`. Ante cambios concurrentes sobre el mismo campo gana el más reciente.
       operationId: actualizarEstadoConductor
       requestBody:
         required: true
@@ -631,6 +685,35 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /conductores/{id_conductor}/ubicacion:
+    parameters:
+      - $ref: '#/components/parameters/IdConductor'
+    get:
+      tags: [Disponibilidad]
+      summary: Consultar la ubicación del conductor
+      description: Devuelve la última ubicación registrada y su fecha. Si todavía no hay ninguna, responde 200 con los tres campos en null, que debe tratarse como ubicación desconocida y nunca como (0, 0). No aplica vencimiento de ubicación. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
+      operationId: obtenerUbicacionConductor
+      responses:
+        '200':
+          description: Última ubicación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UbicacionConductor'
+              example:
+                id_conductor: 15
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: '2026-11-02T01:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -840,12 +923,172 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
   
+  /integraciones/m4/conductores/{id_conductor}/ubicacion:
+    parameters:
+      - $ref: '#/components/parameters/IdConductor'
+    put:
+      tags: [Externo (M4)]
+      summary: Enviar conductor y ubicación a M4
+      description: |
+        Implementado por M4, solo consumido por M3. La ruta es provisoria hasta que M4 la confirme.
+
+        M3 envía los datos mínimos del conductor y su posición. Como el TPI no tiene una app móvil que reporte GPS, M3 puede simular la ubicación. `tipo_vehiculo` es el del vehículo activo (`id_vehiculo_activo`).
+      operationId: enviarConductorUbicacionM4
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConductorUbicacionM4Request'
+            example:
+              id_conductor: 15
+              habilitado: true
+              id_vehiculo_activo: 7
+              tipo_vehiculo: AUTO
+              conectado: true
+              disponible: true
+              latitud: -27.4511
+              longitud: -58.9867
+              fecha_act_ubic: '2026-11-02T01:30:00Z'
+      responses:
+        '200':
+          description: Datos recibidos por M4
+        '202':
+          description: Datos aceptados por M4
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integraciones/m4/conductores/{id_conductor}/disponibilidad:
+    parameters:
+      - $ref: '#/components/parameters/IdConductor'
+    patch:
+      tags: [Integración M4]
+      summary: Recibir cambio de disponibilidad desde M4
+      description: |
+        M4 informa que un conductor quedó no disponible por una reserva o un viaje, o que volvió a estar disponible. Solo rol `servicio`. No modifica la habilitación administrativa.
+
+        - `disponible: true` solo se acepta si el conductor está conectado y con habilitación APROBADA, y su vehículo activo también. Si no, responde `422` y no cambia nada.
+        - `disponible: false` se acepta siempre.
+        - Si `actualizado` es anterior al último cambio de estado registrado, M3 ignora el pedido y devuelve el estado vigente. Así los reintentos y los mensajes desordenados no pisan datos más nuevos.
+        - Esta operación solo toca `disponible`. La conexión, el vehículo activo y la ubicación se informan con `PATCH /conductores/{id_conductor}/estado`.
+      operationId: actualizarDisponibilidadDesdeM4
+      x-roles: [servicio]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisponibilidadM4Request'
+            example:
+              disponible: false
+              motivo: OCUPADO
+              actualizado: '2026-11-02T01:35:00Z'
+      responses:
+        '200':
+          description: Disponibilidad actualizada, o estado vigente si el pedido era anterior al último cambio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoConductor'
+              example:
+                id_conductor: 15
+                conectado: true
+                disponible: false
+                id_vehiculo_activo: 7
+                latitud: -27.4511
+                longitud: -58.9867
+                fecha_act_ubic: '2026-11-02T01:30:00Z'
+                actualizado: '2026-11-02T01:35:00Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenServicio'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: El conductor no puede quedar disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                codigo: CONDUCTOR_NO_HABILITADO
+                mensaje: El conductor debe estar conectado y habilitado, con un vehículo activo habilitado.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /integraciones/m6/viajes/{id_viaje}/finalizacion:
+    parameters:
+      - $ref: '#/components/parameters/IdViaje'
+    post:
+      tags: [Integración M6]
+      summary: Recibir viaje finalizado desde M6
+      description: |
+        M6 informa que el viaje finalizó. Solo rol `servicio`. M3 usa el destino como nueva ubicación final del conductor y registra el puntaje del conductor si viene informado. La operación no procesa dos veces el mismo viaje.
+      operationId: recibirViajeFinalizadoM6
+      x-roles: [servicio]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViajeFinalizadoM6Request'
+            example:
+              id_conductor: 15
+              estado: FINALIZADO
+              destino:
+                latitud: -27.4698
+                longitud: -58.8306
+              fecha_finalizacion: '2026-11-02T02:10:00Z'
+              puntaje_conductor: 5
+      responses:
+        '200':
+          description: Finalización procesada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViajeFinalizadoM3Response'
+              example:
+                id_viaje: 5521
+                id_conductor: 15
+                procesado: true
+                ubicacion_actualizada: true
+                puntaje_registrado: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/ForbiddenServicio'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: |
+        JWT emitido por Keycloak (realm `m3`). Roles:
+
+        - `operador`: acciones de habilitación. El token trae el claim entero `id_operador`.
+        - `conductor`: consulta de conductores y vehículos.
+        - `servicio`: cuenta técnica de M4 y M6. Puede leer conductores y es el único rol que puede llamar a `/integraciones/m4/...` y `/integraciones/m6/...` (las operaciones con `x-roles: [servicio]`).
 
   parameters:
     IdConductor:
@@ -898,6 +1141,15 @@ components:
           example:
             codigo: SIN_PERMISOS
             mensaje: Se requiere el rol operador.
+    ForbiddenServicio:
+      description: Sin permisos. Las operaciones de integración exigen el rol servicio.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: SIN_PERMISOS
+            mensaje: Se requiere el rol servicio.
     NotFound:
       description: Recurso inexistente
       content:
@@ -1033,12 +1285,28 @@ components:
               type: boolean
             disponible:
               type: boolean
+            puntaje_promedio:
+              type: number
+              format: double
+              minimum: 1
+              maximum: 5
+              nullable: true
+              description: Promedio de los puntajes recibidos. null si todavía no tiene.
+            cantidad_calificaciones:
+              type: integer
+              minimum: 0
+              default: 0
 
     ConductorConUbicacion:
       allOf:
         - $ref: '#/components/schemas/Conductor'
         - type: object
           properties:
+            id_vehiculo_activo:
+              type: integer
+              format: int64
+              nullable: true
+              description: Vehículo con el que trabaja el conductor. null si no tiene uno activo.
             latitud:
               type: number
               format: double
@@ -1054,7 +1322,7 @@ components:
 
     EstadoConductorRequest:
       type: object
-      description: Al menos un campo.
+      description: Al menos un campo. La ubicación es opcional; si no se informa, M3 puede simularla.
       minProperties: 1
       properties:
         conectado:
@@ -1065,7 +1333,6 @@ components:
           type: integer
           format: int64
           nullable: true
-        # TODO confirmar con M4 cómo se reporta la ubicación
         latitud:
           type: number
           format: double
@@ -1090,9 +1357,42 @@ components:
           type: integer
           format: int64
           nullable: true
+        latitud:
+          type: number
+          format: double
+          nullable: true
+        longitud:
+          type: number
+          format: double
+          nullable: true
+        fecha_act_ubic:
+          type: string
+          format: date-time
+          nullable: true
         actualizado:
           type: string
           format: date-time
+
+    UbicacionConductor:
+      type: object
+      required: [id_conductor, latitud, longitud, fecha_act_ubic]
+      properties:
+        id_conductor:
+          type: integer
+          format: int64
+        latitud:
+          type: number
+          format: double
+          nullable: true
+        longitud:
+          type: number
+          format: double
+          nullable: true
+        fecha_act_ubic:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuándo se registró la ubicación, no cuándo se hizo la consulta.
 
     VehiculoCreate:
       type: object
@@ -1517,3 +1817,92 @@ components:
           type: number
           format: double
           nullable: true
+
+    ConductorUbicacionM4Request:
+      type: object
+      required: [id_conductor, habilitado, id_vehiculo_activo, tipo_vehiculo, conectado, disponible, latitud, longitud, fecha_act_ubic]
+      properties:
+        id_conductor:
+          type: integer
+          format: int64
+        habilitado:
+          type: boolean
+          description: true si la habilitación del conductor es APROBADA (igual que el filtro habilitado de GET /conductores).
+        id_vehiculo_activo:
+          type: integer
+          format: int64
+          description: Vehículo del que sale tipo_vehiculo.
+        tipo_vehiculo:
+          $ref: '#/components/schemas/TipoVehiculo'
+        conectado:
+          type: boolean
+        disponible:
+          type: boolean
+        latitud:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        fecha_act_ubic:
+          type: string
+          format: date-time
+          description: Cuándo se registró la posición. Mismo nombre que en la lectura de conductores.
+
+    DisponibilidadM4Request:
+      type: object
+      required: [disponible, actualizado]
+      properties:
+        disponible:
+          type: boolean
+          description: Disponibilidad efectiva informada por M4.
+        motivo:
+          type: string
+          enum: [RESERVADO, OCUPADO, LIBERADO]
+        actualizado:
+          type: string
+          format: date-time
+          description: Cuándo ocurrió el cambio en M4. Mismo nombre que en EstadoConductor.
+
+    ViajeFinalizadoM6Request:
+      type: object
+      required: [id_conductor, estado, destino, fecha_finalizacion]
+      properties:
+        id_conductor:
+          type: integer
+          format: int64
+        estado:
+          type: string
+          enum: [FINALIZADO]
+        destino:
+          $ref: '#/components/schemas/Ubicacion'
+        fecha_finalizacion:
+          type: string
+          format: date-time
+        puntaje_conductor:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+          description: Puntaje que recibió el conductor en el viaje. Mismo nombre y rango que puntaje en CalificacionClienteRequest.
+
+    ViajeFinalizadoM3Response:
+      type: object
+      required: [id_viaje, id_conductor, procesado]
+      properties:
+        id_viaje:
+          type: integer
+          format: int64
+        id_conductor:
+          type: integer
+          format: int64
+        procesado:
+          type: boolean
+        ubicacion_actualizada:
+          type: boolean
+        puntaje_registrado:
+          type: boolean
