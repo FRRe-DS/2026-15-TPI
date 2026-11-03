@@ -30,13 +30,14 @@ Amplía el [catálogo de la Iteración 1](../../iteracion1/contracts/errores.md)
 |---|---|---|
 | `NoEncontrado` | 404 | `NO_ENCONTRADO` |
 | `AccesoProhibido` | 403 | `ACCESO_PROHIBIDO` |
+| `RolNoAutorizado` | 403 | `SIN_PERMISOS` |
 | `SolicitudYaRespondida` | 409 | `SOLICITUD_YA_RESPONDIDA` |
 | `ViajeEnConflicto` | 409 | `VIAJE_EN_CONFLICTO` |
 | `SolicitudVencida` | 410 | `SOLICITUD_VENCIDA` |
 | `ConductorNoHabilitado` | 422 | `CONDUCTOR_NO_HABILITADO` |
 | `DatosInvalidos` | 422 | `DATOS_INVALIDOS` |
 
-Los cinco primeros de la tabla nueva se agregan a `MAPEO_ERRORES_DOMINIO` en `backend/app/api/errores.py`.
+Los errores de la tabla nueva y `RolNoAutorizado` se agregan a `MAPEO_ERRORES_DOMINIO` en `backend/app/api/errores.py`. `RolNoAutorizado` lo lanza la política de acceso cuando el rol no alcanza y mantiene el código `SIN_PERMISOS` de la Iteración 1.
 
 ## Qué respuestas documenta el contrato
 

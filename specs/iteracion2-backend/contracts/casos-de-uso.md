@@ -47,7 +47,7 @@ Los nombres de entrada y salida coinciden con los esquemas de `docs/contract/ope
 | `solicitud.py` (nuevo) | Entidad, enum `EstadoSolicitud`, `estado_efectivo(ahora)` y `responder(...)` |
 | `viaje_finalizado.py` (nuevo) | Entidad con destino, puntaje y `ubicacion_aplicada` |
 | `documento_vehiculo.py` (nuevo) | Entidad y enum `TipoDocumentoVehiculo` (`SEGURO`, `CEDULA_VERDE`, `VTV`), con las mismas validaciones del documento del conductor |
-| `errores.py` (cambia) | `AccesoProhibido`, `SolicitudVencida`, `SolicitudYaRespondida`, `ViajeEnConflicto`, `ConductorNoHabilitado` |
+| `errores.py` (cambia) | `AccesoProhibido`, `RolNoAutorizado`, `SolicitudVencida`, `SolicitudYaRespondida`, `ViajeEnConflicto`, `ConductorNoHabilitado` |
 
 ## Puertos (`backend/app/aplicacion/puertos/`)
 
@@ -62,7 +62,7 @@ Los nombres de entrada y salida coinciden con los esquemas de `docs/contract/ope
 
 ## Política de acceso (`backend/app/aplicacion/politicas/acceso.py`)
 
-Función pura que recibe los roles del token, el `id_conductor` del token, el `id_conductor` del recurso y los roles que la operación admite, y lanza `AccesoProhibido` o el error de permisos. Reglas completas y matriz por endpoint: [token-jwt.md](./token-jwt.md). No importa FastAPI ni JWT.
+Función pura que recibe los roles del token, el `id_conductor` del token, el `id_conductor` del recurso y los roles que la operación admite, y lanza `AccesoProhibido` (id de otro conductor) o `RolNoAutorizado` (rol no admitido). Reglas completas y matriz por endpoint: [token-jwt.md](./token-jwt.md). No importa FastAPI ni JWT.
 
 ## Configuración (`backend/app/api/configuracion.py`)
 
