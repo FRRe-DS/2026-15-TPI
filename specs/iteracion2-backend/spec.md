@@ -153,7 +153,7 @@ El conductor (o un operador) lista las solicitudes de viaje que recibió, filtra
 4. **Dado** una solicitud cuya fecha `vence_en` ya pasó según la hora del servidor, **cuando** se intenta responder (aunque la `hora_rta` enviada sea anterior), **entonces** se responde `410` y no cambia.
 5. **Dado** una solicitud ya respondida, **cuando** se intenta responder de nuevo, **entonces** se responde `409` y no cambia.
 6. **Dado** un conductor `APROBADA` pero no disponible, o no habilitado, **cuando** intenta aceptar, **entonces** se responde `422`.
-7. **Dado** una solicitud inexistente o de otro conductor, **cuando** se intenta responder, **entonces** se responde `404`.
+7. **Dado** una solicitud inexistente, **cuando** se intenta responder, **entonces** se responde `404`. Si es de otro conductor y quien responde es un conductor, se responde `403` (ver Historia 8).
 8. **Dado** dos respuestas simultáneas a la misma solicitud, **cuando** llegan a la vez, **entonces** solo una se registra y la otra recibe `409`.
 9. **Dado** un conductor que acaba de aceptar una solicitud, **cuando** M4 informa más tarde que volvió a estar disponible, **entonces** se aplican las reglas de la Historia 3.
 10. **Dado** que una aceptación y un cambio de M4 llegan a la vez sobre el mismo conductor, **cuando** se procesan, **entonces** ninguno se pierde y el estado final es coherente.
@@ -303,6 +303,7 @@ El detalle de lo que necesita de Datos y seguridad está en el [issue #36](https
 - Cambiar `id_vehiculo_activo` a un vehículo ajeno o inexistente se rechaza; `null` quita el vehículo activo y deja al conductor no disponible.
 - `POST /conductores` (alta) queda permitido a cualquier rol autenticado, porque todavía no existe un `id_conductor` propio. El resto de las reglas de rol de la Iteración 1 se mantienen: las acciones de habilitación son solo del operador.
 - La descripción de roles del esquema de seguridad del contrato dice que el conductor tiene "consulta de conductores y vehículos"; hay que ajustarla (cambio de contrato) para que refleje que el listado es solo de operador y servicio.
+- Los tipos de servicio de un vehículo quedan habilitados al aprobar el vehículo y deshabilitados al suspenderlo o rechazarlo, porque el contrato no tiene un endpoint para habilitarlos por separado (decisión 9 de [research.md](./research.md), a confirmar con el equipo).
 - Las solicitudes llegan a M3 por un mecanismo que define M5 más adelante; en esta iteración no hay un endpoint para crearlas.
 - La ubicación simulada es una coordenada fija y configurable, distinta de `0,0`, que define el plan. Se asigna solo al conectarse por primera vez sin ubicación; no la asigna el cambio de disponibilidad de M4 ni la finalización de un viaje (esa ya trae el destino).
 - Los códigos de error nuevos se agregan al catálogo de la Iteración 1 (`specs/iteracion1/contracts/errores.md`) y se documentan en el plan.
