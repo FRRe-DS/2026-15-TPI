@@ -156,7 +156,6 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
 | `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. | 2 |
-| `POST` | `/viajes/{id_viaje}/calificacion-cliente` | Calificar al cliente. | 2 |
 | `PATCH` | `/integraciones/m4/conductores/{id_conductor}/disponibilidad` | M4 informa que el conductor quedó ocupado o libre. Solo rol `servicio`. | 2 |
 | `POST` | `/integraciones/m6/viajes/{id_viaje}/finalizacion` | M6 informa un viaje finalizado: M3 actualiza la ubicación del conductor y registra su puntaje. Solo rol `servicio`. | 2 |
 
@@ -191,7 +190,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ### Endpoints de M6 que consumimos
 
-Están en el contrato bajo el tag **Externo (M6)**: _implementado por M6, solo consumido por M3_. No forman parte del alcance de la Iteración 1.
+Los implementa M6 y M3 solo los consume. **No forman parte de nuestro contrato** (`docs/contract/openapi.yaml`); los define el contrato de M6.
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -201,7 +200,7 @@ Están en el contrato bajo el tag **Externo (M6)**: _implementado por M6, solo c
 
 ### Endpoint de M4 que consumimos
 
-Está en el contrato bajo el tag **Externo (M4)**: _implementado por M4, solo consumido por M3_. La ruta es provisoria hasta que M4 la confirme.
+Lo implementa M4 y M3 solo lo consume. **No forma parte de nuestro contrato**; la ruta es provisoria hasta que M4 la confirme.
 
 | Método | Ruta | Descripción |
 |---|---|---|

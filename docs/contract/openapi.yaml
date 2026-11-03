@@ -5,15 +5,13 @@ info:
   description: |
     Contrato del módulo M3 - Conductores y Vehículos.
 
-    Describe lo que M3 expone. Las operaciones de otros módulos que M3 consume figuran con los tags `Externo (M4)` y `Externo (M6)`.
+    Describe solo lo que M3 expone. Lo que M3 consume de otros módulos (viajes de M6, recepción de ubicación de M4) se define en los contratos de esos módulos y no figura aquí.
 
     | Módulo | Sentido | Operación |
     |---|---|---|
     | M4 | M4 → M3 | `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`: lectura de estado, disponibilidad y ubicación |
     | M4 | M4 → M3 | `PATCH /integraciones/m4/conductores/{id_conductor}/disponibilidad` |
-    | M4 | M3 → M4 | `PUT /integraciones/m4/conductores/{id_conductor}/ubicacion` (Externo (M4), ruta provisoria) |
     | M6 | M6 → M3 | `POST /integraciones/m6/viajes/{id_viaje}/finalizacion` |
-    | M6 | M3 → M6 | `GET /viajes/{id_viaje}`, `POST /viajes/{id_viaje}/finalizar` y `POST /viajes/{id_viaje}/cancelar` (Externo (M6)) |
 
     Todas las fechas y horas están en UTC (ISO 8601 con `Z`).
 servers:
@@ -28,11 +26,6 @@ tags:
   - name: Habilitación
   - name: Disponibilidad
   - name: Solicitudes
-  - name: Calificación
-  - name: Externo (M6)
-    description: Implementado por M6, solo consumido por M3
-  - name: Externo (M4)
-    description: Implementado por M4, solo consumido por M3. La ruta es provisoria hasta que M4 la confirme.
   - name: Integración M4
     description: Operaciones de M3 que invoca M4. Exigen el rol servicio.
   - name: Integración M6
@@ -789,180 +782,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /viajes/{id_viaje}/calificacion-cliente:
-    parameters:
-      - $ref: '#/components/parameters/IdViaje'
-    post:
-      tags: [Calificación]
-      summary: Calificar al cliente
-      description: Solo viajes completados, una calificación por viaje.
-      operationId: calificarCliente
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CalificacionClienteRequest'
-      responses:
-        '201':
-          description: Calificación registrada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CalificacionCliente'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /viajes/{id_viaje}:
-    parameters:
-      - $ref: '#/components/parameters/IdViaje'
-    get:
-      tags: [Externo (M6)]
-      summary: Consultar estado y resumen del viaje
-      operationId: obtenerViaje
-      responses:
-        '200':
-          description: Viaje encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Viaje'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /viajes/{id_viaje}/finalizar:
-    parameters:
-      - $ref: '#/components/parameters/IdViaje'
-    post:
-      tags: [Externo (M6)]
-      summary: Finalizar un viaje en curso
-      description: Permite al conductor finalizar el viaje registrando los datos necesarios de tiempo, distancia.
-      operationId: finalizarViaje
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FinalizarViajeRequest'
-      responses:
-        '200':
-          description: Viaje finalizado exitosamente
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Viaje'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /viajes/{id_viaje}/cancelar:
-    parameters:
-      - $ref: '#/components/parameters/IdViaje'
-    post:
-      tags: [Externo (M6)]
-      summary: cancela un viaje por iniciarce
-      description: Permite al conductor cancelar el viaje registrando motivo.
-      operationId: cancelarViaje
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CancelarViajeRequest'
-      responses:
-        '200':
-          description: Viaje cancelado 
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Viaje'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  
-  /integraciones/m4/conductores/{id_conductor}/ubicacion:
-    parameters:
-      - $ref: '#/components/parameters/IdConductor'
-    put:
-      tags: [Externo (M4)]
-      summary: Enviar conductor y ubicación a M4
-      description: |
-        Implementado por M4, solo consumido por M3. La ruta es provisoria hasta que M4 la confirme.
-
-        M3 envía los datos mínimos del conductor y su posición. Como el TPI no tiene una app móvil que reporte GPS, M3 puede simular la ubicación. `tipo_vehiculo` es el del vehículo activo (`id_vehiculo_activo`).
-      operationId: enviarConductorUbicacionM4
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ConductorUbicacionM4Request'
-            example:
-              id_conductor: 15
-              habilitado: true
-              id_vehiculo_activo: 7
-              tipo_vehiculo: AUTO
-              conectado: true
-              disponible: true
-              latitud: -27.4511
-              longitud: -58.9867
-              fecha_act_ubic: '2026-11-02T01:30:00Z'
-      responses:
-        '200':
-          description: Datos recibidos por M4
-        '202':
-          description: Datos aceptados por M4
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
   /integraciones/m4/conductores/{id_conductor}/disponibilidad:
     parameters:
       - $ref: '#/components/parameters/IdConductor'
@@ -1219,10 +1038,6 @@ components:
       type: string
       enum: [PENDIENTE, ACEPTADO, RECHAZADO, VENCIDA]
     # TODO confirmar estados con M6
-    EstadoViaje:
-      type: string
-      enum: [SOLICITADO, ASIGNADO, EN_CURSO, FINALIZADO, CANCELADO]
-
     Ubicacion:
       type: object
       required: [latitud, longitud]
@@ -1684,158 +1499,9 @@ components:
           type: string
           format: date-time
 
-    CalificacionClienteRequest:
-      type: object
-      required: [puntaje]
-      properties:
-        puntaje:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comentario:
-          type: string
-          maxLength: 500
-
-    CalificacionCliente:
-      type: object
-      required: [id, id_viaje, id_conductor, id_cliente, puntaje, fecha]
-      properties:
-        id:
-          type: integer
-          format: int64
-        id_viaje:
-          type: integer
-          format: int64
-        id_conductor:
-          type: integer
-          format: int64
-        id_cliente:
-          type: integer
-          format: int64
-        puntaje:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comentario:
-          type: string
-          nullable: true
-        fecha:
-          type: string
-          format: date-time
     
-    FinalizarViajeRequest:
-      type: object
-      required: [tiempo, distancia,cierre]
-      properties:
-        tiempo:
-          type: integer
-          description: tiempo total en minutos
-          minimum: 0
-        distancia:
-          type: number
-          format: double
-          description: distancia total recorrida en kilometros
-          minimum: 0
-        cierre:
-          type: boolean
     
-    CancelarViajeRequest:
-      type: object
-      required: [motivo]
-      properties:
-        motivo:
-          type: string
-          enum: [ OTRO , DEFECTO MECANICO , PASAJERO NO VINO]
-        
     # TODO confirmar campos con M6
-    Viaje:
-      type: object
-      required: [id, estado, retiro, destino, inicio, id_conductor, id_vehiculo, id_cliente]
-      example:
-        id: 5521
-        estado: FINALIZADO
-        retiro:
-          latitud: -27.4511
-          longitud: -58.9867
-        destino:
-          latitud: -27.4698
-          longitud: -58.8306
-        tiempo_estimado: 18
-        inicio: '2026-10-03T18:50:00Z'
-        fin: '2026-10-03T19:08:00Z'
-        id_conductor: 15
-        id_vehiculo: 7
-        id_cliente: 88
-      properties:
-        id:
-          type: integer
-          format: int64
-        estado:
-          $ref: '#/components/schemas/EstadoViaje'
-        retiro:
-          $ref: '#/components/schemas/Ubicacion'
-        destino:
-          $ref: '#/components/schemas/Ubicacion'
-        tiempo_estimado:
-          type: integer
-          nullable: true
-          description: Minutos
-        inicio:
-          type: string
-          format: date-time
-        fin:
-          type: string
-          format: date-time
-          nullable: true
-        id_conductor:
-          type: integer
-          format: int64
-        id_vehiculo:
-          type: integer
-          format: int64
-        id_cliente:
-          type: integer
-          format: int64
-        distancia:
-          type: number
-          format: double
-          nullable: true
-
-    ConductorUbicacionM4Request:
-      type: object
-      required: [id_conductor, habilitado, id_vehiculo_activo, tipo_vehiculo, conectado, disponible, latitud, longitud, fecha_act_ubic]
-      properties:
-        id_conductor:
-          type: integer
-          format: int64
-        habilitado:
-          type: boolean
-          description: true si la habilitación del conductor es APROBADA (igual que el filtro habilitado de GET /conductores).
-        id_vehiculo_activo:
-          type: integer
-          format: int64
-          description: Vehículo del que sale tipo_vehiculo.
-        tipo_vehiculo:
-          $ref: '#/components/schemas/TipoVehiculo'
-        conectado:
-          type: boolean
-        disponible:
-          type: boolean
-        latitud:
-          type: number
-          format: double
-          minimum: -90
-          maximum: 90
-        longitud:
-          type: number
-          format: double
-          minimum: -180
-          maximum: 180
-        fecha_act_ubic:
-          type: string
-          format: date-time
-          description: Cuándo se registró la posición. Mismo nombre que en la lectura de conductores.
-
     DisponibilidadM4Request:
       type: object
       required: [disponible, actualizado]
