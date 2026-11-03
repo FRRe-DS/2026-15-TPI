@@ -1,11 +1,40 @@
 import React from "react";
-import type { ConductorConUbicacion } from "../lib/tipos";
+import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
 
 export interface ListadoConductoresProps {
   conductores?: ConductorConUbicacion[];
   error?: string | null;
 }
+const ESTILOS_BADGE: Record<
+  EstadoHabilitacion,
+  { color: "verde" | "amarillo" | "rojo"; fondo: string; texto: string }
+> = {
+  APROBADA: { color: "verde", fondo: "#dcfce7", texto: "#166534" },
+  PENDIENTE: { color: "amarillo", fondo: "#fef9c3", texto: "#854d0e" },
+  OBSERVADA: { color: "amarillo", fondo: "#fef9c3", texto: "#854d0e" },
+  SUSPENDIDA: { color: "rojo", fondo: "#fee2e2", texto: "#991b1b" },
+  RECHAZADA: { color: "rojo", fondo: "#fee2e2", texto: "#991b1b" },
+};
 
+function BadgeHabilitacion({ estado }: { estado: EstadoHabilitacion }) {
+  const { color, fondo, texto } = ESTILOS_BADGE[estado];
+
+  return (
+    <span
+      data-color={color}
+      style={{
+        backgroundColor: fondo,
+        color: texto,
+        padding: "2px 10px",
+        borderRadius: "9999px",
+        fontSize: "0.75rem",
+        fontWeight: 600,
+      }}
+    >
+      {estado}
+    </span>
+  );
+}
 export function ListadoConductores({
   conductores,
   error,
@@ -59,7 +88,7 @@ export function ListadoConductores({
                 {conductor.dni}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                {conductor.habilitacion}
+                <BadgeHabilitacion estado={conductor.habilitacion} />
               </td>
             </tr>
           ))}
