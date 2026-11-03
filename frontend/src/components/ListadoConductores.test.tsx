@@ -40,4 +40,23 @@ describe("ListadoConductores", () => {
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText(mensajeError)).toBeInTheDocument();
   });
+  describe("badges de habilitación", () => {
+    const casos: [ConductorConUbicacion["habilitacion"], string][] = [
+      ["APROBADA", "verde"],
+      ["PENDIENTE", "amarillo"],
+      ["OBSERVADA", "amarillo"],
+      ["SUSPENDIDA", "rojo"],
+      ["RECHAZADA", "rojo"],
+    ];
+
+    it.each(casos)("muestra %s con color %s", (estado, color) => {
+      render(
+        <ListadoConductores
+          conductores={[{ ...conductorEjemplo, habilitacion: estado }]}
+        />
+      );
+
+      expect(screen.getByText(estado)).toHaveAttribute("data-color", color);
+    });
+  });
 });
