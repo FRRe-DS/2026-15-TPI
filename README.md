@@ -151,7 +151,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` | Aprobar, observar, suspender o rechazar vehículo. Solo operadores. | 1 |
 | `GET` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` | Tipos de servicio del vehículo y su habilitación. | 2 |
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion` | Registrar documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). | 2 |
-| `GET` | `/conductores/{id_conductor}/estado` | Consultar conexión, disponibilidad, vehículo activo y última ubicación. Lo consulta M4. | 2 |
+| `GET` | `/conductores/{id_conductor}/estado` | Consultar conexión, disponibilidad y vehículo activo (la ubicación va en `/ubicacion`). Lo consulta M4. | 2 |
 | `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar conexión, disponibilidad y ubicación. | 2 |
 | `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |

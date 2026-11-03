@@ -623,7 +623,7 @@ paths:
     get:
       tags: [Disponibilidad]
       summary: Consultar el estado del conductor
-      description: Devuelve la conexión, la disponibilidad, el vehículo activo y la última ubicación registrada. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
+      description: Devuelve la conexión, la disponibilidad y el vehículo activo. La ubicación se consulta aparte en `GET /conductores/{id_conductor}/ubicacion`. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
       operationId: obtenerEstadoConductor
       responses:
         '200':
@@ -637,9 +637,6 @@ paths:
                 conectado: true
                 disponible: true
                 id_vehiculo_activo: 7
-                latitud: -27.4511
-                longitud: -58.9867
-                fecha_act_ubic: '2026-11-02T01:30:00Z'
                 actualizado: '2026-11-02T01:30:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1003,9 +1000,6 @@ paths:
                 conectado: true
                 disponible: false
                 id_vehiculo_activo: 7
-                latitud: -27.4511
-                longitud: -58.9867
-                fecha_act_ubic: '2026-11-02T01:30:00Z'
                 actualizado: '2026-11-02T01:35:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -1357,21 +1351,10 @@ components:
           type: integer
           format: int64
           nullable: true
-        latitud:
-          type: number
-          format: double
-          nullable: true
-        longitud:
-          type: number
-          format: double
-          nullable: true
-        fecha_act_ubic:
-          type: string
-          format: date-time
-          nullable: true
         actualizado:
           type: string
           format: date-time
+          description: Cuándo cambió por última vez la conexión, la disponibilidad o el vehículo activo. No incluye la ubicación, que tiene su propia fecha en `GET /conductores/{id_conductor}/ubicacion`.
 
     UbicacionConductor:
       type: object
