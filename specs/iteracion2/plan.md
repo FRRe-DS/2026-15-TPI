@@ -1,138 +1,82 @@
 # Plan de Implementación: Iteración 2 — Plataforma y Seguridad
 
-**Rama**: `docs/planificacion-iteracion2` | **Fecha**: 2026-11-03
+**Rama**: `docs/planificacion-iteracion2` | **Contrato**: [OpenAPI 1.2.0](../../docs/contract/openapi.yaml)
 
-**Entrada**: alcance operativo de la Iteración 1, README del módulo y definición de la plataforma M3.
+**Entrada**: alcance de datos y seguridad solicitado para la Iteración 2, coordinado con el plan del [Backend](../iteracion2-backend/plan.md), el modelo de datos y el contrato vigente.
 
 ## Resumen
 
-La Iteración 2 cierra la parte de la plataforma, seguridad y operación del servicio M3 que quedó pendiente en la Iteración 1. El objetivo principal es completar el ciclo funcional del módulo en producción local y en entorno de validación: actualización de estado y ubicación, consumo de solicitudes y despachos, integración con viajes y calificación, y cierre de la capa de seguridad y CI de la plataforma.
+Preparar la base de datos, el entorno y la identidad de M3 para las 17 operaciones del contrato 1.2.0. El cambio central es una migración Alembic reversible que unifica el estado del conductor, agrega los datos de Iteración 2 y crea las tablas de solicitudes y documentos de vehículos. Se actualizarán los modelos SQLAlchemy, el seed, Keycloak y la configuración de Compose sin introducir operaciones de integración que no estén en el contrato.
 
-La planificación se organiza en tres líneas paralelas:
+Este plan cubre la plataforma y el grupo de Datos y seguridad. La lógica y los endpoints corresponden al plan de Backend; las pruebas de contrato y la integración continua se coordinan con Testing.
 
-1. Plataforma y entorno: Docker Compose, variables de entorno, seed, Keycloak y soporte operativo del módulo.
-2. Seguridad y autorización: validación JWT real, roles, políticas por endpoint y control de integración con módulos externos.
-3. Integración y calidad: pruebas de contrato, concurrencia, smoke de Compose y cierre de la cobertura de la API.
+## Alcance e integración entre módulos
 
----
+- **M4** solo consulta conductores, estado y ubicación con el rol `servicio`. M3 no expone escrituras para M4.
+- **M5** es el origen de las solicitudes; M3 las consulta y permite que el conductor las acepte o rechace. El backend no crea solicitudes.
+- **M6** no se consume ni se integra en esta iteración. No se implementan viajes ni calificación de clientes. `suma_puntajes` y `cantidad_calificaciones` se cargan en el seed y se exponen como datos de solo lectura.
+- Las 17 operaciones del contrato OpenAPI 1.2.0 son la fuente de verdad. No agregar rutas retiradas de integración M4/M6.
 
-## Objetivos de la Iteración 2
+## Plan de trabajo
 
-### 1) Completar la plataforma de M3
-
-- Dejar operativa la parte funcional pendiente del servicio: estado, ubicación, solicitudes y viajes.
-- Mantener el arranque con un único comando de Docker Compose, con contenedores reproducibles y configurables por variables de entorno.
-- Alinear el entorno local con el contrato OpenAPI y con las reglas de negocio del módulo.
-
-### 2) Cerrar la capa de seguridad
-
-- Verificar el JWT emitido por Keycloak y validar issuer, audiencia, firma y expiración.
-- Mantener el manejo de usuarios y roles (`operador` y `conductor`) en dependencias compartidas y centralizadas.
-- Proteger todos los endpoints del módulo con la política de acceso definida en el contrato y en la especificación.
-- Evitar secretos en el repositorio y mantener la configuración de infraestructura por variables de entorno.
-
-### 3) Preparar la operación a nivel de calidad
-
-- Automatizar pruebas de API y de integración contra infraestructura real.
-- Cubrir el comportamiento de concurrencia, errores y casos de borde de seguridad.
-- Verificar la protección de ramas y la calidad del CI antes del cierre de la iteración.
-
----
-
-## Alcance funcional planificado
-
-### Plataforma / entorno
-
-- Ajustes del `docker-compose.yml` para levantar correctamente API, PostgreSQL y Keycloak.
-- Consolidación de variables de entorno y `.env.example` con parámetros seguros y reproducibles.
-- Seeds de datos de prueba necesarios para validación de conductores, vehículos, estados y roles.
-- Validación de flujo local completo con la API real y la autenticación del realm.
-- Smoke tests de Compose para verificar que la plataforma puede levantarse sin intervención manual.
-
-### Seguridad
-
-- Validación del token JWT con `PyJWT` y caché de JWKS.
-- Control por rol (`requerir_usuario`, `requerir_operador`) en los endpoints sensibles.
-- Verificación de error de autenticación: token ausente, mal formado, expirado, con firma inválida o de otro emisor.
-- Restricción de acciones de habilitación solo para operadores y validación del `id_operador` proveniente del token.
-- Aseguramiento de que la configuración de Keycloak y la API no exponen secretos ni credenciales en el repositorio.
-
-### Integración con otros módulos
-
-- Uso de `latitud` y `longitud` para estado y ubicación de conductores, con forma de lectura y actualización según el contrato.
-- Integración con M4 para disponibilidad y ubicación.
-- Integración de consultas y aceptación de solicitudes con M5.
-- Consumo de endpoints de viajes y cierre de ciclo de vida definidos por M6.
-- Manejo explícito de estados de viaje, calificación y coordinación del conductor según el contrato.
-
----
-
-## Plan de trabajo por área
-
-| Área | Objetivo | Entregables esperados | Criterio de cierre |
+| Área | Trabajo | Entregables | Criterio de cierre |
 |---|---|---|---|
-| Plataforma | Dejar la infraestructura ejecutable y estable | Compose, env, seed, Keycloak, smoke tests | arranque reproducible con un comando |
-| Seguridad | Proteger acceso y validación JWT | `backend/app/api/seguridad.py`, pruebas de auth y roles | escenarios de 401/403 cubiertos |
-| Integración | Completar contract y comportamiento real | endpoints de estado, ubicación, solicitudes, viajes, calificación | validación con OpenAPI y tests |
-| Calidad | Cubrir pruebas y CI | cobertura, tests concurrentes y de humo | pipeline en verde y sin regresiones |
+| Migración y persistencia | Crear Alembic `0002`, actualizar modelos y los mínimos consumidores existentes | Migración reversible, modelos SQLAlchemy, ajustes acotados a `sql_conductores.py` y `infra/seed/cargar_datos.py` | `upgrade` y `downgrade` funcionan sobre la revisión anterior y las pruebas de esquema pasan |
+| Datos de prueba | Extender el seed de forma determinista e idempotente | Escenarios de conductor, solicitudes, vehículos, documentos y usuario conductor descritos abajo | Seed ejecutable más de una vez y cubre los escenarios del contrato |
+| Keycloak y entorno | Agregar el rol técnico de solo lectura y su cuenta M4, parametrizada | Realm, variables en `.env.example`, Compose y pruebas del realm | El realm importa con variables de entorno; el token de M4 tiene `servicio` y no obtiene permisos de escritura |
+| Integración de equipos | Ordenar la migración/modelos respecto de los repositorios SQL | Dependencia explícita para las PR L9 y L10 de Backend | L9 espera migración/modelos; L10 sigue a L9 y también requiere las tablas del modelo |
 
-### Flujo de ejecución sugerido
+### Migración Alembic `0002`
 
-1. Definir y ajustar el contrato de la Iteración 2 en `docs/contract/openapi.yaml`.
-2. Reforzar la capa de seguridad con pruebas de autenticación y roles.
-3. Implementar la actualización de estado/ubicación y la lógica de solicitudes/viajes.
-4. Validar integración con M4, M5 y M6 usando datos reales del entorno.
-5. Ejecutar smoke tests, concurrencia y validación de cobertura en CI.
+La migración parte del esquema de Iteración 1 y debe incluir `downgrade` funcional.
 
----
+- Reemplazar `conectado` y `disponible` por `estado`, migrando los datos existentes: `conectado=false` pasa a `DESCONECTADO`; `conectado=true, disponible=true` a `DISPONIBLE`; y `conectado=true, disponible=false` a `CONECTADO`. Después, quitar ambas columnas y el índice antiguo y crear el índice de `estado`.
+- Agregar a `conductor`: `id_vehiculo_activo`, `fecha_ultimo_cambio_estado`, `suma_puntajes` y `cantidad_calificaciones`, con sus claves foráneas, valores por defecto y restricciones según el [modelo de datos](../iteracion2-backend/data-model.md).
+- Crear las tablas `solicitud` y `vehiculo_documento`, con claves, restricciones e índices definidos en el modelo de datos.
+- El `downgrade` recrea las columnas antiguas y su índice antes de retirar los campos/tablas nuevos. Reconstruye sus booleanos desde `estado`: `DESCONECTADO` → `false/false`, `DISPONIBLE` → `true/true`, y `CONECTADO` u `OCUPADO` → `true/false`. Las dos últimas situaciones no se pueden distinguir en el esquema anterior.
 
-## Decisiones de diseño
+Los modelos SQLAlchemy deben representar el esquema migrado. Como `0002` elimina columnas consultadas actualmente, el mismo cambio coordinado incluye la adaptación mínima de `backend/app/infraestructura/repositorios/sql_conductores.py` y del seed para que `dev` siga levantando y cargando datos entre la migración y la integración de Backend.
 
-### 1) Seguridad por capas
+### Datos de prueba requeridos
 
-La decisión principal es separar la validación del token y la autorización de la lógica de negocio. La API debe validar identidad y rol antes de invocar el caso de uso, y la regla de negocio debe seguir centrada en el dominio y no en la infraestructura.
+El seed debe ser determinista e idempotente e incluir:
 
-### 2) Plataforma como parte del producto
+- Conductores en los cuatro estados: `DESCONECTADO`, `CONECTADO`, `DISPONIBLE` y `OCUPADO`.
+- Un conductor sin ubicación registrada y otro sin vehículo activo.
+- Un conductor con calificaciones y otro sin ninguna; `suma_puntajes` y `cantidad_calificaciones` se almacenan y `puntaje_promedio` se calcula al leer. No se agrega una escritura funcional de calificación.
+- Solicitudes en los cuatro estados (`PENDIENTE`, `ACEPTADO`, `RECHAZADO`, `VENCIDA`), con una solicitud pendiente vencida y otra vigente.
+- Documentos de vehículo vigentes y vencidos.
+- Un usuario conductor cuyo claim entero `id_conductor` coincida con un conductor del seed.
 
-La infraestructura no queda como soporte opcional: se considera parte del alcance funcional. El servicio no puede considerarse entregado si no se puede levantar con Compose y si no se valida en un entorno real con tokens y datos de prueba.
+### Keycloak y autorización de servicio
 
-### 3) Calidad como requisito de entrega
+- Agregar el rol `servicio` al realm. La cuenta técnica de M4 obtiene ese rol y credenciales configuradas por variables de entorno, nunca valores secretos versionados.
+- Exponer las variables necesarias en `infra/.env.example` y actualizar `infra/docker-compose.yml` y `backend/tests/infra/test_realm.py`.
+- Agregar el mapeador de usuario para emitir `id_conductor` como entero en el token, igual que el claim `id_operador`; el usuario de prueba debe apuntar al conductor sembrado.
+- La cuenta `servicio` es de solo lectura: puede consultar conductores, vehículos, estado y ubicación; no puede actualizar estados, responder solicitudes ni ejecutar acciones de operador.
+- Mantener la validación JWT con firma/JWKS, issuer, audiencia y expiración, y no guardar secretos en el repositorio.
 
-La Iteración 2 no agrega funciones sin cobertura. La verificación pasa por los mismos principios de la constitución: TDD, cobertura, tests de integración y requerimientos de seguridad.
+## Orden y dependencias
 
----
+La migración y los modelos de Datos y seguridad deben integrarse antes de los repositorios SQL de Backend:
+
+1. Datos y seguridad entrega `0002`, los modelos, la adaptación mínima de `sql_conductores.py` y el seed compatible.
+2. Backend implementa L9 (repositorio SQL de conductores y unidad de trabajo) sobre esos modelos y columnas.
+3. Backend implementa L10 (repositorios de solicitudes y documentos de vehículos) después de L9 y con las tablas de `0002` disponibles.
+
+Las tareas de Backend que usan repositorios en memoria pueden avanzar en paralelo; L9 y L10 no deben integrarse contra el esquema anterior. El orden de despliegue y las pruebas de migración se coordinan entre los responsables de Datos y seguridad, Backend y Testing.
 
 ## Criterios de aceptación
 
-La iteración queda cerrada cuando se cumplen estas condiciones:
+- La migración `0002` lleva una base de Iteración 1 al esquema 1.2.0, conserva correctamente los estados derivados de los booleanos previos y puede revertirse con `downgrade`.
+- Los modelos SQLAlchemy, el repositorio SQL existente y el seed funcionan con el nuevo esquema sin referencias a las columnas retiradas.
+- El seed es repetible y cubre los cuatro estados, ubicación y vehículo activos opcionales, calificaciones, solicitudes y documentos requeridos.
+- Keycloak emite tokens de operador, conductor y servicio; `id_conductor` es un entero coincidente con el seed y la cuenta de servicio no puede escribir. `puntaje_promedio` y `cantidad_calificaciones` se exponen solo para lectura.
+- `.env.example` documenta las variables nuevas sin incluir credenciales reales; Compose y las pruebas del realm reflejan el rol y la cuenta técnica.
+- Las pruebas de migración, esquema y realm pasan, y el contrato/documentación conserva las 17 operaciones vigentes sin las integraciones M4/M6 retiradas.
 
-- El entorno local levanta con Docker Compose sin pasos manuales complejos.
-- La API valida tokens JWT reales emitidos por Keycloak y rechazará errores de autenticación.
-- Los endpoints con permisos de operador y conductor responden con los códigos esperados (`200`, `401`, `403`, `404`, `409`, etc.).
-- Las operaciones de estado, ubicación, solicitudes y calificación quedan cubiertas por tests.
-- La cobertura y la validación de contrato se mantienen en verde en CI.
-- La protección de ramas y la automatización del pipeline están en funcionamiento.
+## Riesgos y coordinación
 
----
-
-## Riesgos y dependencias
-
-### Riesgos principales
-
-- Desalineación entre el contrato y la implementación real.
-- Dependencias cruzadas entre M3 y M4/M5/M6 sin contrato claro.
-- Casos de concurrencia en estados de habilitación, solicitudes o viajes.
-- Falsos positivos de validación si la autenticación no se prueba con tokens reales.
-
-### Dependencias de sincronización
-
-- OpenAPI actualizado y consistente con la implementación.
-- Realm de Keycloak y datos de prueba compartidos.
-- Reglas de negocio informadas por los casos de uso y el modelo de dominio.
-- Revisión de la API y del entorno antes de merge a la rama de integración.
-
----
-
-## Resultado esperado
-
-La Iteración 2 deja a M3 con una plataforma ejecutable, segura y verificable: la API autenticada por Keycloak, la autorización por rol integrada, la infraestructura validada con Compose y la parte funcional restante operando con reglas claras de negocio y pruebas automatizadas.
+- **Pérdida de distinción al hacer downgrade**: los estados `CONECTADO` y `OCUPADO` se reducen ambos a `conectado=true, disponible=false`; el comportamiento queda documentado.
+- **Orden de integración**: quitar columnas antes de adaptar sus consumidores rompe el seed y el repositorio SQL. La migración, el cambio mínimo de esos consumidores y los modelos se entregan coordinados antes de L9/L10.
+- **Desalineación del contrato**: cambios de rutas o permisos se resuelven contra `docs/contract/openapi.yaml`; esta iteración no agrega escrituras para M4/M6 ni operaciones de viajes/calificación.
