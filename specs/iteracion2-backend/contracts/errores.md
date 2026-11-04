@@ -8,9 +8,8 @@ Amplía el [catálogo de la Iteración 1](../../iteracion1/contracts/errores.md)
 |---|---|---|---|
 | 403 | `ACCESO_PROHIBIDO` | `AccesoProhibido` | Un conductor intenta operar sobre otro conductor o sobre una solicitud ajena, o su token no trae un `id_conductor` numérico |
 | 409 | `SOLICITUD_YA_RESPONDIDA` | `SolicitudYaRespondida` | La solicitud ya fue aceptada o rechazada |
-| 409 | `VIAJE_EN_CONFLICTO` | `ViajeEnConflicto` | M6 informa un `id_viaje` ya procesado con datos distintos (otro conductor, destino, fecha o puntaje) |
 | 410 | `SOLICITUD_VENCIDA` | `SolicitudVencida` | La oferta superó su `vence_en` (hora del servidor) o ya figura como `VENCIDA` |
-| 422 | `CONDUCTOR_NO_HABILITADO` | `ConductorNoHabilitado` | No puede quedar disponible ni aceptar una solicitud: no está conectado, no está `APROBADA`, o no tiene un vehículo activo `APROBADA` |
+| 422 | `CONDUCTOR_NO_HABILITADO` | `ConductorNoHabilitado` | No puede quedar `DISPONIBLE` (no está `APROBADA` o no tiene un vehículo activo `APROBADA`) ni aceptar una solicitud (además, está `DESCONECTADO` u `OCUPADO`) |
 
 `SOLICITUD_INVALIDA`, `NO_AUTENTICADO`, `SIN_PERMISOS`, `NO_ENCONTRADO`, `DATOS_INVALIDOS` y `ERROR_INTERNO` se reutilizan sin cambios.
 
@@ -18,9 +17,9 @@ Amplía el [catálogo de la Iteración 1](../../iteracion1/contracts/errores.md)
 
 | HTTP | `codigo` | Cuándo ocurre en la Iteración 2 |
 |---|---|---|
-| 400 | `SOLICITUD_INVALIDA` | Cuerpo vacío o mal formado, solo `latitud` o solo `longitud`, valores fuera de rango, `estado` de solicitud inválido, puntaje fuera de 1 a 5, `estado` distinto de `FINALIZADO` |
+| 400 | `SOLICITUD_INVALIDA` | Cuerpo vacío o mal formado, solo `latitud` o solo `longitud`, valores fuera de rango, `estado` de solicitud o de conductor inválido, o `estado: OCUPADO` en el `PATCH` de estado (lo asigna M3) |
 | 401 | `NO_AUTENTICADO` | Sin token o inválido, en cualquier endpoint |
-| 403 | `SIN_PERMISOS` | El rol no alcanza (por ejemplo `servicio` en una acción de operador, o un conductor llamando a `/integraciones/...`: "Se requiere el rol servicio") |
+| 403 | `SIN_PERMISOS` | El rol no alcanza (por ejemplo `servicio` en una acción de operador o en el `PATCH` de estado) |
 | 404 | `NO_ENCONTRADO` | Conductor, vehículo o solicitud inexistente; vehículo activo inexistente o de otro conductor |
 | 422 | `DATOS_INVALIDOS` | Documento de vehículo con vencimiento anterior a la emisión |
 
@@ -32,7 +31,6 @@ Amplía el [catálogo de la Iteración 1](../../iteracion1/contracts/errores.md)
 | `AccesoProhibido` | 403 | `ACCESO_PROHIBIDO` |
 | `RolNoAutorizado` | 403 | `SIN_PERMISOS` |
 | `SolicitudYaRespondida` | 409 | `SOLICITUD_YA_RESPONDIDA` |
-| `ViajeEnConflicto` | 409 | `VIAJE_EN_CONFLICTO` |
 | `SolicitudVencida` | 410 | `SOLICITUD_VENCIDA` |
 | `ConductorNoHabilitado` | 422 | `CONDUCTOR_NO_HABILITADO` |
 | `DatosInvalidos` | 422 | `DATOS_INVALIDOS` |
@@ -41,7 +39,7 @@ Los errores de la tabla nueva y `RolNoAutorizado` se agregan a `MAPEO_ERRORES_DO
 
 ## Qué respuestas documenta el contrato
 
-El contrato OpenAPI ya define `Gone` (`410`), `Conflict` (`409`) y `UnprocessableEntity` (`422`) como respuestas, y el ejemplo del `422` de M4 usa el código `CONDUCTOR_NO_HABILITADO`. Los códigos de esta tabla deben coincidir con los ejemplos del YAML; si algún ejemplo usa otro código, se corrige el ejemplo en una PR de contrato, no el catálogo.
+El contrato OpenAPI ya define `Gone` (`410`), `Conflict` (`409`) y `UnprocessableEntity` (`422`) como respuestas, y el `422` del `PATCH /conductores/{id}/estado` usa en su ejemplo el código `CONDUCTOR_NO_HABILITADO`. Los códigos de esta tabla deben coincidir con los ejemplos del YAML; si algún ejemplo usa otro código, se corrige el ejemplo en una PR de contrato, no el catálogo.
 
 ## Para Testing
 

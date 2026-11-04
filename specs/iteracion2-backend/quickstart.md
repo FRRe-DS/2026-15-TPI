@@ -38,7 +38,7 @@ curl -s -X POST "http://localhost:8081/realms/m3/protocol/openid-connect/token" 
 |---|---|---|
 | operador | usuario operador de prueba | `id_operador` |
 | conductor | usuario conductor de prueba | `id_conductor`, igual al de un conductor del seed |
-| servicio | cuenta técnica de M4 o de M6 | solo el rol |
+| servicio | cuenta técnica de M4 | solo el rol |
 
 Guardar cada token en `TOKEN_OPERADOR`, `TOKEN_CONDUCTOR` y `TOKEN_SERVICIO`. En lo que sigue, `ID` es el conductor del usuario conductor de prueba y `OTRO` es el de otro conductor del seed.
 
@@ -48,14 +48,15 @@ Guardar cada token en `TOKEN_OPERADOR`, `TOKEN_CONDUCTOR` y `TOKEN_SERVICIO`. En
 # El conductor consulta y actualiza lo suyo
 curl -s -H "Authorization: Bearer $TOKEN_CONDUCTOR" http://localhost:8080/api/v1/conductores/$ID/estado
 curl -s -X PATCH -H "Authorization: Bearer $TOKEN_CONDUCTOR" -H "Content-Type: application/json" \
-  -d '{"conectado": true, "disponible": true}' http://localhost:8080/api/v1/conductores/$ID/estado
+  -d '{"estado": "DISPONIBLE"}' http://localhost:8080/api/v1/conductores/$ID/estado
 curl -s -H "Authorization: Bearer $TOKEN_SERVICIO" http://localhost:8080/api/v1/conductores/$ID/ubicacion
 ```
 
 Resultado esperado:
-- El estado devuelve `conectado`, `disponible`, `id_vehiculo_activo` y `actualizado`, sin coordenadas.
-- El `PATCH` deja disponible solo si el conductor está `APROBADA` y su vehículo activo también; si no, `422` `CONDUCTOR_NO_HABILITADO`.
-- Un conductor sin ubicación que se conecta recibe la ubicación simulada fija (`-27.4511, -58.9867` por defecto).
+- El estado devuelve `estado`, `id_vehiculo_activo` y `actualizado`, sin coordenadas.
+- El `PATCH` deja `DISPONIBLE` solo si el conductor está `APROBADA` y su vehículo activo también; si no, `422` `CONDUCTOR_NO_HABILITADO`. Pedir `DISPONIBLE` estando `DESCONECTADO` lo conecta.
+- Pedir `{"estado": "OCUPADO"}` da `400`: ese valor lo asigna M3 al aceptar una solicitud.
+- Un conductor sin ubicación que pasa de `DESCONECTADO` a otro estado recibe la ubicación simulada fija (`-27.4511, -58.9867` por defecto).
 - Con el token de servicio, `PATCH .../estado` da `403`.
 
 ## 4. Un conductor no ve lo de otro
@@ -69,37 +70,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $TOKEN_CONDUC
 
 Resultado esperado: `403` en ambos (`ACCESO_PROHIBIDO` el primero y `SIN_PERMISOS` el segundo). Con `TOKEN_OPERADOR` y con `TOKEN_SERVICIO`, ambos responden `200`.
 
-## 5. Integración con M4 (solo rol servicio)
-
-```bash
-curl -s -X PATCH -H "Authorization: Bearer $TOKEN_SERVICIO" -H "Content-Type: application/json" \
-  -d '{"disponible": false, "motivo": "OCUPADO", "actualizado": "2026-11-02T01:35:00Z"}' \
-  http://localhost:8080/api/v1/integraciones/m4/conductores/$ID/disponibilidad
-```
-
-Resultado esperado:
-- `200` con el estado; el conductor queda no disponible.
-- Repetir el mismo pedido da el mismo resultado.
-- Con un `actualizado` anterior al último cambio, `200` con el estado vigente y sin cambios.
-- `disponible: true` para un conductor desconectado o no aprobado da `422`.
-- Con `TOKEN_CONDUCTOR` o `TOKEN_OPERADOR`, `403` ("Se requiere el rol servicio").
-
-## 6. Integración con M6 (solo rol servicio)
-
-```bash
-curl -s -X POST -H "Authorization: Bearer $TOKEN_SERVICIO" -H "Content-Type: application/json" \
-  -d '{"id_conductor": '$ID', "estado": "FINALIZADO", "destino": {"latitud": -27.4698, "longitud": -58.8306}, "fecha_finalizacion": "2026-11-02T02:10:00Z", "puntaje_conductor": 5}' \
-  http://localhost:8080/api/v1/integraciones/m6/viajes/5521/finalizacion
-```
-
-Resultado esperado:
-- `200` con `procesado`, `ubicacion_actualizada` y `puntaje_registrado` en verdadero.
-- `GET /conductores/$ID` ahora muestra `puntaje_promedio` y `cantidad_calificaciones` actualizados.
-- Repetir el mismo pedido da `200` con la misma respuesta y sin cambiar el puntaje.
-- Mismo `id_viaje` con datos distintos da `409` `VIAJE_EN_CONFLICTO`.
-- Un puntaje de `6` o un `estado` distinto de `FINALIZADO` da `400`.
-
-## 7. Solicitudes
+## 5. Solicitudes
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN_CONDUCTOR" "http://localhost:8080/api/v1/conductores/$ID/solicitudes?estado=PENDIENTE"
@@ -110,13 +81,14 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN_CONDUCTOR" -H "Content-Type: ap
 
 Resultado esperado:
 - La lista trae solo las solicitudes del conductor; una `PENDIENTE` ya vencida figura como `VENCIDA`.
-- Aceptar una vigente da `200` y deja al conductor no disponible; rechazar no cambia su disponibilidad.
+- Aceptar una vigente da `200` y deja al conductor `OCUPADO` (si estaba `CONECTADO` o `DISPONIBLE` y cumple las reglas; si no, `422`); rechazar no cambia su estado.
+- Para volver a `DISPONIBLE`, el conductor lo pide con `PATCH .../estado`.
 - Una vencida da `410` `SOLICITUD_VENCIDA` y una ya respondida, `409` `SOLICITUD_YA_RESPONDIDA`.
 - La solicitud de otro conductor da `403` `ACCESO_PROHIBIDO`; una inexistente, `404`.
 
 Las solicitudes de prueba las carga el seed: el backend no las crea.
 
-## 8. Vehículo
+## 6. Vehículo
 
 ```bash
 curl -s -H "Authorization: Bearer $TOKEN_CONDUCTOR" http://localhost:8080/api/v1/conductores/$ID/vehiculos/$ID_VEHICULO/tipos-servicio
@@ -130,19 +102,19 @@ Resultado esperado:
 - El documento se crea con `201` y estado `VIGENTE`; con vencimiento anterior a la emisión, `422`.
 - `GET .../vehiculos/$ID_VEHICULO` incluye el documento en `documentos`.
 
-## 9. Paridad con el contrato
+## 7. Paridad con el contrato
 
 ```bash
 cd backend
 uv run pytest tests/api/test_paridad_rutas.py tests/contrato -q
 ```
 
-Resultado esperado: la API genera las 19 operaciones del contrato 1.1.0 con sus `operationId`.
+Resultado esperado: la API genera las 17 operaciones del contrato 1.2.0 con sus `operationId`.
 
 ## Advertencias
 
-- El reloj de M4 debe estar en UTC y sincronizado: un `actualizado` adelantado puede ganarle a cambios posteriores del conductor ([research.md](./research.md), decisión 3).
-- Los cambios de estado de un mismo conductor se serializan: dos pedidos simultáneos se aplican uno tras otro, sin perder ninguno.
+- M4 y M6 no escriben en M3: el contrato 1.2.0 no tiene operaciones de entrada. Quién marca `OCUPADO` más allá de la aceptación de una solicitud, y de dónde salen los puntajes, queda por acordar con ellos.
+- Los cambios de estado de un mismo conductor se serializan: un cambio de estado y la aceptación de una solicitud simultáneos se aplican uno tras otro, sin perder ninguno.
 
 ## Referencias
 

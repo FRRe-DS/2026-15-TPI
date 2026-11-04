@@ -6,16 +6,18 @@ Los nombres son una **propuesta**. Cualquier cambio se avisa y se actualiza acá
 
 ## Cambios en tablas existentes
 
-### conductor (columnas nuevas)
+### conductor (columna reemplazada y columnas nuevas)
 
 | Campo | Tipo | Reglas |
 |---|---|---|
+| `estado` | texto | **Reemplaza a `conectado` y `disponible`.** `DESCONECTADO` (por defecto), `CONECTADO`, `DISPONIBLE` u `OCUPADO`, con `CHECK`. Obligatorio |
 | `id_vehiculo_activo` | bigint, FK → `vehiculo.id_vehiculo`, nulo | Vehículo con el que trabaja. Debe ser de ese conductor (lo valida el backend). `ON DELETE SET NULL` |
-| `fecha_ultimo_cambio_estado` | timestamptz, nulo | Es el campo `actualizado` del contrato. Cambia con la conexión, la disponibilidad o el vehículo activo. **No** cambia por la ubicación. Nulo hasta el primer cambio |
+| `fecha_ultimo_cambio_estado` | timestamptz, nulo | Es el campo `actualizado` del contrato. Cambia con el estado o el vehículo activo. **No** cambia por la ubicación. Nulo hasta el primer cambio |
 | `suma_puntajes` | entero | Por defecto 0. No negativo |
 | `cantidad_calificaciones` | entero | Por defecto 0. No negativo |
 
-- `puntaje_promedio` **no se guarda**: se calcula como `suma_puntajes / cantidad_calificaciones` (nulo si la cantidad es 0).
+- **Migración de `conectado` y `disponible` a `estado`**: `conectado = false` → `DESCONECTADO`; `conectado = true` y `disponible = true` → `DISPONIBLE`; `conectado = true` y `disponible = false` → `CONECTADO`. Después se eliminan las dos columnas y el índice `ix_conductor_disponible`, y se crea un índice por `estado`. El valor `OCUPADO` no sale de datos existentes: lo asigna el backend al aceptar una solicitud.
+- `puntaje_promedio` **no se guarda**: se calcula como `suma_puntajes / cantidad_calificaciones` (nulo si la cantidad es 0). **Ningún endpoint escribe estos totales en esta iteración**: el seed los carga y de dónde vendrán en producción se define con M6 y M2.
 - `latitud`, `longitud` y `fecha_act_ubic` ya existen desde la Iteración 1 y se empiezan a usar.
 - `CHECK`: `cantidad_calificaciones >= 0` y `suma_puntajes >= 0`; si la cantidad es 0, la suma es 0.
 - Índice sugerido por `id_vehiculo_activo`.
@@ -60,24 +62,13 @@ Sin cambios de esquema. `habilitado` pasa a mantenerse sincronizado con la habil
 
 El estado `VIGENTE` o `VENCIDO` **no se guarda**: se calcula al leer con la fecha actual, igual que en el documento del conductor. Los documentos son de solo escritura: nunca se actualizan ni se borran.
 
-### viaje_finalizado
+### viaje_finalizado *(retirada)*
 
-| Campo | Tipo | Reglas |
-|---|---|---|
-| `id_viaje` | bigint, **PK** | Lo informa M6. La clave primaria es lo que impide procesar dos veces el mismo viaje |
-| `id_conductor` | bigint, FK → `conductor` | Obligatorio. `ON DELETE RESTRICT` |
-| `fecha_finalizacion` | timestamptz | Obligatoria |
-| `latitud_destino` | doble | Obligatoria |
-| `longitud_destino` | doble | Obligatoria |
-| `puntaje_conductor` | entero, nulo | `CHECK` entre 1 y 5 |
-| `ubicacion_aplicada` | booleano | Si el destino pasó a ser la ubicación del conductor. Sirve para repetir la misma respuesta ante un reintento |
-| `fecha_proceso` | timestamptz | Autogenerada por la base |
-
-De solo escritura. El backend inserta con `INSERT ... ON CONFLICT DO NOTHING`.
+Se retiró con el contrato 1.2.0, que sacó `POST /integraciones/m6/.../finalizacion`. **Datos y seguridad no crea esta tabla.**
 
 ## Relaciones
 
-- Un conductor tiene cero o un vehículo activo, cero o más solicitudes y cero o más viajes finalizados.
+- Un conductor tiene cero o un vehículo activo y cero o más solicitudes.
 - Un vehículo tiene cero o más documentos.
 - Una solicitud pertenece a un conductor y puede tener un viaje asociado.
 
@@ -95,13 +86,21 @@ De solo escritura. El backend inserta con `INSERT ... ON CONFLICT DO NOTHING`.
 
 ### Estado del conductor
 
-Las reglas y sus resultados están en [research.md](./research.md), decisión 5. En resumen: para quedar disponible el conductor debe estar conectado y `APROBADA`, y su vehículo activo existir y estar `APROBADA`; si se desconecta o pierde el vehículo activo, queda no disponible.
+Las reglas y sus resultados están en [research.md](./research.md), decisión 5. En resumen: para quedar `DISPONIBLE` el conductor debe estar `APROBADA` y tener un vehículo activo `APROBADA`; si pierde el vehículo activo estando `DISPONIBLE`, pasa a `CONECTADO`. `OCUPADO` lo asigna el backend al aceptar una solicitud y el conductor lo deja pidiendo otro estado.
+
+| Estado actual | Pide | Resultado |
+|---|---|---|
+| cualquiera | `DESCONECTADO` o `CONECTADO` | ese estado |
+| `DESCONECTADO`, `CONECTADO` u `OCUPADO` | `DISPONIBLE` (cumple la regla) | `DISPONIBLE` |
+| cualquiera | `DISPONIBLE` (no cumple la regla) | no cambia; `422` |
+| cualquiera | `OCUPADO` | no cambia; `400` |
+| `CONECTADO` o `DISPONIBLE` | aceptar una solicitud (cumple la regla) | `OCUPADO` |
 
 ## Bloqueos que usa el backend
 
 | Operación | Bloquea |
 |---|---|
-| Estado del conductor, `PATCH` de M4, finalización de viaje | Fila del `conductor` (`SELECT ... FOR UPDATE`) |
+| Estado del conductor | Fila del `conductor` (`SELECT ... FOR UPDATE`) |
 | Responder solicitud | Fila del `conductor` y después la de la `solicitud` |
 | Acción de habilitación del vehículo (ya existente) | Fila del `vehiculo` |
 
@@ -110,12 +109,11 @@ Datos y seguridad no tiene que crear nada para esto; se pide solo que las FK est
 ## Datos de prueba mínimos (seed, a cargo de Datos y seguridad)
 
 - Conductores con ubicación distinta y uno **sin ubicación** (los tres campos en nulo).
-- Conductores con `id_vehiculo_activo` y uno sin vehículo activo.
-- Un conductor con calificaciones (promedio no nulo) y otro sin ninguna.
+- Conductores en cada uno de los cuatro `estado` y uno con `id_vehiculo_activo` en nulo.
+- Un conductor con calificaciones (promedio no nulo) y otro sin ninguna; los totales se cargan directamente porque ningún endpoint los escribe.
 - Vehículos con tipos de servicio habilitados.
-- Solicitudes en los cuatro estados, incluida una `PENDIENTE` vigente y otra `PENDIENTE` ya vencida.
+- Solicitudes en los cuatro estados, incluida una `PENDIENTE` vigente y otra `PENDIENTE` ya vencida, y un conductor `CONECTADO` con vehículo activo `APROBADA` que pueda aceptarlas.
 - Documentos de vehículo, uno `VIGENTE` y uno `VENCIDO`.
-- Un viaje ya registrado en `viaje_finalizado`, para probar el reintento.
 - Un usuario conductor cuyo `id_conductor` del token coincida con un conductor del seed.
 
 ## Notas para la implementación

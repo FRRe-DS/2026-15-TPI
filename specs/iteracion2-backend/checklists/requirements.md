@@ -33,6 +33,6 @@
 
 ## Notas
 
-- Las 3 aclaraciones se resolvieron en la sesión del 2026-11-03 (origen de solicitudes fuera de la iteración, `200` ante un viaje ya procesado y acceso propio del conductor en todos los endpoints) y quedaron en *Clarificaciones* del spec.
+- Las 3 aclaraciones se resolvieron en la sesión del 2026-11-03 (origen de solicitudes fuera de la iteración, `200` ante un viaje ya procesado y acceso propio del conductor en todos los endpoints) y quedaron en *Clarificaciones* del spec. El cambio de contrato 1.2.0 sumó otras 4 decisiones (sin integraciones de M4 y M6, `estado` unificado, `OCUPADO` lo asigna M3 y puntajes de solo lectura), también registradas ahí.
 - Las otras dudas de la entrada (cálculo del promedio, estados y vencimiento de la solicitud, semántica de `actualizado`) se resolvieron con valores por defecto documentados en *Supuestos*.
 - Los nombres de campos y de endpoints son los del contrato OpenAPI, que es la fuente de verdad; no se consideran detalle de implementación.
