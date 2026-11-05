@@ -113,14 +113,14 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 │   ├── pyproject.toml
 │   ├── ruff.toml
 │   └── .coveragerc
+├── docker-compose.yml                   # Stack completo (único Compose del repo)
+├── .env.example                         # Variables del stack, sin valores reales
 ├── infra/
-│   ├── docker-compose.yml
-│   ├── .env.example
 │   ├── postgres/init/                   # Creación de las bases
 │   ├── migraciones/                     # Alembic
 │   ├── seed/                            # Datos de prueba
 │   └── keycloak/realm-m3.json
-├── frontend/                            # Next.js
+├── frontend/                            # Next.js (con Dockerfile)
 ├── docs/
 │   └── contract/openapi.yaml            # Contrato de la API
 └── .github/                             # Workflows de CI y scripts
@@ -343,7 +343,7 @@ Puertos: `5432`, `8081` y `8080`. La API usa el `8080`.
 
 - Los servicios tienen chequeos de salud y `depends_on` con condición.
 - Las imágenes tienen versión fija, **nunca `latest`**.
-- Las contraseñas y claves se configuran **por variables de entorno**, nunca en el repo. `infra/.env.example` lista todas las variables sin valores reales.
+- Las contraseñas y claves se configuran **por variables de entorno**, nunca en el repo. `.env.example` lista todas las variables sin valores reales.
 - El `Dockerfile` usa una imagen `python:3.12` de versión fija, corre con un usuario sin privilegios e inicia la API con `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`.
 
 ### Arranque rápido
@@ -421,29 +421,29 @@ Las 17 operaciones propias y sus permisos se definen en [`docs/contract/openapi.
 
 ## Arranque rápido (M3)
 
-El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levanta con Docker Compose.
+El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed, API y frontend) se levanta con un único `docker-compose.yml` ubicado en la raíz del repositorio.
 
-1. Copiar el archivo de variables y completar **todos** los valores vacíos. No commitear `infra/.env`.
+1. Copiar el archivo de variables y completar **todos** los valores vacíos. No commitear `.env`.
 
    ```bash
-   cd infra
    cp .env.example .env
    ```
 
    Generar claves con `openssl rand -hex 32`. Se recomienda hexadecimal para que las contraseñas puedan usarse sin URL-encoding dentro de `DATABASE_URL` (el compose la compone a partir de `M3_DB_PASSWORD`).
 
-2. Levantar el stack (la primera vez compila la imagen de la API):
+2. Levantar el stack (la primera vez compila las imágenes de la API y del frontend):
 
    ```bash
-   docker compose --env-file .env -f docker-compose.yml up --build
+   docker compose up --build
    ```
 
-   El orden está garantizado por healthchecks: PostgreSQL → Keycloak y migraciones → seed → API. El seed es idempotente y puede volver a ejecutarse sin duplicar datos.
+   El orden está garantizado por healthchecks: PostgreSQL → Keycloak y migraciones → seed → API → frontend. El seed es idempotente y puede volver a ejecutarse sin duplicar datos.
 
 3. Verificar los servicios:
 
    | Servicio | URL / puerto |
    |---|---|
+   | Frontend | http://localhost:3000 |
    | API (salud) | http://localhost:8080/salud |
    | Keycloak | http://localhost:8081 (realm `m3`) |
    | PostgreSQL | localhost:5432 |
@@ -462,22 +462,21 @@ El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levan
      -d password="$M3_OPERADOR_PASSWORD"
    ```
 
-4. Ejecutar las pruebas de infraestructura (requieren Docker para las marcadas como `integration`). Desde `infra`:
+4. Ejecutar las pruebas de infraestructura (requieren Docker para las marcadas como `integration`):
 
    ```bash
-   cd ../backend
+   cd backend
    uv sync --all-groups
    uv run pytest tests/infra
    ```
 
-5. Detener el stack. Volver a `infra`:
+5. Detener el stack. Desde la raíz del repositorio:
 
    ```bash
-   cd ../infra
-   docker compose --env-file .env -f docker-compose.yml down
+   docker compose down
    ```
 
-   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose --env-file .env -f docker-compose.yml down -v`.
+   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose down -v`.
 
 Para ejecutar migraciones o el seed manualmente contra una base existente, desde la raíz del repositorio:
 
@@ -492,17 +491,17 @@ uv run python ../infra/seed/cargar_datos.py
 
 Se verificaron PostgreSQL, migraciones, seed idempotente, Keycloak con tokens reales y la API en Compose. Se recorrieron las 10 operaciones del alcance y se validaron 17 respuestas reales contra OpenAPI, incluidos errores y eventos con ID entero. El frontend se ejecutó con `npm run dev` y mostró conductores reales.
 
-El frontend se levanta por separado:
+El frontend también puede levantarse por separado, fuera de Compose, para desarrollar con recarga en caliente (en ese caso conviene bajar el servicio con `docker compose stop frontend`):
 
 ```bash
 cd frontend
 npm ci
 cp .env.example .env.local
-# Completar con las mismas credenciales usadas en infra/.env.
+# Completar con las mismas credenciales usadas en el `.env` de la raíz.
 npm run dev
 ```
 
-Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` de `infra/.env`. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
+Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` del `.env` de la raíz. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
 
 El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
 

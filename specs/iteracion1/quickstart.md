@@ -11,16 +11,16 @@ Cómo comprobar que la iteración funciona de punta a punta. Los comandos se vue
 ## 1. Levantar API, base de datos e identidad
 
 ```bash
-cp infra/.env.example infra/.env
-# Completar todos los valores vacíos de infra/.env.
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build
+cp .env.example .env
+# Completar todos los valores vacíos de .env.
+docker compose up --build
 ```
 
 Resultado esperado: PostgreSQL, Keycloak y la API en marcha; las migraciones y el seed terminaron con éxito. API en `http://localhost:8080/api/v1`, Keycloak en `http://localhost:8081`.
 
 ## 2. Obtener un token y consultar
 
-Con las credenciales de prueba definidas en `infra/.env`:
+Con las credenciales de prueba definidas en `.env`:
 
 ```bash
 curl -s -X POST "http://localhost:8081/realms/m3/protocol/openid-connect/token" \
@@ -55,7 +55,7 @@ Resultado esperado: pruebas en verde y cobertura mínima cumplida. Las de integr
 cd frontend
 npm ci
 cp .env.example .env.local
-# Usar las mismas credenciales de infra/.env; ver frontend/README.md.
+# Usar las mismas credenciales del .env de la raíz; ver frontend/README.md.
 npm run dev
 ```
 
