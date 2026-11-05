@@ -1,7 +1,7 @@
 name: m3
 
 x-backend-build: &backend-build
-  context: ..
+  context: .
   dockerfile: backend/Dockerfile
 
 x-database-url: &database-url postgresql+psycopg://${M3_DB_USER}:${M3_DB_PASSWORD}@postgres:5432/${M3_DB_NAME}
@@ -23,7 +23,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init/01-crear-bases.sh:/docker-entrypoint-initdb.d/01-crear-bases.sh:ro
+      - ./infra/postgres/init/01-crear-bases.sh:/docker-entrypoint-initdb.d/01-crear-bases.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -56,7 +56,7 @@ services:
     ports:
       - "${KEYCLOAK_PORT:-8081}:8080"
     volumes:
-      - ./keycloak/realm-m3.json:/opt/keycloak/data/import/realm-m3.json:ro
+      - ./infra/keycloak/realm-m3.json:/opt/keycloak/data/import/realm-m3.json:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,6 +137,40 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+    restart: unless-stopped
+    networks:
+      - m3
+
+  frontend:
+    build:
+      context: ./frontend
+    image: m3-frontend:local
+    environment:
+      # Se resuelven desde el servidor de Next dentro de la red de Compose.
+      API_URL: http://api:8080/api/v1
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-m3}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_M3_CLIENT_ID:-m3-api}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_M3_CLIENT_SECRET}
+      TEST_USER: ${M3_CONDUCTOR_USERNAME}
+      TEST_PASSWORD: ${M3_CONDUCTOR_PASSWORD}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
     networks:
       - m3
