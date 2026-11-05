@@ -7,6 +7,10 @@ from typing import Any
 
 import httpx
 import pytest
+from conftest import (
+    FECHA_EMISION_LICENCIA_VIGENTE,
+    FECHA_VENCIMIENTO_LICENCIA_VIGENTE,
+)
 from fastapi.testclient import TestClient
 
 pytestmark = pytest.mark.integration
@@ -30,8 +34,8 @@ def test_registrar_licencia_vigente_cumple_el_contrato(
     assert documento["tipo"] == "LICENCIA"
     assert documento["numero"] == "LIC-12345678"
     assert documento["categoria"] == "B1"
-    assert documento["fecha_emision"] == "2024-05-10"
-    assert documento["fecha_vencimiento"] == "2028-05-10"
+    assert documento["fecha_emision"] == FECHA_EMISION_LICENCIA_VIGENTE.isoformat()
+    assert documento["fecha_vencimiento"] == FECHA_VENCIMIENTO_LICENCIA_VIGENTE.isoformat()
     assert documento["estado"] == "VIGENTE"
 
     detalle = cliente.get(

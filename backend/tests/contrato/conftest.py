@@ -226,12 +226,16 @@ CONDUCTOR_DE_PRUEBA = {
     "email": "ana.gomez@example.com",
 }
 
+FECHA_ACTUAL_DE_PRUEBA = datetime.now(UTC).date()
+FECHA_EMISION_LICENCIA_VIGENTE = FECHA_ACTUAL_DE_PRUEBA - timedelta(days=365)
+FECHA_VENCIMIENTO_LICENCIA_VIGENTE = FECHA_ACTUAL_DE_PRUEBA + timedelta(days=3 * 365)
+
 LICENCIA_DE_PRUEBA = {
     "tipo": "LICENCIA",
     "numero": "LIC-12345678",
     "categoria": "B1",
-    "fecha_emision": "2024-05-10",
-    "fecha_vencimiento": "2028-05-10",
+    "fecha_emision": FECHA_EMISION_LICENCIA_VIGENTE.isoformat(),
+    "fecha_vencimiento": FECHA_VENCIMIENTO_LICENCIA_VIGENTE.isoformat(),
     "url_archivo": "https://storage.example.com/licencias/1.pdf",
 }
 
