@@ -211,22 +211,22 @@ Los cinco stacks **arrancan en paralelo** el día uno, cada uno con lo que le en
 
 > **Depende de** S1, S2 y S3 integrados.
 
-- [ ] T098 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T097, S1, S2 y S3
-- [ ] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
-- [ ] T100 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
-- [ ] T101 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
-- [ ] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
-- [ ] T103 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
+- [x] T098 [S4] [US6] Impl `backend/tests/contrato/conftest.py`: la aplicación real con repositorios SQL sobre el contenedor, tokens de prueba firmados y un validador de openapi-core. **Depende de** T097, S1, S2 y S3
+- [x] T099 [S4] [US1] Test `backend/tests/contrato/test_contrato_conductores.py`: las respuestas de los tres endpoints de conductores cumplen el contrato
+- [x] T100 [S4] [US2] Test `backend/tests/contrato/test_contrato_habilitacion.py`: consulta y acción de habilitación del conductor
+- [x] T101 [S4] [US3] Test `backend/tests/contrato/test_contrato_licencia.py`: registro de licencia
+- [x] T102 [S4] [US4] Test `backend/tests/contrato/test_contrato_vehiculos.py`: alta, listado, detalle y habilitación del vehículo
+- [x] T103 [S4] [US6] Test `backend/tests/contrato/test_contrato_errores.py`: `401`, `403`, `404`, `409` y `422` tienen el formato `{codigo, mensaje}`
 
 > Los tests T099–T103 pueden fallar hasta que S1, S2 y S3 integren; es lo esperado en su fase Red. No se marcan como `xfail`.
 
 ### PR `test/s4-concurrencia-humo`
 
-- [ ] T104 [S4] [US1] Test `backend/tests/integracion/concurrencia/test_dni_concurrente.py`: 20 solicitudes simultáneas con el mismo DNI producen exactamente un `201` y 19 `409` (SC-005)
-- [ ] T105 [S4] [US4] Test `backend/tests/integracion/concurrencia/test_patente_concurrente.py`: lo mismo con la patente
-- [ ] T106 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
-- [ ] T107 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
-- [ ] T108 [S4] **Acción manual del responsable del repositorio** (sin esto SC-004 no se garantiza; conviene hacerla apenas exista el workflow T096, antes de abrir las PRs de implementación): configurar la protección de las ramas `dev` y `main` exigiendo el chequeo `ci` en verde antes de mergear
+- [x] T104 [S4] [US1] Test `backend/tests/integracion/concurrencia/test_dni_concurrente.py`: 20 solicitudes simultáneas con el mismo DNI producen exactamente un `201` y 19 `409` (SC-005)
+- [x] T105 [S4] [US4] Test `backend/tests/integracion/concurrencia/test_patente_concurrente.py`: lo mismo con la patente
+- [x] T106 [S4] [US2] Test `backend/tests/integracion/concurrencia/test_habilitacion_concurrente.py`: dos acciones simultáneas sobre el mismo conductor; una se aplica, la otra recibe `409` y el historial queda con un solo evento nuevo
+- [x] T107 [S4] [US5] Crear `.github/scripts/humo.sh` y el job `entorno` en `.github/workflows/ci.yml`: levanta el Compose, pide un token de operador a Keycloak, verifica `GET /api/v1/conductores` → `200` con al menos un conductor y `401` sin token
+- [x] T108 [S4] **Acción manual del responsable del repositorio** (sin esto SC-004 no se garantiza; conviene hacerla apenas exista el workflow T096, antes de abrir las PRs de implementación): configurar la protección de las ramas `dev` y `main` exigiendo el chequeo `ci` en verde antes de mergear
 
 ---
 
