@@ -1,6 +1,8 @@
 # Contrato de eventos de M3
 
-## Alcance acordado
+> **BLOQUEADO**: este contrato no está activo. El contrato vigente de M3 (1.2.0) no define eventos, el backend de la Iteración 2 no los incluye y FR-013 prohíbe introducir funcionalidades de negocio nuevas. No implementar ni probar nada de este documento hasta que la cátedra resuelva el conflicto FR-007/FR-013. Si se confirma que M3 publica eventos, este contrato debe completarse y la implementación pasar a un spec propio de Backend.
+
+## Alcance acordado (condicionado)
 
 - M3 publica eventos de altas y cambios de estado de conductor y vehículo, incluidas aprobación, observación, rechazo y suspensión.
 - M3 no consume eventos de otros módulos en esta funcionalidad.

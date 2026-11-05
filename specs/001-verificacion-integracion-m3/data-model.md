@@ -2,7 +2,9 @@
 
 **Base**: PostgreSQL de M3. Los cambios de esquema se realizan con una migración Alembic versionada.
 
-## Tabla nueva: `outbox_evento`
+> **Alcance**: la migración `0002` de la Iteración 2 es parte del trabajo de verificación. La tabla `outbox_evento` y todo lo relacionado con RabbitMQ quedan **bloqueados** mientras la PR 3 no se desbloquee por la decisión FR-007/FR-013; se documentan solo para el caso de que la cátedra confirme esa publicación en un spec propio de Backend.
+
+## Tabla nueva (condicional): `outbox_evento`
 
 Almacena eventos de dominio que deben publicarse. Se inserta dentro de la misma transacción que el estado e historial M3.
 
@@ -39,9 +41,21 @@ Almacena eventos de dominio que deben publicarse. Se inserta dentro de la misma 
 
 La retención/borrado de filas publicadas no forma parte del comportamiento de negocio; no se purgan eventos en esta feature.
 
+## Cambios de esquema de la Iteración 2 (migración `0002`)
+
+Los cambios de la migración `0002` los aporta el grupo de Datos y seguridad; las pruebas de los 7 endpoints se ejecutan después de integrarla.
+
+- Reemplaza `conectado` y `disponible` por `estado` (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`).
+- Mantiene `id_vehiculo_activo`, `fecha_ultimo_cambio_estado`, `suma_puntajes` y `cantidad_calificaciones`; `puntaje_promedio` se deriva y no se persiste.
+- Agrega `solicitud` (estado, `vence_en`, respuesta y hora de respuesta) y `documento_vehiculo`.
+- Mantiene `vehiculo_tipo_servicio.habilitado` sincronizado con la habilitación del vehículo.
+- Los tests existentes que usan `conectado`/`disponible` deben migrarse a `estado` al recibir esta migración.
+
+La tabla `outbox_evento` y cualquier publicación de eventos quedan **fuera de alcance mientras PR 3 esté bloqueada** por el conflicto FR-007/FR-013.
+
 ## Entidades de verificación (sin tablas permanentes)
 
 - **Registro de prueba**: conductor y vehículo creados con DNI/patente únicos de esa ejecución.
-- **Token de prueba**: JWT obtenido de Keycloak real en E2E o emitido por un doble contractual en pruebas de forma de token; nunca persiste en PostgreSQL.
-- **Mensaje capturado**: evento recibido por una cola temporal exclusiva de la prueba; desaparece al cerrar la cola.
+- **Token de prueba**: JWT obtenido de Keycloak real en E2E o emitido por un doble contractual en pruebas de forma de token; nunca persiste en PostgreSQL. Incluye tokens con rol `servicio` firmados para las lecturas de M4 y la matriz de roles.
+- **Mensaje capturado** (solo si se desbloquea la publicación): evento recibido por una cola temporal exclusiva de la prueba; desaparece al cerrar la cola.
 - **Doble de módulo**: servidor HTTP/JWKS local que valida su solicitud o respuesta contra el artefacto OpenAPI acordado; no accede a las bases ajenas.
