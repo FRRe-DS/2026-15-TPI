@@ -22,6 +22,7 @@ def test_crea_conductor(client, casos, headers_conductor) -> None:
     assert cuerpo["dni"] == PAYLOAD["dni"]
     assert cuerpo["nombre"] == PAYLOAD["nombre"]
     assert cuerpo["habilitacion"] == "APROBADA"
+    assert cuerpo["estado"] == "DISPONIBLE"
     assert cuerpo["documentos"] == []
     assert cuerpo["vehiculos"] == []
 

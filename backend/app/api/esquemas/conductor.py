@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -12,6 +13,13 @@ from app.api.esquemas.vehiculo import (
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 
 PATRON_EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+class EstadoOperativo(StrEnum):
+    DESCONECTADO = "DESCONECTADO"
+    CONECTADO = "CONECTADO"
+    DISPONIBLE = "DISPONIBLE"
+    OCUPADO = "OCUPADO"
 
 
 class ConductorCreate(BaseModel):
@@ -37,6 +45,7 @@ class Conductor(ConductorCreate):
     documentos: list[DocumentoConductor]
     vehiculos: list[VehiculoResumen]
     habilitacion: EstadoHabilitacion
+    estado: EstadoOperativo
     conectado: bool
     disponible: bool
 
@@ -45,6 +54,14 @@ class ConductorConUbicacion(Conductor):
     latitud: float | None = None
     longitud: float | None = None
     fecha_act_ubic: datetime | None = None
+
+
+def _estado_operativo(*, conectado: bool, disponible: bool) -> EstadoOperativo:
+    if not conectado:
+        return EstadoOperativo.DESCONECTADO
+    if disponible:
+        return EstadoOperativo.DISPONIBLE
+    return EstadoOperativo.CONECTADO
 
 
 def conductor_desde_detalle(
@@ -69,6 +86,7 @@ def conductor_desde_detalle(
         ],
         vehiculos=[vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos],
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
+        estado=_estado_operativo(conectado=conductor.conectado, disponible=conductor.disponible),
         conectado=conductor.conectado,
         disponible=conductor.disponible,
         latitud=latitud,
