@@ -18,8 +18,8 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 16 endpoints; 10 de ellos se construyen en la Iteración 1.
-- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador y de conductor.
+- Expone una API REST de 17 endpoints; 10 de ellos se construyen en la Iteración 1.
+- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4).
 - Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos.
 - Una pantalla web muestra el listado de conductores.
 - Todo se levanta con Docker Compose, y cada cambio pasa por un CI antes de integrarse.
@@ -49,7 +49,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 
 ## Alcance de la Iteración 1
 
-La API de M3 tiene **16 endpoints propios**. En la Iteración 1 se cubren **10**.
+La API de M3 tiene **17 endpoints propios**. En la Iteración 1 se cubren **10**.
 
 Los 10 endpoints de la Iteración 1:
 
@@ -139,8 +139,8 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 | Método | Ruta | Descripción | Iter. |
 |---|---|---|---|
-| `POST` | `/conductores` | Crear conductor. Queda `PENDIENTE`, desconectado y no disponible. | 1 |
-| `GET` | `/conductores` | Listar conductores. Filtros: `disponible`, `habilitado`, `tipo_vehiculo`, `tipo_servicio`, `latitud`, `longitud`. | 1 |
+| `POST` | `/conductores` | Crear conductor. Queda `PENDIENTE` y en estado `DESCONECTADO`. | 1 |
+| `GET` | `/conductores` | Listar conductores. Filtros: `estado`, `habilitado`, `tipo_vehiculo`, `tipo_servicio`, `latitud`, `longitud`. | 1 |
 | `GET` | `/conductores/{id_conductor}` | Obtener conductor con documentos, vehículos y habilitación. | 1 |
 | `GET` | `/conductores/{id_conductor}/habilitacion` | Estado e historial de habilitación. | 1 |
 | `POST` | `/conductores/{id_conductor}/habilitacion` | Aprobar, observar, suspender o rechazar conductor. Solo operadores. | 1 |
@@ -151,11 +151,13 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` | Aprobar, observar, suspender o rechazar vehículo. Solo operadores. | 1 |
 | `GET` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` | Tipos de servicio del vehículo y su habilitación. | 2 |
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion` | Registrar documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). | 2 |
-| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar conexión, disponibilidad y ubicación. | 2 |
+| `GET` | `/conductores/{id_conductor}/estado` | Consultar el estado (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE` u `OCUPADO`) y el vehículo activo (la ubicación va en `/ubicacion`). Lo consulta M4. | 2 |
+| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar estado, vehículo activo y ubicación. `OCUPADO` no se puede pedir: lo asigna M3 al aceptar una solicitud. | 2 |
+| `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
-| `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. | 2 |
-| `POST` | `/viajes/{id_viaje}/calificacion-cliente` | Calificar al cliente. | 2 |
+| `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. Al aceptar, el conductor pasa a `OCUPADO`. | 2 |
 
+El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `estado`. El código de la Iteración 1 todavía devuelve los dos campos y filtra por `disponible`; la Iteración 2 lo migra, por eso las secciones que describen lo ya implementado los siguen nombrando.
 
 ### Detalle de los endpoints de la Iteración 1
 
@@ -187,13 +189,21 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ### Endpoints de M6 que consumimos
 
-Están en el contrato bajo el tag **Externo (M6)**: _implementado por M6, solo consumido por M3_. No forman parte del alcance de la Iteración 1.
+Los implementa M6 y M3 solo los consume. **No forman parte de nuestro contrato** (`docs/contract/openapi.yaml`); los define el contrato de M6.
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/viajes/{id_viaje}` | Consultar estado y resumen del viaje. |
 | `POST` | `/viajes/{id_viaje}/finalizar` | Finalizar un viaje en curso. Body: `tiempo` (minutos), `distancia` (km), `cierre`. |
 | `POST` | `/viajes/{id_viaje}/cancelar` | Cancelar un viaje. Motivos: `OTRO`, `DEFECTO MECANICO`, `PASAJERO NO VINO`. |
+
+### Endpoint de M4 que consumimos
+
+Lo implementa M4 y M3 solo lo consume. **No forma parte de nuestro contrato**; la ruta es provisoria hasta que M4 la confirme.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `PUT` | `/integraciones/m4/conductores/{id_conductor}/ubicacion` | Enviar a M4 el conductor, su vehículo activo y su ubicación. Como el TPI no tiene app móvil, M3 puede simular la ubicación. |
 
 ---
 
@@ -274,8 +284,9 @@ El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 
 - Todos los endpoints requieren `Authorization: Bearer <JWT>`.
 - Los tokens los emite **Keycloak** y la API los valida localmente con PyJWT y el JWKS (con caché).
-- Roles: **`operador`** y **`conductor`**.
+- Roles: **`operador`**, **`conductor`** y **`servicio`** (cuenta técnica de M4, solo lectura; el contrato lo define y todavía no está en el realm).
 - Las acciones de habilitación solo pueden hacerlas usuarios con rol `operador`.
+- El rol `servicio` solo puede leer conductores, vehículos, estado y ubicación.
 - El usuario operador tiene un atributo numérico `id_operador`, que Keycloak incluye en el token como un claim entero. La API lo usa para registrar quién hizo cada acción.
 
 **Realm de Keycloak** (`infra/keycloak/realm-m3.json`):
@@ -413,11 +424,11 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 | Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
 |---|---|---|
 | **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | La ubicación (`latitud`, `longitud`, `fecha_act_ubic`) aparece en `GET /conductores`, `GET /conductores/{id}` y `PATCH /conductores/{id}/estado`. | ⚠️ *Por definir.* |
+| **M4 - Ubicación y Disponibilidad** | Lectura del estado del conductor, `latitud`, `longitud` y `fecha_act_ubic` en los GET de conductores (hoy como `conectado` y `disponible`; el contrato los unifica en `estado`) y, en el contrato, `GET .../estado` y `GET .../ubicacion` por conductor (el contrato suma `id_vehiculo_activo`, que se implementa en la Iteración 2); y `PUT /integraciones/m4/.../ubicacion` (M3 → M4, ruta provisoria). | M4 consulta la API; M3 le envía el conductor y su ubicación (simulada). M4 no escribe en M3: `OCUPADO` lo asigna M3 al aceptar una solicitud, y si M4 necesita marcarlo hay que acordarlo. |
 | **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
-| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
+| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. M6 no escribe en M3: cómo se actualizan el puntaje y la ubicación tras un viaje queda por acordar con M6. ⚠️ *Por definir.* |
 
-Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, viajes) corresponden a la **Iteración 2**.
+Las actualizaciones de estado y ubicación, las solicitudes y los viajes corresponden a la **Iteración 2**. La lectura de disponibilidad y ubicación ya está disponible en los GET existentes.
 | `400` | Solicitud mal formada |
 | `401` | Token ausente o inválido |
 | `403` | Sin permisos |
@@ -426,6 +437,17 @@ Los endpoints relacionados con M4, M5 y M6 (solicitudes, estado y ubicación, vi
 | `410` | Oferta vencida |
 | `422` | Incumple una regla de negocio |
 | `500` | Error interno |
+
+### Lecturas para M4
+
+Con un JWT de nuestro realm que tenga rol `conductor` u `operador`:
+
+- `GET /api/v1/conductores?disponible=true&habilitado=true`: lista los conductores disponibles y aprobados. Puede combinarse con `tipo_vehiculo=AUTO` o `MOTO`.
+- `GET /api/v1/conductores/{id_conductor}`: consulta un conductor por su ID entero; un ID inexistente responde `404`.
+
+Ambos devuelven `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic`. Las coordenadas y la fecha salen de PostgreSQL; cuando no están registradas se devuelve `null`. La fecha indica cuándo se registró la ubicación, no cuándo se hizo el GET. Este cambio solo permite leer: no actualiza posiciones ni aplica vencimiento, distancias, cercanía o ETA. Los parámetros de búsqueda `latitud` y `longitud` siguen sin ordenar ni filtrar.
+
+El [esquema preliminar del grupo de M4](https://github.com/FRRe-DS/2026-03-TPI/blob/main/app/schemas/schemas.py) usa otros nombres: `conductor_id`, `lat_conductor`, `lon_conductor` y `tipo_v`. Al consumir M3 deben mapearlos desde `id`, `latitud`, `longitud` y el tipo del vehículo correspondiente en `vehiculos`. M3 usa IDs enteros; su esquema preliminar declara UUID y requiere ajustar ese tipo en M4. No hay una integración ejecutable en ese repositorio que permita verificar todavía el cliente de M4. Las ubicaciones nulas deben tratarse como desconocidas, nunca como `(0, 0)`.
 
 ---
 
