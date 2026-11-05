@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, wait
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 pytestmark = pytest.mark.integration
 
@@ -107,3 +108,44 @@ def test_dos_acciones_simultaneas_sobre_el_mismo_conductor_dejan_un_solo_evento_
         {"id_conductor": id_conductor},
     ).scalar_one()
     assert estado == "APROBADA"
+
+
+def test_aprobar_espera_el_bloqueo_de_fila_del_conductor(
+    cliente: TestClient,
+    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
+    fabrica_sesiones: sessionmaker[Session],
+) -> None:
+    id_conductor = _crear_conductor(cliente, headers_conductor)
+    licencia = _registrar_licencia(cliente, headers_conductor, id_conductor)
+    assert licencia.status_code == 201, licencia.text
+
+    sesion_bloqueo = fabrica_sesiones()
+    try:
+        conductor_bloqueado = sesion_bloqueo.execute(
+            text(
+                """
+                SELECT id_conductor
+                FROM conductor
+                WHERE id_conductor = :id_conductor
+                FOR UPDATE
+                """
+            ),
+            {"id_conductor": id_conductor},
+        ).scalar_one()
+        assert conductor_bloqueado == id_conductor
+
+        with ThreadPoolExecutor(max_workers=1) as ejecutor:
+            futuro = ejecutor.submit(_aprobar, cliente, headers_operador, id_conductor)
+            try:
+                wait((futuro,), timeout=0.5)
+                assert futuro.done() is False
+            finally:
+                sesion_bloqueo.rollback()
+
+            respuesta = futuro.result(timeout=30)
+    finally:
+        sesion_bloqueo.rollback()
+        sesion_bloqueo.close()
+
+    assert respuesta.status_code == 200, respuesta.text
