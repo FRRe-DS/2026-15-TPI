@@ -115,6 +115,7 @@ def test_aprobar_espera_el_bloqueo_de_fila_del_conductor(
     headers_conductor: dict[str, str],
     headers_operador: dict[str, str],
     fabrica_sesiones: sessionmaker[Session],
+    sesion_bd: Session,
 ) -> None:
     id_conductor = _crear_conductor(cliente, headers_conductor)
     licencia = _registrar_licencia(cliente, headers_conductor, id_conductor)
@@ -149,3 +150,8 @@ def test_aprobar_espera_el_bloqueo_de_fila_del_conductor(
         sesion_bloqueo.close()
 
     assert respuesta.status_code == 200, respuesta.text
+    estado = sesion_bd.execute(
+        text("SELECT estado_habilitacion FROM conductor WHERE id_conductor = :id_conductor"),
+        {"id_conductor": id_conductor},
+    ).scalar_one()
+    assert estado == "APROBADA"
