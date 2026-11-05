@@ -92,7 +92,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Preparar variables de entorno
-        working-directory: infra
         run: |
           cp .env.example .env
           sed -i \

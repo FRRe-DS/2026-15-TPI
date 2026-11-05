@@ -10,16 +10,16 @@
 #   .github/scripts/humo.sh
 #
 # Variables opcionales:
-#   COMPOSE_ENV_FILE       archivo .env (por defecto infra/.env)
-#   COMPOSE_FILE           archivo Compose (por defecto infra/docker-compose.yml)
+#   COMPOSE_ENV_FILE       archivo .env (por defecto .env)
+#   COMPOSE_FILE           archivo Compose (por defecto docker-compose.yml)
 #   CONSERVAR_ENTORNO=1    no ejecuta `docker compose down` al terminar
 #   BORRAR_VOLUMENES=1     elimina tambien los volumenes al bajar el stack
 
 set -euo pipefail
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ARCHIVO_ENV="${COMPOSE_ENV_FILE:-$RAIZ/infra/.env}"
-ARCHIVO_COMPOSE="${COMPOSE_FILE:-$RAIZ/infra/docker-compose.yml}"
+ARCHIVO_ENV="${COMPOSE_ENV_FILE:-$RAIZ/.env}"
+ARCHIVO_COMPOSE="${COMPOSE_FILE:-$RAIZ/docker-compose.yml}"
 ARCHIVO_RESPUESTA="$(mktemp)"
 
 COMPOSE=(docker compose --env-file "$ARCHIVO_ENV" -f "$ARCHIVO_COMPOSE")
@@ -57,7 +57,7 @@ for comando in docker curl python3; do
 done
 
 if [[ ! -f "$ARCHIVO_ENV" ]]; then
-    echo "ERROR: no existe $ARCHIVO_ENV. Copia infra/.env.example y completalo." >&2
+    echo "ERROR: no existe $ARCHIVO_ENV. Copia .env.example y completalo." >&2
     exit 1
 fi
 if [[ ! -f "$ARCHIVO_COMPOSE" ]]; then
@@ -76,6 +76,7 @@ set +a
 
 API_BASE="${API_URL:-http://localhost:${API_PORT:-8080}}"
 KEYCLOAK_BASE="${KEYCLOAK_PUBLIC_URL:-http://localhost:${KEYCLOAK_PORT:-8081}}"
+FRONTEND_BASE="http://localhost:${FRONTEND_PORT:-3000}"
 API_BASE="${API_BASE%/}"
 KEYCLOAK_BASE="${KEYCLOAK_BASE%/}"
 REALM="${KEYCLOAK_REALM:-m3}"
@@ -181,6 +182,7 @@ esperar_http \
     "$KEYCLOAK_BASE/realms/$REALM/.well-known/openid-configuration" \
     "Keycloak"
 esperar_http "$API_BASE/salud" "API"
+esperar_http "$FRONTEND_BASE" "Frontend"
 
 echo "==> Solicitando token de operador"
 TOKEN="$(obtener_token)"
