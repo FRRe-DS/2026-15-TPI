@@ -1,12 +1,12 @@
 # Plan de Implementación: Iteración 2 — Plataforma y Seguridad
 
-**Rama**: `juampa1503-plataforma-seguridad` | **Contrato**: [OpenAPI 1.2.0](../../docs/contract/openapi.yaml)
+**Rama**: `juampa1503-iteracion-2-plataforma-seguridad` | **Contrato**: [OpenAPI 1.2.0](../../docs/contract/openapi.yaml)
 
 **Entrada**: alcance de datos y seguridad solicitado para la Iteración 2, coordinado con el plan del [Backend](../iteracion2-backend/plan.md), el modelo de datos y el contrato vigente.
 
 ## Resumen
 
-Preparar la base de datos, el entorno y la identidad de M3 para las 17 operaciones del contrato 1.2.0. El cambio central es una migración Alembic reversible que unifica el estado del conductor, agrega los datos de Iteración 2 y crea las tablas de solicitudes y documentos de vehículos. Se actualizarán los modelos SQLAlchemy, el seed, Keycloak y la configuración de Compose sin introducir operaciones de integración que no estén en el contrato.
+Preparar la persistencia, la identidad y la plataforma de M3 para las 17 operaciones del contrato 1.2.0. El cambio central es una migración Alembic reversible que unifica el estado del conductor, agrega los datos de Iteración 2 y crea las tablas de solicitudes y documentos de vehículos. También se actualizarán los modelos SQLAlchemy, el seed, Keycloak y Compose. Redis se usará como almacén distribuido de rate limiting y la imagen de la API se publicará en Docker Hub desde CI, sin publicar en eventos de pull request.
 
 Este plan cubre la plataforma y el grupo de Datos y seguridad. La lógica y los endpoints corresponden al plan de Backend; las pruebas de contrato y la integración continua se coordinan con Testing.
 
@@ -24,6 +24,8 @@ Este plan cubre la plataforma y el grupo de Datos y seguridad. La lógica y los 
 | Migración y persistencia | Crear Alembic `0002`, actualizar modelos y los mínimos consumidores existentes | Migración reversible, modelos SQLAlchemy, ajustes acotados a `sql_conductores.py` y `infra/seed/cargar_datos.py` | `upgrade` y `downgrade` funcionan sobre la revisión anterior y las pruebas de esquema pasan |
 | Datos de prueba | Extender el seed de forma determinista e idempotente | Escenarios de conductor, solicitudes, vehículos, documentos y usuario conductor descritos abajo | Seed ejecutable más de una vez y cubre los escenarios del contrato |
 | Keycloak y entorno | Agregar el rol técnico de solo lectura y su cuenta M4, parametrizada | Realm, variables en `.env.example`, Compose y pruebas del realm | El realm importa con variables de entorno; el token de M4 tiene `servicio` y no obtiene permisos de escritura |
+| Redis y rate limiting | Agregar Redis interno y límites compartidos por identidad o IP | Servicio Compose, configuración, integración de API, errores 429/503 y pruebas | Cuotas distribuidas y atómicas; fail-closed ante una falla de Redis |
+| Imagen y registry | Publicar solo la imagen de la API M3 desde GitHub Actions | Job de build/push a Docker Hub, tags rastreables y documentación de configuración | Publicación solo en pushes a `dev`/`main` después de CI verde; no publicar en PR |
 | Integración de equipos | Ordenar la migración/modelos respecto de los repositorios SQL | Dependencia explícita para las PR L9 y L10 de Backend | L9 espera migración/modelos; L10 sigue a L9 y también requiere las tablas del modelo |
 
 ### Migración Alembic `0002`
@@ -56,6 +58,25 @@ El seed debe ser determinista e idempotente e incluir:
 - La cuenta `servicio` es de solo lectura: puede consultar conductores, vehículos, estado y ubicación; no puede actualizar estados, responder solicitudes ni ejecutar acciones de operador.
 - Mantener la validación JWT con firma/JWKS, issuer, audiencia y expiración, y no guardar secretos en el repositorio.
 
+### Redis y rate limiting distribuido
+
+- Agregar un servicio Redis con versión fijada, contraseña y healthcheck, accesible solo por la red interna de Compose. No publicar el puerto Redis al host por defecto ni agregar persistencia: las cuotas son estado efímero con vencimiento.
+- Configurar la autenticación de Redis con `REDIS_PASSWORD`; el healthcheck pasa la credencial mediante `REDISCLI_AUTH`, sin incluirla en argumentos visibles ni logs. `.env.example` deja el valor vacío y CI lo genera aleatoriamente para el humo.
+- La API conecta con `REDIS_URL`; el servicio Redis requiere `REDIS_PASSWORD`. Los límites y la ventana se configuran con `RATE_LIMIT_ANON_REQUESTS=60`, `RATE_LIMIT_AUTH_REQUESTS=120` y `RATE_LIMIT_WINDOW_SECONDS=60`; los valores son positivos y validados al iniciar.
+- Aplicar una ventana deslizante de 60 segundos de manera atómica en Redis. Los requests sin JWT válido usan la IP del cliente (60/min); un JWT verificado usa el par `(iss, sub)` (120/min). Requerir `sub` no vacío para la identidad autenticada; si falta, rechazar el token y aplicar el límite por IP. Nunca usar claims de un token sin validar. Solo confiar en `X-Forwarded-For` cuando el request proviene de un proxy configurado como confiable; inicialmente se usa la dirección que entrega ASGI.
+- Cuando se excede el límite, responder `429` con el formato común `{"codigo": "LIMITE_DE_SOLICITUDES", "mensaje": "..."}` y `Retry-After` en segundos. Si Redis está inaccesible o agota el timeout, responder `503` con `SERVICIO_TEMPORALMENTE_NO_DISPONIBLE` (fail-closed); no convertir errores de conexión en respuestas exitosas.
+- Agregar ambos códigos estables al catálogo y manejadores de errores de API, actualizar las pruebas de contrato y documentar las respuestas para las operaciones protegidas en OpenAPI; no almacenar en caché la respuesta 429.
+- Excluir `/salud` del rate limiting para que Compose y CI puedan observar la aplicación. La salud de Redis se valida por el healthcheck de su propio servicio y por el smoke test del stack.
+- Documentar las respuestas transversales 429/503 en el contrato interno de este grupo y coordinarlas con Testing para que el OpenAPI y las pruebas de contrato reflejen la nueva superficie de respuesta; no se agregan rutas ni cambian los permisos existentes.
+
+### Imagen de API y publicación en Docker Hub
+
+- Mantener el Dockerfile actual de Backend, que ejecuta como usuario no privilegiado. La imagen publicada es la misma imagen de Backend que Compose usa para `api`, `migraciones` y `seed`; no se publican imágenes de Redis, PostgreSQL, Keycloak ni frontend.
+- Permitir seleccionar la etiqueta con `M3_API_IMAGE`; el valor local predeterminado conserva el flujo de desarrollo con build de Compose. `M3_API_IMAGE` puede documentarse en `.env.example`; las credenciales del registry no se agregan allí.
+- Añadir a CI un job de publicación dependiente del resultado verde de los jobs actuales. Solo corre para eventos `push` en `dev` o `main`, nunca en `pull_request`. Usa `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` como secretos y `DOCKERHUB_IMAGE` como variable del repositorio.
+- Publicar una etiqueta inmutable derivada del commit y una etiqueta de rama (`dev` o `main`). Mantener permisos mínimos del `GITHUB_TOKEN`, fijar las acciones externas por SHA completo y no imprimir credenciales.
+- Actualizar `DESPLIEGUE.md` y [quickstart.md](./quickstart.md) con build local, pull de una etiqueta publicada y requisitos de configuración del registry.
+
 ## Orden y dependencias
 
 La migración y los modelos de Datos y seguridad deben integrarse antes de los repositorios SQL de Backend:
@@ -71,8 +92,9 @@ Las tareas de Backend que usan repositorios en memoria pueden avanzar en paralel
 - **Carpeta y tareas**: este plan vive en `specs/iteracion2-seguridad/`. Cuando se generen las tareas, usar los IDs **T501–T599** (Backend usa T301–T401, Testing T601+ y Frontend T701+).
 - **Quién toca `sql_conductores.py`**: Datos y seguridad entra primero con `0002`, los modelos y una adaptación mínima que lee y escribe la columna `estado` a partir de los booleanos del dominio vigente. Cuando Backend integra L1 (dominio con `estado`), esa adaptación se reemplaza por el mapeo directo; L1 no agrega otra adaptación transitoria. Los campos nuevos (`id_vehiculo_activo`, fecha, puntajes) y el filtro por `tipo_servicio` los mapea Backend en L9.
 - **Helper de token `servicio`**: lo crea Backend en V1 (`backend/tests/api/conftest.py`). Datos y seguridad no agrega helpers de token de API; sus pruebas de realm usan el realm importado.
-- **Variables de entorno nuevas**: se agregan juntas en `.env.example`, `docker-compose.yml` y el paso «Preparar variables de entorno» de `.github/workflows/ci.yml`; `.github/scripts/humo.sh` solo cambia si el humo necesita verificar la cuenta de servicio.
+- **Variables de entorno nuevas**: `REDIS_URL`, `REDIS_PASSWORD`, los límites y `M3_API_IMAGE` se documentan en `.env.example` según corresponda; Compose y el paso «Preparar variables de entorno» de `.github/workflows/ci.yml` reciben las variables necesarias. El smoke test verifica que Redis esté saludable y las respuestas de límite. Los secretos de Docker Hub viven solo en la configuración de GitHub Actions.
 - **Guía de despliegue**: `DESPLIEGUE.md` describe el Compose unificado de la raíz (frontend incluido); si cambian variables o puertos, se actualiza en la misma PR.
+- **Contrato de respuestas**: Testing mantiene OpenAPI y pruebas de contrato; Datos y seguridad entrega los códigos y encabezados requeridos para 429/503 sin modificar las 17 rutas.
 
 ## Criterios de aceptación
 
@@ -82,9 +104,15 @@ Las tareas de Backend que usan repositorios en memoria pueden avanzar en paralel
 - Keycloak emite tokens de operador, conductor y servicio; `id_conductor` es un entero coincidente con el seed y la cuenta de servicio no puede escribir. `puntaje_promedio` y `cantidad_calificaciones` se exponen solo para lectura.
 - `.env.example` documenta las variables nuevas sin incluir credenciales reales; Compose y las pruebas del realm reflejan el rol y la cuenta técnica.
 - Las pruebas de migración, esquema y realm pasan, y el contrato/documentación conserva las 17 operaciones vigentes sin las integraciones M4/M6 retiradas.
+- Compose levanta Redis de forma interna y supervisa su healthcheck; la API puede iniciar aunque Redis esté caído y responde 503 en rutas limitadas hasta su recuperación. El smoke test espera Redis saludable antes de validar cuotas.
+- Las cuotas de 60/min por IP anónima y 120/min por identidad autenticada se comparten entre instancias, expiran en la ventana configurada y responden 429 con `Retry-After`; Redis no disponible produce 503 en rutas limitadas y no afecta `/salud`.
+- JWT autenticado requiere `iss` y `sub` válidos para elegir la cuota de usuario; los fixtures de API reflejan claims realistas y no se usan claims sin verificar.
+- El pipeline publica solo la imagen de API a Docker Hub después de CI verde en pushes a `dev`/`main`, con tags rastreables y secretos fuera del repositorio; no publica en PR.
 
 ## Riesgos y coordinación
 
 - **Pérdida de distinción al hacer downgrade**: los estados `CONECTADO` y `OCUPADO` se reducen ambos a `conectado=true, disponible=false`; el comportamiento queda documentado.
 - **Orden de integración**: quitar columnas antes de adaptar sus consumidores rompe el seed y el repositorio SQL. La migración, el cambio mínimo de esos consumidores y los modelos se entregan coordinados antes de L9/L10.
 - **Desalineación del contrato**: cambios de rutas o permisos se resuelven contra `docs/contract/openapi.yaml`; esta iteración no agrega escrituras para M4/M6 ni operaciones de viajes/calificación.
+- **Disponibilidad de Redis**: fail-closed hace que la API responda 503 en rutas limitadas si el almacén no está disponible. Compose, el healthcheck y el smoke test verifican Redis; la respuesta no se degrada silenciosamente a fail-open.
+- **Credenciales de Docker Hub**: la publicación requiere secretos y variable configurados en GitHub. Si faltan, el job debe fallar explícitamente y no simular una publicación correcta.
