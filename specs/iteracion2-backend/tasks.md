@@ -56,7 +56,7 @@ Ola 6:  L9 → L10              (esperan la migración y los modelos de Datos y 
 Cierre: C1
 ```
 
-- Las olas 1 a 5 trabajan con repositorios en memoria y no esperan a nadie. L1 deja una adaptación transitoria entre `estado` y las columnas actuales (T309) y L4 deja la unidad de trabajo SQL con los repositorios nuevos marcados como pendientes (T322), para que `dev` siga en verde hasta la ola 6.
+- Las olas 1 a 5 trabajan con repositorios en memoria y no esperan a nadie. L1 deja la traducción de `estado` al esquema vigente en `sql_conductores.py` (T309: mapeo directo si la migración ya está integrada, adaptación transitoria si no) y L4 deja la unidad de trabajo SQL con los repositorios nuevos marcados como pendientes (T322), para que `dev` siga en verde hasta la ola 6.
 - Hasta que L9 y L10 estén integradas, los endpoints nuevos solo funcionan con los repositorios en memoria y `OCUPADO` no se distingue de `CONECTADO` en la base. Si la migración de Datos y seguridad ya está en `dev` antes de la ola 4, conviene adelantar L9 y L10.
 - Cada PR se abre desde `dev` ya actualizada.
 
@@ -66,7 +66,8 @@ Cierre: C1
 |---|---|---|
 | Datos y seguridad | Migración y modelos con las columnas y tablas del [data-model.md](./data-model.md), incluido el paso de `conectado` y `disponible` a `estado` (issue #36) | L9 y L10 |
 | Datos y seguridad | Rol `servicio`, cuenta técnica de M4 y claim `id_conductor` del conductor | La verificación contra el entorno real (C1) |
-| Testing | Ampliar las pruebas de contrato a las 17 operaciones, el umbral de cobertura y los casos de concurrencia de punta a punta | Después de la ola 6 |
+| Testing | Ampliar las pruebas de contrato a las 17 operaciones, el umbral de cobertura y los casos de concurrencia de punta a punta (tareas T601+ en [su plan](../iteracion2-testing/plan.md)) | Después de la ola 6 |
+| Testing | Reutiliza los helpers `headers_servicio` y `headers_conductor_de` de V1 en `backend/tests/api/conftest.py`; Testing no crea otros | Después de V1 |
 | Frontend | Pasar de `conectado` y `disponible` a `estado` en tipos y pantallas | Después de V6 |
 
 **Puntos de sincronización**: `docs/contract/openapi.yaml` · [data-model.md](./data-model.md) · [contracts/casos-de-uso.md](./contracts/casos-de-uso.md) · [contracts/token-jwt.md](./contracts/token-jwt.md) · [contracts/errores.md](./contracts/errores.md).
@@ -89,7 +90,7 @@ Cierre: C1
 - [ ] T306 [S1] [US2] Impl (Green) `backend/app/dominio/errores.py` (`ConductorNoHabilitado`) y `backend/app/dominio/disponibilidad.py` (`puede_quedar_disponible` y `aplicar_cambio_estado(conductor, vehiculo_activo, *, estado, id_vehiculo_activo, ahora)`, que distingue "no informado" de `None` y devuelve si hubo cambio), hasta que pase T305
 - [ ] T307 [S1] [US5] Test (Red) `backend/tests/unitarios/dominio/test_disponibilidad.py`: `marcar_ocupado(conductor, vehiculo_activo, ahora)` deja `OCUPADO` y `fecha_ultimo_cambio_estado = ahora` si el conductor está `CONECTADO` o `DISPONIBLE`, `APROBADA` y con vehículo activo `APROBADA`; si está `DESCONECTADO` u `OCUPADO`, o no cumple la regla, lanza `ConductorNoHabilitado` y no cambia nada
 - [ ] T308 [S1] [US5] Impl (Green) `backend/app/dominio/disponibilidad.py`: `marcar_ocupado`, hasta que pase T307
-- [ ] T309 [S1] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py` y los demás lugares que construyen o leen `Conductor` con `conectado` y `disponible`: adaptación transitoria entre `estado` y las columnas actuales (`DESCONECTADO` ↔ `conectado` falso; `CONECTADO` y `OCUPADO` ↔ `conectado` verdadero y `disponible` falso; `DISPONIBLE` ↔ ambos verdaderos), para que la suite siga en verde hasta L9; `OCUPADO` no se distingue de `CONECTADO` en la base hasta que llegue la migración
+- [ ] T309 [S1] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py` y los demás lugares que construyen o leen `Conductor` con `conectado` y `disponible`: adaptación transitoria entre `estado` y las columnas actuales (`DESCONECTADO` ↔ `conectado` falso; `CONECTADO` y `OCUPADO` ↔ `conectado` verdadero y `disponible` falso; `DISPONIBLE` ↔ ambos verdaderos), para que la suite siga en verde hasta L9; `OCUPADO` no se distingue de `CONECTADO` en la base hasta que llegue la migración. **Orden acordado con Datos y seguridad**: la migración `0002` entra primero en `dev` (ver [su plan](../iteracion2-seguridad/plan.md)); en ese caso Datos y seguridad ya dejó en `sql_conductores.py` una traducción entre los booleanos del dominio anterior y la columna `estado`, y esta tarea la reemplaza por el mapeo directo de `estado` del dominio, sin adaptación transitoria. La adaptación entre `estado` y las columnas viejas solo se escribe si L1 se integra antes que la migración
 
 ### PR `feat/s1-dominio-solicitud-documento` (L2, T310–T313): Dominio de solicitud y documento de vehículo
 
@@ -153,7 +154,7 @@ Cierre: C1
 
 - [ ] T347 [S1] [US7] Test (Red) `backend/tests/integracion/repositorios/test_sql_conductores_i2.py` (PostgreSQL real): guardar y obtener persisten `estado` (los cuatro valores, con `CHECK`), `id_vehiculo_activo` (FK a `vehiculo`, nulo), `fecha_ultimo_cambio_estado` (timestamptz, nulo), `suma_puntajes` y `cantidad_calificaciones` (enteros no negativos, por defecto 0); la unidad de trabajo bloquea al conductor y devuelve los campos nuevos
 - [ ] T348 [S1] [US7] Test (Red) `backend/tests/integracion/repositorios/test_sql_listar_conductores.py`: el filtro `estado` devuelve solo los conductores en ese estado; el filtro `tipo_servicio` devuelve conductores con al menos un vehículo con ese tipo `habilitado`; se combinan con los filtros existentes; carga vehículos y tipos de servicio en consultas agrupadas, sin una consulta por fila
-- [ ] T349 [S1] [US7] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py`: mapeo directo de `estado` y de los campos nuevos entre el modelo ORM de Datos y seguridad y el dominio (se retira la adaptación transitoria de L1), filtro `estado` y filtro `tipo_servicio`, hasta que pasen T347 y T348
+- [ ] T349 [S1] [US7] Impl (Green) `backend/app/infraestructura/repositorios/sql_conductores.py`: mapeo directo de `estado` y de los campos nuevos entre el modelo ORM de Datos y seguridad y el dominio (L1 ya dejó el mapeo directo de `estado`; aquí se suman los campos nuevos), filtro `estado` y filtro `tipo_servicio`, hasta que pasen T347 y T348
 - [ ] T350 [S1] [US7] Impl (Green) `backend/app/infraestructura/repositorios/sql_unidad_de_trabajo.py`: `bloquear_conductor` devuelve el conductor con los campos nuevos
 
 ### PR `feat/s1-sql-solicitud-documentos` (L10, T351–T358): Repositorios SQL de solicitudes, documentos del vehículo y tipos de servicio
