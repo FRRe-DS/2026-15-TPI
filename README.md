@@ -44,7 +44,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 12. [Cómo trabajamos](#cómo-trabajamos)
 13. [Estado de la Iteración 1](#estado-de-la-iteración-1)
 14. [Pendientes](#pendientes) 
-15. [Planificación de la Iteración 2 — Plataforma y Seguridad](./specs/iteracion2/plan.md)
+15. [Planificación de la Iteración 2 — Plataforma y Seguridad](./specs/iteracion2-seguridad/plan.md)
 
 ---
 

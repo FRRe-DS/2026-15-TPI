@@ -1,6 +1,6 @@
 # Plan de Implementación: Iteración 2 — Plataforma y Seguridad
 
-**Rama**: `docs/planificacion-iteracion2` | **Contrato**: [OpenAPI 1.2.0](../../docs/contract/openapi.yaml)
+**Rama**: `juampa1503-plataforma-seguridad` | **Contrato**: [OpenAPI 1.2.0](../../docs/contract/openapi.yaml)
 
 **Entrada**: alcance de datos y seguridad solicitado para la Iteración 2, coordinado con el plan del [Backend](../iteracion2-backend/plan.md), el modelo de datos y el contrato vigente.
 
@@ -51,7 +51,7 @@ El seed debe ser determinista e idempotente e incluir:
 ### Keycloak y autorización de servicio
 
 - Agregar el rol `servicio` al realm. La cuenta técnica de M4 obtiene ese rol y credenciales configuradas por variables de entorno, nunca valores secretos versionados.
-- Exponer las variables necesarias en `infra/.env.example` y actualizar `infra/docker-compose.yml` y `backend/tests/infra/test_realm.py`.
+- Exponer las variables necesarias en `.env.example` (raíz), pasarlas al servicio `keycloak` en `docker-compose.yml` (raíz) y actualizar `backend/tests/infra/test_realm.py`. Las mismas variables se generan en el paso «Preparar variables de entorno» del job `entorno` de `.github/workflows/ci.yml`; si faltan allí, el humo de Compose falla.
 - Agregar el mapeador de usuario para emitir `id_conductor` como entero en el token, igual que el claim `id_operador`; el usuario de prueba debe apuntar al conductor sembrado.
 - La cuenta `servicio` es de solo lectura: puede consultar conductores, vehículos, estado y ubicación; no puede actualizar estados, responder solicitudes ni ejecutar acciones de operador.
 - Mantener la validación JWT con firma/JWKS, issuer, audiencia y expiración, y no guardar secretos en el repositorio.
@@ -65,6 +65,14 @@ La migración y los modelos de Datos y seguridad deben integrarse antes de los r
 3. Backend implementa L10 (repositorios de solicitudes y documentos de vehículos) después de L9 y con las tablas de `0002` disponibles.
 
 Las tareas de Backend que usan repositorios en memoria pueden avanzar en paralelo; L9 y L10 no deben integrarse contra el esquema anterior. El orden de despliegue y las pruebas de migración se coordinan entre los responsables de Datos y seguridad, Backend y Testing.
+
+## Acuerdos de integración con Backend y Testing
+
+- **Carpeta y tareas**: este plan vive en `specs/iteracion2-seguridad/`. Cuando se generen las tareas, usar los IDs **T501–T599** (Backend usa T301–T401, Testing T601+ y Frontend T701+).
+- **Quién toca `sql_conductores.py`**: Datos y seguridad entra primero con `0002`, los modelos y una adaptación mínima que lee y escribe la columna `estado` a partir de los booleanos del dominio vigente. Cuando Backend integra L1 (dominio con `estado`), esa adaptación se reemplaza por el mapeo directo; L1 no agrega otra adaptación transitoria. Los campos nuevos (`id_vehiculo_activo`, fecha, puntajes) y el filtro por `tipo_servicio` los mapea Backend en L9.
+- **Helper de token `servicio`**: lo crea Backend en V1 (`backend/tests/api/conftest.py`). Datos y seguridad no agrega helpers de token de API; sus pruebas de realm usan el realm importado.
+- **Variables de entorno nuevas**: se agregan juntas en `.env.example`, `docker-compose.yml` y el paso «Preparar variables de entorno» de `.github/workflows/ci.yml`; `.github/scripts/humo.sh` solo cambia si el humo necesita verificar la cuenta de servicio.
+- **Guía de despliegue**: `DESPLIEGUE.md` describe el Compose unificado de la raíz (frontend incluido); si cambian variables o puertos, se actualiza en la misma PR.
 
 ## Criterios de aceptación
 

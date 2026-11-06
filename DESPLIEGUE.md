@@ -2,7 +2,7 @@
 
 Guía de ejecución local en Windows con PowerShell. Se omite la instalación de requisitos previos.
 
-PostgreSQL, Keycloak y la API se ejecutan con Docker Compose. El frontend Next.js se inicia por separado con npm.
+PostgreSQL, Keycloak, la API y el frontend Next.js se ejecutan juntos con un único `docker-compose.yml` en la raíz del repositorio.
 
 ## 1. Iniciar Docker y entrar al proyecto
 
@@ -15,15 +15,15 @@ docker info
 
 `cd` entra en el proyecto: reemplazá la ruta por la ubicación real. `docker info` comprueba que el motor de Docker responda.
 
-## 2. Configurar el backend
+## 2. Configurar las variables
 
 Desde la raíz:
 
 ```powershell
-if (-not (Test-Path infra/.env)) {
-    Copy-Item infra/.env.example infra/.env
+if (-not (Test-Path .env)) {
+    Copy-Item .env.example .env
 }
-notepad infra/.env
+notepad .env
 ```
 
 Crea el archivo local si no existe y lo abre para editar. Conservá los valores existentes si ya funciona.
@@ -51,33 +51,32 @@ Genera 64 caracteres. Repetilo para cada contraseña o secreto. Usar hexadecimal
 
 Conservá los nombres del ejemplo: bases `m3` y `keycloak`, realm `m3`, cliente `m3-api`, usuarios `operador.m3` y `conductor.m3`. Los nombres de los usuarios y del cliente importados están definidos en `infra/keycloak/realm-m3.json`.
 
-Esta guía usa los puertos del ejemplo: PostgreSQL `5432`, API `8080` y Keycloak `8081`. Guardá el archivo sin subir las credenciales al repositorio.
+Esta guía usa los puertos del ejemplo: PostgreSQL `5432`, API `8080`, Keycloak `8081` y frontend `3000`. Guardá el archivo sin subir las credenciales al repositorio.
 
-## 3. Levantar los servicios Docker
+## 3. Levantar todo el stack
 
 Desde la raíz:
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml config --quiet
+docker compose config --quiet
 ```
 
 Valida la configuración sin iniciar los servicios ni imprimir las credenciales. Revisá también las advertencias sobre variables faltantes.
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
+docker compose up --build -d
 ```
 
-Descarga imágenes, construye el backend y levanta el entorno:
+Descarga imágenes, construye el backend y el frontend y levanta el entorno:
 
 1. PostgreSQL inicia y crea las bases en el primer arranque del volumen.
 2. Keycloak inicia e importa el realm; las migraciones crean o actualizan las tablas de M3.
 3. El seed carga datos de prueba después de las migraciones.
 4. La API inicia cuando Keycloak está saludable y migraciones y seed terminaron correctamente.
+5. El frontend inicia cuando la API está saludable.
 
 Las opciones significan:
 
-- `--env-file`: selecciona las variables locales.
-- `-f`: selecciona el archivo Compose.
 - `up`: crea e inicia los servicios.
 - `--build`: construye las imágenes locales.
 - `-d`: deja los servicios en segundo plano.
@@ -87,19 +86,19 @@ La primera ejecución tarda más por las descargas. No necesitás iniciar Python
 ## 4. Comprobar el backend
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml ps -a
+docker compose ps -a
 ```
 
-Muestra los contenedores. Esperá que `postgres`, `keycloak` y `api` estén iniciados y saludables. `migraciones` y `seed` deben terminar con `Exited (0)`: son tareas de ejecución única.
+Muestra los contenedores. Esperá que `postgres`, `keycloak`, `api` y `frontend` estén iniciados y saludables. `migraciones` y `seed` deben terminar con `Exited (0)`: son tareas de ejecución única.
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml logs --tail 100 migraciones seed api keycloak
+docker compose logs --tail 100 migraciones seed api keycloak
 ```
 
 Muestra los últimos mensajes del arranque. Para seguir todos los mensajes en vivo:
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml logs -f
+docker compose logs -f
 ```
 
 `Ctrl+C` deja de seguir los mensajes sin detener los contenedores.
@@ -117,50 +116,25 @@ Consulta la sonda de la API, que debe devolver `estado` con valor `ok`. Esta son
 | API de negocio | http://localhost:8080/api/v1 |
 | Keycloak | http://localhost:8081 |
 | PostgreSQL | `localhost:5432` |
+| Frontend | http://localhost:3000 |
 
 La consola de administración de Keycloak usa `KEYCLOAK_ADMIN` y `KEYCLOAK_ADMIN_PASSWORD`. El realm de la aplicación es `m3`.
 
-## 5. Configurar y levantar el frontend
+## 5. Abrir el frontend
 
-Abrí otra terminal PowerShell:
+El frontend ya corre como contenedor y recibe su configuración de `.env`. Entrá a http://localhost:3000: la página debe mostrar los conductores del seed. Esto comprueba el recorrido navegador → Next.js → Keycloak y API → PostgreSQL.
+
+Para desarrollar con recarga en caliente, detené solo el contenedor y levantá Next.js local:
 
 ```powershell
-cd C:\ruta\2026-15-TPI\frontend
+docker compose stop frontend
+cd frontend
 npm ci
-```
-
-Entra al frontend e instala las versiones exactas de `package-lock.json`. Si existe `node_modules`, `npm ci` la reemplaza. Ejecutalo la primera vez y cuando cambien las dependencias.
-
-```powershell
-if (-not (Test-Path .env.local)) {
-    Copy-Item .env.example .env.local
-}
-notepad .env.local
-```
-
-Crea la configuración local si falta y la abre. Completala así:
-
-```dotenv
-API_URL=http://localhost:8080/api/v1
-KEYCLOAK_URL=http://localhost:8081
-KEYCLOAK_REALM=m3
-KEYCLOAK_CLIENT_ID=m3-api
-KEYCLOAK_CLIENT_SECRET=PEGAR_EL_VALOR_DE_KEYCLOAK_M3_CLIENT_SECRET
-TEST_USER=conductor.m3
-TEST_PASSWORD=PEGAR_EL_VALOR_DE_M3_CONDUCTOR_PASSWORD
-```
-
-Reemplazá los dos valores indicados por los valores reales de `infra/.env` y guardá el archivo. Next.js pide el token a Keycloak y consulta la API desde el servidor. No hay que pegar un token en la web. No agregues `NEXT_PUBLIC_` a estas variables.
-
-```powershell
+Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Inicia el frontend en desarrollo. Dejá la terminal abierta y entrá a http://localhost:3000. Si ese puerto está ocupado, usá la dirección alternativa que informa Next.js.
-
-La página debe mostrar los conductores del seed. Esto comprueba el recorrido navegador → Next.js → Keycloak y API → PostgreSQL.
-
-Si cambiás `.env.local`, detené Next.js con `Ctrl+C` y volvé a ejecutar `npm run dev`.
+Completá `.env.local` con `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api` y los valores de `KEYCLOAK_M3_CLIENT_SECRET` y `M3_CONDUCTOR_PASSWORD` de `.env` en `KEYCLOAK_CLIENT_SECRET` y `TEST_PASSWORD` (`TEST_USER=conductor.m3`). No agregues `NEXT_PUBLIC_` a estas variables.
 
 ## 6. Probar la API con un token real (opcional)
 
@@ -197,42 +171,23 @@ Envía el token a la API. Si vence, repetí la solicitud del token. También pod
 Abrí Docker Desktop y, desde la raíz:
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml up -d
+docker compose up -d
 ```
 
-Inicia los servicios usando las imágenes existentes y conserva los datos del volumen.
-
-Si cambió código del backend:
-
-```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
-```
-
-Reconstruye la imagen para incluir los cambios. El backend en Docker no recarga automáticamente los archivos locales.
-
-En otra terminal, desde `frontend`, ejecutá `npm run dev`. Repetí `npm ci` si cambiaron las dependencias. No vuelvas a copiar los archivos de variables si ya están configurados.
-
-## 8. Servir el frontend compilado (opcional)
-
-Desde `frontend`, detené el servidor de desarrollo con `Ctrl+C`:
-
-```powershell
-npm run build
-npx --no-install next start -p 3000
-```
-
-El primer comando compila el frontend optimizado. El segundo sirve esa compilación usando Next.js ya instalado. Actualmente `package.json` no define `npm start`.
-
-Configurá `.env.local` y mantené el backend funcionando antes de compilar e iniciar.
+Inicia los servicios usando las imágenes existentes y conserva los datos del volumen. Si cambió código del backend o del frontend, agregá `--build`: las imágenes no recargan los archivos locales.
 
 Este recorrido es local: el Compose utiliza Keycloak en modo `start-dev`, usuarios de prueba y URLs `localhost`. Publicar en un servidor requiere adaptar dominios, HTTPS y autenticación.
 
+## 8. Cuando el puerto 5432 u otro ya está ocupado
+
+Definí otro valor en `.env` (`POSTGRES_PORT`, `API_PORT`, `KEYCLOAK_PORT` o `FRONTEND_PORT`) y volvé a ejecutar `docker compose up -d`.
+
 ## 9. Detener la aplicación
 
-Presioná `Ctrl+C` en la terminal del frontend. Desde la raíz:
+Desde la raíz:
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml down
+docker compose down
 ```
 
 Detiene y elimina los contenedores y la red del proyecto, conservando los datos de PostgreSQL.
@@ -242,8 +197,8 @@ Detiene y elimina los contenedores y la red del proyecto, conservando los datos 
 **Solo para datos descartables:** este comando elimina los datos de M3 y de Keycloak.
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml down -v
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
+docker compose down -v
+docker compose up --build -d
 ```
 
 `down -v` elimina también el volumen. El siguiente arranque crea las bases, importa el realm, aplica migraciones y carga el seed nuevamente.
@@ -253,27 +208,20 @@ docker compose --env-file infra/.env -f infra/docker-compose.yml up --build -d
 | Problema | Qué revisar |
 |---|---|
 | Docker no conecta | Abrir Docker Desktop y verificar con `docker info`. |
-| Puerto ocupado | Liberarlo o cambiar el puerto en `infra/.env`. Si cambia API o Keycloak, actualizar también las URLs del frontend y reiniciar los servicios. |
+| Puerto ocupado | Liberarlo o cambiar el puerto en `.env` (paso 8). |
 | API no inicia | Consultar `ps -a` y los logs de migraciones, seed, Keycloak y API. |
 | Frontend no obtiene token | Comparar el secreto, usuario y contraseña con los del realm y comprobar que Keycloak funcione. |
-| Frontend no muestra conductores | Revisar `API_URL`, incluido `/api/v1`, y los mensajes de la terminal de Next.js. |
+| Frontend no muestra conductores | Revisar `docker compose logs frontend` y que `api` esté saludable. |
 | API devuelve `401` | Obtener un token nuevo y verificar que corresponda al realm `m3` local. |
 | Seed y migraciones detenidos | Si terminaron con código `0`, es normal. |
 | Cambié contraseñas y ahora falla | Las bases existentes y el realm importado conservan sus credenciales. Editar `.env` no las actualiza. Restaurar los valores originales o modificarlas en los servicios; para datos descartables, usar el borrado del paso 10. |
 
 ## Comandos rápidos para uso diario
 
-Con las variables ya configuradas, en una terminal desde la raíz:
+Con las variables ya configuradas, desde la raíz:
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml up -d
-```
-
-En otra terminal desde la raíz:
-
-```powershell
-cd frontend
-npm run dev
+docker compose up -d
 ```
 
 Abrí http://localhost:3000.
