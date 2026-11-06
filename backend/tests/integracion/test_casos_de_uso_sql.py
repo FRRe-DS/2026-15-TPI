@@ -36,6 +36,7 @@ from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
+from app.dominio.conductor import EstadoConductor
 from app.dominio.errores import (
     DatosInvalidos,
     DniDuplicado,
@@ -88,8 +89,7 @@ class Normalizador:
             "telefono": c.telefono,
             "email": c.email,
             "habilitacion": c.habilitacion.value,
-            "conectado": c.conectado,
-            "disponible": c.disponible,
+            "estado": c.estado.value,
         }
 
     def documento(self, d):
@@ -370,7 +370,7 @@ def ejecutar_escenario(uow, reloj):
 
     with uow:  # el unico modo de marcar "disponible" en la Iteracion 1 es guardar directo
         conductor_b = uow.conductores.obtener(id_de["B"])
-        conductor_b.disponible = True
+        conductor_b.estado = EstadoConductor.DISPONIBLE
         uow.conductores.guardar(conductor_b)
         uow.commit()
 

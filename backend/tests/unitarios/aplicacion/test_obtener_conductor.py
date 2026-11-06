@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -82,7 +82,7 @@ def test_devuelve_los_datos_del_conductor(obtener_conductor, uow):
         uow,
         "30123456",
         habilitacion=EstadoHabilitacion.APROBADA,
-        disponible=True,
+        estado=EstadoConductor.DISPONIBLE,
     )
 
     conductor = obtener_conductor.ejecutar(id_conductor=guardado.id).conductor
@@ -94,8 +94,7 @@ def test_devuelve_los_datos_del_conductor(obtener_conductor, uow):
     assert conductor.telefono == "+54 379 4000000"
     assert conductor.email == "ana@example.com"
     assert conductor.habilitacion is EstadoHabilitacion.APROBADA
-    assert conductor.conectado is False
-    assert conductor.disponible is True
+    assert conductor.estado is EstadoConductor.DISPONIBLE
 
 
 def test_devuelve_solo_el_conductor_pedido_con_sus_documentos_y_vehiculos(obtener_conductor, uow):

@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo
@@ -16,6 +16,24 @@ RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 ESTADO_APROBADA = EstadoHabilitacion.APROBADA.value
 
 
+def _estado_desde_booleanos(conectado: bool, disponible: bool) -> EstadoConductor:
+    """Adaptacion transitoria: la base todavia no tiene la columna `estado`."""
+    if not conectado:
+        return EstadoConductor.DESCONECTADO
+    if disponible:
+        return EstadoConductor.DISPONIBLE
+    return EstadoConductor.CONECTADO
+
+
+def _booleanos_desde_estado(estado: EstadoConductor) -> tuple[bool, bool]:
+    """Adaptacion transitoria: `OCUPADO` no se distingue de `CONECTADO` en la base."""
+    if estado is EstadoConductor.DESCONECTADO:
+        return False, False
+    if estado is EstadoConductor.DISPONIBLE:
+        return True, True
+    return True, False
+
+
 def a_dominio(fila: ConductorOrm) -> Conductor:
     return Conductor(
         dni=fila.dni,
@@ -24,8 +42,7 @@ def a_dominio(fila: ConductorOrm) -> Conductor:
         telefono=fila.telefono,
         email=fila.email,
         habilitacion=EstadoHabilitacion(fila.estado_habilitacion),
-        conectado=fila.conectado,
-        disponible=fila.disponible,
+        estado=_estado_desde_booleanos(fila.conectado, fila.disponible),
         id=fila.id_conductor,
         latitud=fila.latitud,
         longitud=fila.longitud,
@@ -40,8 +57,7 @@ def _copiar_a_fila(conductor: Conductor, fila: ConductorOrm) -> None:
     fila.telefono = conductor.telefono
     fila.email = conductor.email
     fila.estado_habilitacion = conductor.habilitacion.value
-    fila.conectado = conductor.conectado
-    fila.disponible = conductor.disponible
+    fila.conectado, fila.disponible = _booleanos_desde_estado(conductor.estado)
 
 
 class SqlRepositorioConductores(RepositorioConductores):

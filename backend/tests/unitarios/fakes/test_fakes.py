@@ -25,7 +25,7 @@ from app.aplicacion.puertos.repositorio_habilitaciones import (
 )
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, TipoDocumento
 from app.dominio.errores import DniDuplicado, PatenteDuplicada
 from app.dominio.habilitacion import (
@@ -206,8 +206,8 @@ def test_listar_conductores_habilitado_falso_devuelve_los_que_no_estan_aprobados
     [(True, ["30000001"]), (False, ["30000002"])],
 )
 def test_listar_conductores_filtra_por_disponible(uow, disponible, dnis_esperados):
-    uow.conductores.guardar(nuevo_conductor(dni="30000001", disponible=True))
-    uow.conductores.guardar(nuevo_conductor(dni="30000002", disponible=False))
+    uow.conductores.guardar(nuevo_conductor(dni="30000001", estado=EstadoConductor.DISPONIBLE))
+    uow.conductores.guardar(nuevo_conductor(dni="30000002", estado=EstadoConductor.CONECTADO))
 
     assert dnis(uow.conductores.listar(disponible=disponible)) == dnis_esperados
 
@@ -236,12 +236,22 @@ def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_
 
 def test_listar_conductores_combina_los_filtros(uow):
     aprobado_disponible = uow.conductores.guardar(
-        nuevo_conductor(dni="30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True)
+        nuevo_conductor(
+            dni="30000001",
+            habilitacion=EstadoHabilitacion.APROBADA,
+            estado=EstadoConductor.DISPONIBLE,
+        )
     )
     aprobado_no_disponible = uow.conductores.guardar(
-        nuevo_conductor(dni="30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False)
+        nuevo_conductor(
+            dni="30000002",
+            habilitacion=EstadoHabilitacion.APROBADA,
+            estado=EstadoConductor.CONECTADO,
+        )
     )
-    pendiente_disponible = uow.conductores.guardar(nuevo_conductor(dni="30000003", disponible=True))
+    pendiente_disponible = uow.conductores.guardar(
+        nuevo_conductor(dni="30000003", estado=EstadoConductor.DISPONIBLE)
+    )
     for conductor, patente in [
         (aprobado_disponible, "AAA111"),
         (aprobado_no_disponible, "BBB222"),

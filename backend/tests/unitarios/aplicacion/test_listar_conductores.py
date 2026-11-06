@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
@@ -125,8 +125,8 @@ def test_habilitado_falso_devuelve_los_que_no_estan_aprobados(listar_conductores
     [(True, ["30000001"]), (False, ["30000002"])],
 )
 def test_filtra_por_disponible(listar_conductores, uow, disponible, dnis_esperados):
-    guardar_conductor(uow, "30000001", disponible=True)
-    guardar_conductor(uow, "30000002", disponible=False)
+    guardar_conductor(uow, "30000001", estado=EstadoConductor.DISPONIBLE)
+    guardar_conductor(uow, "30000002", estado=EstadoConductor.CONECTADO)
 
     assert dnis(listar_conductores.ejecutar(disponible=disponible)) == dnis_esperados
 
@@ -150,14 +150,23 @@ def test_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(listar_conduct
 
 def test_combina_los_filtros_con_and(listar_conductores, uow):
     cumple_todo = guardar_conductor(
-        uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True
+        uow,
+        "30000001",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
     )
     no_disponible = guardar_conductor(
-        uow, "30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False
+        uow,
+        "30000002",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.CONECTADO,
     )
-    no_aprobado = guardar_conductor(uow, "30000003", disponible=True)
+    no_aprobado = guardar_conductor(uow, "30000003", estado=EstadoConductor.DISPONIBLE)
     sin_el_tipo = guardar_conductor(
-        uow, "30000004", habilitacion=EstadoHabilitacion.APROBADA, disponible=True
+        uow,
+        "30000004",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
     )
     for conductor, patente in [
         (cumple_todo, "AAA111"),

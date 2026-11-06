@@ -16,7 +16,7 @@ Se comporta como el fake `RepositorioConductoresEnMemoria` (ver `tests/unitarios
 """
 
 import pytest
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo
@@ -85,7 +85,9 @@ def test_el_conductor_confirmado_se_lee_con_todos_sus_campos_desde_otra_sesion(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     conductor = nuevo_conductor(
-        "30123456", habilitacion=EstadoHabilitacion.OBSERVADA, conectado=True, disponible=True
+        "30123456",
+        habilitacion=EstadoHabilitacion.OBSERVADA,
+        estado=EstadoConductor.DISPONIBLE,
     )
     guardado = repositorio.guardar(conductor)
     sesion_bd.commit()
@@ -101,8 +103,7 @@ def test_el_conductor_confirmado_se_lee_con_todos_sus_campos_desde_otra_sesion(
     assert leido.telefono == "+54 379 4000000"
     assert leido.email == "ana@example.com"
     assert leido.habilitacion is EstadoHabilitacion.OBSERVADA
-    assert leido.conectado is True
-    assert leido.disponible is True
+    assert leido.estado is EstadoConductor.DISPONIBLE
 
 
 def test_obtener_conductor_inexistente_devuelve_none(repositorio):
@@ -117,8 +118,7 @@ def test_guardar_un_conductor_con_id_lo_actualiza_conservando_el_id(
     conductor = repositorio.guardar(nuevo_conductor())
     sesion_bd.commit()
     conductor.habilitacion = APROBADA
-    conductor.conectado = True
-    conductor.disponible = True
+    conductor.estado = EstadoConductor.DISPONIBLE
 
     actualizado = repositorio.guardar(conductor)
     sesion_bd.commit()
@@ -128,8 +128,7 @@ def test_guardar_un_conductor_con_id_lo_actualiza_conservando_el_id(
         repositorio_otra = SqlRepositorioConductores(otra_sesion)
         leido = repositorio_otra.obtener(conductor.id)
         assert leido.habilitacion is APROBADA
-        assert leido.conectado is True
-        assert leido.disponible is True
+        assert leido.estado is EstadoConductor.DISPONIBLE
         assert len(repositorio_otra.listar()) == 1
 
 
@@ -259,8 +258,8 @@ def test_listar_habilitado_falso_devuelve_los_que_no_estan_aprobados(repositorio
     [(True, ["30000001"]), (False, ["30000002"])],
 )
 def test_listar_filtra_por_disponible(repositorio, disponible, dnis_esperados):
-    repositorio.guardar(nuevo_conductor("30000001", disponible=True))
-    repositorio.guardar(nuevo_conductor("30000002", disponible=False))
+    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.DISPONIBLE))
+    repositorio.guardar(nuevo_conductor("30000002", estado=EstadoConductor.CONECTADO))
 
     assert dnis(repositorio.listar(disponible=disponible)) == dnis_esperados
 
@@ -288,14 +287,28 @@ def test_listar_filtra_por_tipo_de_vehiculo_sin_duplicar_conductores(repositorio
 
 def test_listar_combina_los_filtros_con_and(repositorio, sesion_bd):
     cumple_todo = repositorio.guardar(
-        nuevo_conductor("30000001", habilitacion=APROBADA, disponible=True)
+        nuevo_conductor(
+            "30000001",
+            habilitacion=APROBADA,
+            estado=EstadoConductor.DISPONIBLE,
+        )
     )
     no_disponible = repositorio.guardar(
-        nuevo_conductor("30000002", habilitacion=APROBADA, disponible=False)
+        nuevo_conductor(
+            "30000002",
+            habilitacion=APROBADA,
+            estado=EstadoConductor.CONECTADO,
+        )
     )
-    no_aprobado = repositorio.guardar(nuevo_conductor("30000003", disponible=True))
+    no_aprobado = repositorio.guardar(
+        nuevo_conductor("30000003", estado=EstadoConductor.DISPONIBLE)
+    )
     sin_el_tipo = repositorio.guardar(
-        nuevo_conductor("30000004", habilitacion=APROBADA, disponible=True)
+        nuevo_conductor(
+            "30000004",
+            habilitacion=APROBADA,
+            estado=EstadoConductor.DISPONIBLE,
+        )
     )
     for conductor, patente in [
         (cumple_todo, "AAA111"),

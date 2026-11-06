@@ -24,3 +24,7 @@ class LicenciaVigenteRequerida(ErrorDeDominio):
 
 class DatosInvalidos(ErrorDeDominio):
     pass
+
+
+class ConductorNoHabilitado(ErrorDeDominio):
+    pass
