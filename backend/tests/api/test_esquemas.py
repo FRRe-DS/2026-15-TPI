@@ -1,13 +1,15 @@
 from datetime import date
 
 import pytest
-from app.api.esquemas.conductor import ConductorCreate
+from app.api.esquemas.conductor import ConductorCreate, EstadoOperativo, conductor_desde_detalle
 from app.api.esquemas.documento import DocumentoConductorCreate
 from app.api.esquemas.habilitacion import (
     HabilitacionAccionRequest,
     HabilitacionEvento,
 )
 from app.api.esquemas.vehiculo import VehiculoCreate
+from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
+from app.dominio.conductor import Conductor
 from pydantic import ValidationError
 
 
@@ -46,6 +48,38 @@ def test_email_invalido(email: str) -> None:
             telefono="3415550000",
             email=email,
         )
+
+
+@pytest.mark.parametrize(
+    ("conectado", "disponible", "estado_esperado"),
+    [
+        (False, False, EstadoOperativo.DESCONECTADO),
+        (True, False, EstadoOperativo.CONECTADO),
+        (True, True, EstadoOperativo.DISPONIBLE),
+        (False, True, EstadoOperativo.DESCONECTADO),
+    ],
+)
+def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
+    conectado: bool,
+    disponible: bool,
+    estado_esperado: EstadoOperativo,
+) -> None:
+    conductor = Conductor.crear(
+        dni="12345678",
+        nombre="Ana",
+        apellido="Pérez",
+        telefono="3415550000",
+        email="ana@example.com",
+    )
+    conductor.id = 1
+    conductor.conectado = conectado
+    conductor.disponible = disponible
+
+    respuesta = conductor_desde_detalle(
+        ConductorDetalle(conductor=conductor, documentos=[], vehiculos=[])
+    )
+
+    assert respuesta.estado == estado_esperado
 
 
 def test_nombre_obligatorio() -> None:

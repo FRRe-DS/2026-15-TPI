@@ -1,6 +1,6 @@
 # Constitución de 2026-15-TPI
 
-TP de Desarrollo de Software — Módulo 3: Conductores y Vehículos. Insumo: `docs/contract/bosquejo.txt`.
+TP de Desarrollo de Software — Módulo 3: Conductores y Vehículos. Insumo: `docs/contract/openapi.yaml`.
 
 ## Principios Fundamentales
 

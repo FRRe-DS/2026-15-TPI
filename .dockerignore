@@ -9,7 +9,7 @@
 **/.ruff_cache
 **/.coverage
 **/htmlcov
-infra/.env
+.env
 *.pdf
 README.md
 
