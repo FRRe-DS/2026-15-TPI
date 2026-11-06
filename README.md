@@ -18,12 +18,12 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 17 endpoints; 10 de ellos se construyen en la Iteración 1.
-- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4).
-- Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos.
-- Una pantalla web muestra el listado de conductores.
-- Todo se levanta con Docker Compose, y cada cambio pasa por un CI antes de integrarse.
-- Se integra con los módulos M1, M4, M5 y M6.
+- Expone una API REST de 17 endpoints ([ver contrato](#contrato-de-la-api)); 10 de ellos se construyen en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)).
+- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4) ([ver autenticación](#autenticación-y-roles)).
+- Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos ([ver base de datos](#base-de-datos)).
+- Una pantalla web muestra el listado de conductores ([ver frontend](#frontend)).
+- Todo se levanta con Docker Compose ([ver arranque rápido](#arranque-rápido)), y cada cambio pasa por un CI antes de integrarse.
+- Se integra con los módulos M1, M4, M5 y M6 ([ver integración](#integración-con-otros-módulos)).
 
 
 ---
