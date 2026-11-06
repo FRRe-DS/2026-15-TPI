@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+**/*.test.ts
+**/*.test.tsx
+Dockerfile
+.dockerignore

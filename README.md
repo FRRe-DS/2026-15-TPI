@@ -1,7 +1,7 @@
 # M3 - Conductores y Vehículos
 **Grupo 15.**
 
-Módulo **M3** de la plataforma distribuida de movilidad.
+Módulo **M3** de la plataforma distribuida de movilidad. 
 
 | **ID** | **Módulo** | **Responsabilidad** | **Integraciones clave** |
 |---|---|---|---|
@@ -10,20 +10,21 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 > Este README es la documentación del módulo y se va completando a medida que avanza el trabajo. Todo lo que figura acá sale del contrato [`openapi.yaml`](./docs/contract/openapi.yaml) y del documento de planificación de la Iteración 1. Lo que todavía no está definido está marcado como **Pendiente**.
 
 ---
-
+ 
 ## De qué trata este módulo
-
+ 
 **M3 es el servicio de la plataforma de movilidad que gestiona a los conductores y sus vehículos.**
-
+ 
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 16 endpoints ([ver contrato](#contrato-de-la-api)); 10 de ellos se construyen en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)).
-- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador y de conductor ([ver autenticación](#autenticación-y-roles)).
+- Expone una API REST de 17 endpoints ([ver contrato](#contrato-de-la-api)); 10 de ellos se construyen en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)).
+- Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4) ([ver autenticación](#autenticación-y-roles)).
 - Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos ([ver base de datos](#base-de-datos)).
 - Una pantalla web muestra el listado de conductores ([ver frontend](#frontend)).
 - Todo se levanta con Docker Compose ([ver arranque rápido](#arranque-rápido)), y cada cambio pasa por un CI antes de integrarse.
 - Se integra con los módulos M1, M4, M5 y M6 ([ver integración](#integración-con-otros-módulos)).
+
 
 ---
 
@@ -32,22 +33,24 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 1. [Alcance de la Iteración 1](#alcance-de-la-iteración-1)
 2. [Arquitectura y estructura del repositorio](#arquitectura-y-estructura-del-repositorio)
 3. [Contrato de la API](#contrato-de-la-api)
-4. [Integración con otros módulos](#integración-con-otros-módulos)
-5. [Reglas de negocio](#reglas-de-negocio)
-6. [Errores](#errores)
-7. [Autenticación y roles](#autenticación-y-roles)
-8. [Base de datos](#base-de-datos)
-9. [Entorno con Docker Compose](#entorno-con-docker-compose)
-   - [Arranque rápido](#arranque-rápido)
-   - [Integración verificada](#integración-verificada-22102026)
-10. [Testing y CI](#testing-y-ci)
-11. [Frontend](#frontend)
+4. [Reglas de negocio](#reglas-de-negocio)
+5. [Errores](#errores)
+6. [Autenticación y roles](#autenticación-y-roles)
+7. [Base de datos](#base-de-datos)
+8. [Entorno con Docker Compose](#entorno-con-docker-compose)
+9. [Testing y CI](#testing-y-ci)
+10. [Frontend](#frontend)
+11. [Integración con otros módulos](#integración-con-otros-módulos)
+12. [Cómo trabajamos](#cómo-trabajamos)
+13. [Estado de la Iteración 1](#estado-de-la-iteración-1)
+14. [Pendientes](#pendientes) 
+15. [Planificación de la Iteración 2 — Plataforma y Seguridad](./specs/iteracion2-seguridad/plan.md)
 
 ---
 
 ## Alcance de la Iteración 1
 
-La API de M3 tiene **16 endpoints propios**. En la Iteración 1 se cubren **10**.
+La API de M3 tiene **17 endpoints propios**. En la Iteración 1 se cubren **10**.
 
 Los 10 endpoints de la Iteración 1:
 
@@ -82,6 +85,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | Contenedores | Docker y Docker Compose |
 | CI | GitHub Actions |
 
+> La justificación de la elección del stack (RNF-01) va en `docs/justificacion-stack.md`.
 
 ### Estructura de carpetas
 
@@ -109,14 +113,14 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 │   ├── pyproject.toml
 │   ├── ruff.toml
 │   └── .coveragerc
+├── docker-compose.yml                   # Stack completo (único Compose del repo)
+├── .env.example                         # Variables del stack, sin valores reales
 ├── infra/
-│   ├── docker-compose.yml
-│   ├── .env.example
 │   ├── postgres/init/                   # Creación de las bases
 │   ├── migraciones/                     # Alembic
 │   ├── seed/                            # Datos de prueba
 │   └── keycloak/realm-m3.json
-├── frontend/                            # Next.js
+├── frontend/                            # Next.js (con Dockerfile)
 ├── docs/
 │   └── contract/openapi.yaml            # Contrato de la API
 └── .github/                             # Workflows de CI y scripts
@@ -126,7 +130,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ## Contrato de la API
 
-- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.0.0.
+- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.2.0.
 - **El contrato dirige:** no se implementa ningún endpoint que no esté en el `openapi.yaml`.
 - URL base en desarrollo local: `http://localhost:8080/api/v1`
 - Formato: JSON.
@@ -136,8 +140,8 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 | Método | Ruta | Descripción | Iter. |
 |---|---|---|---|
-| `POST` | `/conductores` | Crear conductor. Queda `PENDIENTE`, desconectado y no disponible. | 1 |
-| `GET` | `/conductores` | Listar conductores. Filtros: `disponible`, `habilitado`, `tipo_vehiculo`, `tipo_servicio`, `latitud`, `longitud`. | 1 |
+| `POST` | `/conductores` | Crear conductor. Queda `PENDIENTE` y en estado `DESCONECTADO`. | 1 |
+| `GET` | `/conductores` | Listar conductores. Filtros: `estado`, `habilitado`, `tipo_vehiculo`, `tipo_servicio`, `latitud`, `longitud`. | 1 |
 | `GET` | `/conductores/{id_conductor}` | Obtener conductor con documentos, vehículos y habilitación. | 1 |
 | `GET` | `/conductores/{id_conductor}/habilitacion` | Estado e historial de habilitación. | 1 |
 | `POST` | `/conductores/{id_conductor}/habilitacion` | Aprobar, observar, suspender o rechazar conductor. Solo operadores. | 1 |
@@ -148,10 +152,13 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion` | Aprobar, observar, suspender o rechazar vehículo. Solo operadores. | 1 |
 | `GET` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` | Tipos de servicio del vehículo y su habilitación. | 2 |
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion` | Registrar documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). | 2 |
-| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar conexión, disponibilidad y ubicación. | 2 |
+| `GET` | `/conductores/{id_conductor}/estado` | Consultar el estado (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE` u `OCUPADO`) y el vehículo activo (la ubicación va en `/ubicacion`). Lo consulta M4. | 2 |
+| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar estado, vehículo activo y ubicación. `OCUPADO` no se puede pedir: lo asigna M3 al aceptar una solicitud. | 2 |
+| `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
-| `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. | 2 |
-| `POST` | `/viajes/{id_viaje}/calificacion-cliente` | Calificar al cliente. | 2 |
+| `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. Al aceptar, el conductor pasa a `OCUPADO`. | 2 |
+
+El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `estado`. El código de la Iteración 1 todavía devuelve los dos campos y filtra por `disponible`; la Iteración 2 lo migra, por eso las secciones que describen lo ya implementado los siguen nombrando.
 
 ### Detalle de los endpoints de la Iteración 1
 
@@ -180,42 +187,6 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 - `GET .../vehiculos` lista los vehículos del conductor. Filtros: `tipo` y `habilitacion`.
 - `GET .../vehiculos/{id_vehiculo}` devuelve el vehículo. Si es de otro conductor, responde `404`.
 - `POST .../vehiculos/{id_vehiculo}/habilitacion` funciona igual que la del conductor, pero sobre el vehículo.
-
-### Endpoints de M6 que consumimos
-
-Están en el contrato bajo el tag **Externo (M6)**: _implementado por M6, solo consumido por M3_. No forman parte del alcance de la Iteración 1.
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/viajes/{id_viaje}` | Consultar estado y resumen del viaje. |
-| `POST` | `/viajes/{id_viaje}/finalizar` | Finalizar un viaje en curso. Body: `tiempo` (minutos), `distancia` (km), `cierre`. |
-| `POST` | `/viajes/{id_viaje}/cancelar` | Cancelar un viaje. Motivos: `OTRO`, `DEFECTO MECANICO`, `PASAJERO NO VINO`. |
-
----
-
-## Integración con otros módulos
-
-Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta tabla muestra qué aparece hoy en el contrato.
-
-| Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
-|---|---|---|
-| **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | Lectura de `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic` en los GET de conductores. | M4 consulta la API autenticada; M3 devuelve los valores persistidos. |
-| **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
-| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. Lo demás, ⚠️ *Por definir.* |
-
-Las actualizaciones de estado y ubicación, las solicitudes y los viajes corresponden a la **Iteración 2**. La lectura de disponibilidad y ubicación ya está disponible en los GET existentes.
-
-### Lecturas para M4
-
-Con un JWT de nuestro realm que tenga rol `conductor` u `operador`:
-
-- `GET /api/v1/conductores?disponible=true&habilitado=true`: lista los conductores disponibles y aprobados. Puede combinarse con `tipo_vehiculo=AUTO` o `MOTO`.
-- `GET /api/v1/conductores/{id_conductor}`: consulta un conductor por su ID entero; un ID inexistente responde `404`.
-
-Ambos devuelven `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic`. Las coordenadas y la fecha salen de PostgreSQL; cuando no están registradas se devuelve `null`. La fecha indica cuándo se registró la ubicación, no cuándo se hizo el GET. Este cambio solo permite leer: no actualiza posiciones ni aplica vencimiento, distancias, cercanía o ETA. Los parámetros de búsqueda `latitud` y `longitud` siguen sin ordenar ni filtrar.
-
-El [esquema preliminar del grupo de M4](https://github.com/FRRe-DS/2026-03-TPI/blob/main/app/schemas/schemas.py) usa otros nombres: `conductor_id`, `lat_conductor`, `lon_conductor` y `tipo_v`. Al consumir M3 deben mapearlos desde `id`, `latitud`, `longitud` y el tipo del vehículo correspondiente en `vehiculos`. M3 usa IDs enteros; su esquema preliminar declara UUID y requiere ajustar ese tipo en M4. No hay una integración ejecutable en ese repositorio que permita verificar todavía el cliente de M4. Las ubicaciones nulas deben tratarse como desconocidas, nunca como `(0, 0)`.
 
 ---
 
@@ -278,17 +249,21 @@ Todos los errores usan el mismo formato:
 | HTTP | Código | Cuándo |
 |---|---|---|
 | `400` | `SOLICITUD_INVALIDA` | La forma del pedido no cumple el contrato (DNI inválido, motivo vacío, sin tipos de servicio, etc.). |
-| `401` | _(por definir)_ | Token ausente, malformado, con firma inválida, vencido o de otro emisor. |
-| `403` | _(por definir)_ | Sin permisos: acción de habilitación sin rol operador, o token de operador sin `id_operador` numérico. |
+| `401` | `NO_AUTENTICADO` | Token ausente, malformado, con firma inválida, vencido o de otro emisor. |
+| `403` | `SIN_PERMISOS` | El rol no permite la operación. |
+| `403` | `ACCESO_PROHIBIDO` | El conductor intenta acceder a recursos de otro conductor o el token no trae un `id_conductor` numérico. |
 | `404` | `NO_ENCONTRADO` | El recurso no existe. |
 | `409` | `DNI_DUPLICADO` | Ya existe un conductor con ese DNI. |
 | `409` | `PATENTE_DUPLICADA` | Ya existe un vehículo con esa patente. |
 | `409` | `TRANSICION_INVALIDA` | La transición de habilitación no está permitida. |
-| `410` | _(por definir)_ | La oferta de una solicitud venció (`POST /solicitudes/{id_solicitud}`, Iteración 2). |
+| `409` | `SOLICITUD_YA_RESPONDIDA` | La solicitud ya fue aceptada o rechazada. |
+| `410` | `SOLICITUD_VENCIDA` | La oferta superó su vencimiento o ya figura como vencida. |
 | `422` | `LICENCIA_VIGENTE_REQUERIDA` | Se intenta aprobar un conductor sin licencia vigente. |
 | `422` | `DATOS_INVALIDOS` | Se incumple una regla de negocio (por ejemplo, vencimiento anterior a la emisión). |
+| `422` | `CONDUCTOR_NO_HABILITADO` | El conductor no cumple las condiciones para quedar disponible o aceptar una solicitud. |
 | `500` | `ERROR_INTERNO` | Error inesperado. No expone detalles internos. |
 
+El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 
 ---
 
@@ -296,8 +271,9 @@ Todos los errores usan el mismo formato:
 
 - Todos los endpoints requieren `Authorization: Bearer <JWT>`.
 - Los tokens los emite **Keycloak** y la API los valida localmente con PyJWT y el JWKS (con caché).
-- Roles: **`operador`** y **`conductor`**.
+- Roles: **`operador`**, **`conductor`** y **`servicio`** (cuenta técnica de M4, solo lectura; el contrato lo define y todavía no está en el realm).
 - Las acciones de habilitación solo pueden hacerlas usuarios con rol `operador`.
+- El rol `servicio` solo puede leer conductores, vehículos, estado y ubicación.
 - El usuario operador tiene un atributo numérico `id_operador`, que Keycloak incluye en el token como un claim entero. La API lo usa para registrar quién hizo cada acción.
 
 **Realm de Keycloak** (`infra/keycloak/realm-m3.json`):
@@ -306,6 +282,8 @@ Todos los errores usan el mismo formato:
 - Roles `operador` y `conductor`, con usuarios de prueba.
 - Cliente confidencial con concesión de contraseña habilitada.
 - No contiene secretos ni contraseñas literales: se sustituyen por variables de entorno (`${VARIABLE}`).
+
+> ⚠️ **Pendiente:** definir cómo se relaciona este Keycloak con el módulo **M1 (Identidad y Acceso)**.
 
 ---
 
@@ -361,103 +339,16 @@ Un único comando levanta API, PostgreSQL y Keycloak.
 | `migraciones` y `seed` | Se ejecutan una sola vez: aplican las migraciones y cargan los datos de prueba. |
 | `api` | La API de M3, construida con `backend/Dockerfile`. |
 
-Puertos: PostgreSQL `5432`, Keycloak `8081` y API `8080`.
+Puertos: `5432`, `8081` y `8080`. La API usa el `8080`.
 
 - Los servicios tienen chequeos de salud y `depends_on` con condición.
 - Las imágenes tienen versión fija, **nunca `latest`**.
-- Las contraseñas y claves se configuran **por variables de entorno**, nunca en el repo. `infra/.env.example` lista todas las variables sin valores reales.
+- Las contraseñas y claves se configuran **por variables de entorno**, nunca en el repo. `.env.example` lista todas las variables sin valores reales.
 - El `Dockerfile` usa una imagen `python:3.12` de versión fija, corre con un usuario sin privilegios e inicia la API con `uvicorn app.api.main:app --host 0.0.0.0 --port 8080`.
 
 ### Arranque rápido
 
-Guía detallada para Windows y PowerShell: [DESPLIEGUE.md](./DESPLIEGUE.md).
-
-El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed y API) se levanta con Docker Compose.
-
-1. Copiar el archivo de variables y completar **todos** los valores vacíos. No commitear `infra/.env`.
-
-   ```bash
-   cd infra
-   cp .env.example .env
-   ```
-
-   Generar claves con `openssl rand -hex 32`. Se recomienda hexadecimal para que las contraseñas puedan usarse sin URL-encoding dentro de `DATABASE_URL` (el compose la compone a partir de `M3_DB_PASSWORD`).
-
-2. Levantar el stack (la primera vez compila la imagen de la API):
-
-   ```bash
-   docker compose --env-file .env -f docker-compose.yml up --build
-   ```
-
-   El orden está garantizado por healthchecks: PostgreSQL → Keycloak y migraciones → seed → API. El seed es idempotente y puede volver a ejecutarse sin duplicar datos.
-
-3. Verificar los servicios:
-
-   | Servicio | URL / puerto |
-   |---|---|
-   | API (salud) | http://localhost:8080/salud |
-   | Keycloak | http://localhost:8081 (realm `m3`) |
-   | PostgreSQL | localhost:5432 |
-
-   Obtener un token de prueba del operador (cliente confidencial con password grant). Cargar primero las variables en la shell:
-
-   ```bash
-   set -a
-   . ./.env
-   set +a
-   curl -s -X POST http://localhost:8081/realms/m3/protocol/openid-connect/token \
-     -d grant_type=password \
-     -d client_id=m3-api \
-     -d client_secret="$KEYCLOAK_M3_CLIENT_SECRET" \
-     -d username=operador.m3 \
-     -d password="$M3_OPERADOR_PASSWORD"
-   ```
-
-4. Ejecutar las pruebas de infraestructura (requieren Docker para las marcadas como `integration`). Desde `infra`:
-
-   ```bash
-   cd ../backend
-   uv sync --all-groups
-   uv run pytest tests/infra
-   ```
-
-5. Detener el stack. Volver a `infra`:
-
-   ```bash
-   cd ../infra
-   docker compose --env-file .env -f docker-compose.yml down
-   ```
-
-   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose --env-file .env -f docker-compose.yml down -v`.
-
-Para ejecutar migraciones o el seed manualmente contra una base existente, desde la raíz del repositorio:
-
-```bash
-cd backend
-export DATABASE_URL="postgresql+psycopg://m3:CLAVE@localhost:5432/m3"
-uv run alembic -c ../infra/migraciones/alembic.ini upgrade head
-uv run python ../infra/seed/cargar_datos.py
-```
-
-### Integración verificada (22/10/2026)
-
-Se verificaron PostgreSQL, migraciones, seed idempotente, Keycloak con tokens reales y la API en Compose. Se recorrieron las 10 operaciones del alcance y se validaron 17 respuestas reales contra OpenAPI, incluidos errores y eventos con ID entero. El frontend se ejecutó con `npm run dev` y mostró conductores reales.
-
-El frontend se levanta por separado:
-
-```bash
-cd frontend
-npm ci
-cp .env.example .env.local
-# Completar con las mismas credenciales usadas en infra/.env.
-npm run dev
-```
-
-Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` de `infra/.env`. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
-
-El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
-
-Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas.
+Guía de despliegue local de punta a punta: [DESPLIEGUE.md](./DESPLIEGUE.md).
 
 ---
 
@@ -487,7 +378,7 @@ uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobe
 ```
 
 **Cobertura:** mínimo **65%** en la API (`fail_under = 65` en `backend/.coveragerc`). El objetivo es estar entre 65% y 70% o más sobre lo implementado.
-
+    
 
 ---
 
@@ -500,8 +391,6 @@ Una sola pantalla que muestra el **listado de conductores** consumiendo la API.
 - El token se pide a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña y se reutiliza hasta su vencimiento.
 - Muestra nombre, apellido, DNI y habilitación de cada conductor. Tiene un estado vacío ("No hay conductores") y un estado de error con un mensaje claro.
 
-Para tener la API y Keycloak corriendo, ver [Arranque rápido](#arranque-rápido).
-
 **Variables de entorno** (`frontend/.env.example`): `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER`, `TEST_PASSWORD`.
 
 **Scripts**
@@ -512,3 +401,108 @@ npm run build
 npm run lint
 npm run test
 ```
+
+---
+
+## Integración con otros módulos
+
+Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta tabla muestra qué aparece hoy en el contrato.
+
+| Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
+|---|---|---|
+| **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
+| **M4 - Ubicación y Disponibilidad** | Consulta `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`, con rol `servicio` de solo lectura. | M4 lee estado y ubicación de M3; no hay operaciones de escritura de M4 en el contrato. |
+| **M5 - Solicitud y Despacho** | `GET /conductores/{id_conductor}/solicitudes` y `POST /solicitudes/{id_solicitud}`. | M5 origina las solicitudes; M3 las lista y el conductor puede aceptarlas o rechazarlas. |
+| **M6 - Viajes y Ciclo de Vida** | Sin operaciones consumidas ni de integración en el alcance de esta iteración. | No se implementan viajes ni calificación. El puntaje y la cantidad de calificaciones son de solo lectura. |
+
+Las 17 operaciones propias y sus permisos se definen en [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml). No se agregan rutas de escritura para M4/M6 ni operaciones de viaje o calificación.
+
+---
+
+## Arranque rápido (M3)
+
+El stack completo de M3 (PostgreSQL, Keycloak, migraciones, seed, API y frontend) se levanta con un único `docker-compose.yml` ubicado en la raíz del repositorio.
+
+1. Copiar el archivo de variables y completar **todos** los valores vacíos. No commitear `.env`.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Generar claves con `openssl rand -hex 32`. Se recomienda hexadecimal para que las contraseñas puedan usarse sin URL-encoding dentro de `DATABASE_URL` (el compose la compone a partir de `M3_DB_PASSWORD`).
+
+2. Levantar el stack (la primera vez compila las imágenes de la API y del frontend):
+
+   ```bash
+   docker compose up --build
+   ```
+
+   El orden está garantizado por healthchecks: PostgreSQL → Keycloak y migraciones → seed → API → frontend. El seed es idempotente y puede volver a ejecutarse sin duplicar datos.
+
+3. Verificar los servicios:
+
+   | Servicio | URL / puerto |
+   |---|---|
+   | Frontend | http://localhost:3000 |
+   | API (salud) | http://localhost:8080/salud |
+   | Keycloak | http://localhost:8081 (realm `m3`) |
+   | PostgreSQL | localhost:5432 |
+
+   Obtener un token de prueba del operador (cliente confidencial con password grant). Cargar primero las variables en la shell:
+
+   ```bash
+   set -a
+   . ./.env
+   set +a
+   curl -s -X POST http://localhost:8081/realms/m3/protocol/openid-connect/token \
+     -d grant_type=password \
+     -d client_id=m3-api \
+     -d client_secret="$KEYCLOAK_M3_CLIENT_SECRET" \
+     -d username=operador.m3 \
+     -d password="$M3_OPERADOR_PASSWORD"
+   ```
+
+4. Ejecutar las pruebas de infraestructura (requieren Docker para las marcadas como `integration`):
+
+   ```bash
+   cd backend
+   uv sync --all-groups
+   uv run pytest tests/infra
+   ```
+
+5. Detener el stack. Desde la raíz del repositorio:
+
+   ```bash
+   docker compose down
+   ```
+
+   Si además querés eliminar el volumen de PostgreSQL y forzar la re-inicialización de las bases, agregá `-v` al final: `docker compose down -v`.
+
+Para ejecutar migraciones o el seed manualmente contra una base existente, desde la raíz del repositorio:
+
+```bash
+cd backend
+export DATABASE_URL="postgresql+psycopg://m3:CLAVE@localhost:5432/m3"
+uv run alembic -c ../infra/migraciones/alembic.ini upgrade head
+uv run python ../infra/seed/cargar_datos.py
+```
+
+### Integración verificada (22/10/2026)
+
+Se verificaron PostgreSQL, migraciones, seed idempotente, Keycloak con tokens reales y la API en Compose. Se recorrieron las 10 operaciones del alcance y se validaron 17 respuestas reales contra OpenAPI, incluidos errores y eventos con ID entero. El frontend se ejecutó con `npm run dev` y mostró conductores reales.
+
+El frontend también puede levantarse por separado, fuera de Compose, para desarrollar con recarga en caliente (en ese caso conviene bajar el servicio con `docker compose stop frontend`):
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local
+# Completar con las mismas credenciales usadas en el `.env` de la raíz.
+npm run dev
+```
+
+Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` del `.env` de la raíz. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
+
+El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
+
+Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas. No se abre una PR a main en esta integración.
