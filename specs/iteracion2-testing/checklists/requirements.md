@@ -39,5 +39,5 @@
 - Se acordó verificar M1, M4 y M5 con dobles de contrato limitados a lo que M3 expone; M6 queda fuera de la Iteración 2. La lista de operaciones y el contrato JWT/roles, incluido el rol `servicio` de solo lectura, están identificados en FR-010 y FR-021.
 - Los 7 endpoints nuevos están cubiertos por la Historia 5 y FR-014 a FR-023: contrato de 17 operaciones, `410` en `CODIGOS_POR_ESTADO`, validación con `openapi-core`, casos PostgreSQL de estado/vehículo/solicitudes/concurrencia/promedio/ubicación, roles y helper `servicio`.
 - Las pruebas de los 7 endpoints dependen de la migración `0002` y del backend de la Iteración 2. PR 1 y PR 2 usan endpoints existentes y pueden avanzar sin esperar. PR 4 no depende de PR 3 y se limita a lecturas de M4 y solicitudes de M5.
-- El umbral vigente de CI es `65 %`; se propone `70 %` para la Iteración 2 y las pruebas nuevas de contrato e integración deben entrar al job `integracion-real-m3`.
+- El umbral vigente de CI es `65 %`; se propone `70 %` para la Iteración 2 y las pruebas nuevas de contrato e integración deben entrar al jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`).
 - El README confirma que RabbitMQ no está en el Compose actual y que M1/M5 tienen detalles pendientes; no se asumieron contratos más allá de los identificados.

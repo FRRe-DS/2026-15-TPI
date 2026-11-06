@@ -137,7 +137,7 @@ Como equipo de verificación, queremos cubrir con contrato e integración real l
 - **FR-020**: La suite DEBE verificar que `GET /conductores/{id}/ubicacion` responde `200` con los tres campos en `null` cuando no hay ubicación, nunca `0,0`, y que al pasar de `DESCONECTADO` a otro estado sin ubicación M3 asigna una ubicación simulada fija.
 - **FR-021**: La suite DEBE verificar que el rol `servicio` recibe `403` en las acciones de operador, en `PATCH /conductores/{id}/estado` y en `POST /solicitudes/{id}`, y que puede leer `/estado`, `/ubicacion` y los `GET` de conductores; que un conductor recibe `403` al consultar o modificar datos de otro conductor y en `GET /conductores`.
 - **FR-022**: La suite DEBE incorporar un helper para firmar tokens con rol `servicio`, equivalente a los helpers existentes de conductor y operador, con la lista de roles y los claims `id_conductor`/`id_operador` según el caso. La cuenta técnica de servicio la define el grupo de Datos y seguridad.
-- **FR-023**: Las pruebas de los 7 endpoints DEBEN ejecutarse después de la migración `0002` y del backend de la Iteración 2; los tests existentes que miran `conectado` y `disponible` DEBEN pasar a mirar `estado`. La cobertura DEBE subir del umbral vigente de `65 %` a `70 %` para la Iteración 2 y las pruebas nuevas de contrato e integración DEBEN ejecutarse en el job `integracion-real-m3`.
+- **FR-023**: Las pruebas de los 7 endpoints DEBEN ejecutarse después de la migración `0002` y del backend de la Iteración 2; los tests existentes que miran `conectado` y `disponible` pasan a mirar `estado` en las PR de Backend (L1 y L9). La cobertura DEBE subir del umbral vigente de `65 %` a `70 %` para la Iteración 2 y las pruebas nuevas de contrato e integración DEBEN ejecutarse en el jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`).
 
 ### Entidades clave
 
@@ -167,8 +167,8 @@ Como equipo de verificación, queremos cubrir con contrato e integración real l
 - **SC-010**: Una solicitud vigente se acepta o rechaza; una vencida da `410 SOLICITUD_VENCIDA`; una segunda respuesta da `409 SOLICITUD_YA_RESPONDIDA`, también en paralelo.
 - **SC-011**: El promedio y la cantidad de calificaciones coinciden con el seed, sin calificaciones son `null` y `0`, y ningún endpoint los modifica.
 - **SC-012**: La ubicación ausente se lee como tres campos `null` y nunca `0,0`; el paso de `DESCONECTADO` a otro estado sin ubicación asigna la ubicación simulada fija.
-- **SC-013**: Un token `servicio` solo puede leer y recibe `403` en toda escritura; un conductor recibe `403` sobre datos de otro conductor y en `GET /conductores`. El helper de token `servicio` existe y se usa en las pruebas.
-- **SC-014**: Las pruebas nuevas de contrato e integración corren en el job `integracion-real-m3` y la cobertura de la Iteración 2 alcanza el `70 %` propuesto.
+- **SC-013**: Un token `servicio` solo puede leer y recibe `403` en toda escritura; un conductor recibe `403` sobre datos de otro conductor y en `GET /conductores`. El helper de token `servicio` lo entrega Backend (V1) y se usa en las pruebas.
+- **SC-014**: Las pruebas nuevas de contrato e integración corren en el jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`) y la cobertura de la Iteración 2 alcanza el `70 %` propuesto.
 
 ## Supuestos
 
@@ -184,7 +184,7 @@ Como equipo de verificación, queremos cubrir con contrato e integración real l
 - Las PR 1 (flujo de habilitación) y PR 2 (alta concurrente con DNI duplicado) corren sobre endpoints existentes y pueden avanzar sin esperar la migración `0002` ni los 7 endpoints nuevos.
 - La PR 4 se limita a lo que M3 expone: lecturas de M4 (`GET /conductores`, detalle, `/estado` y `/ubicacion`) y solicitudes de M5 (`GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`). No hay clientes HTTP salientes hacia M4 ni M6 y no se prueban escrituras de esos módulos contra M3.
 - Para las lecturas con rol `servicio`, los dobles son tokens firmados con ese rol; la cuenta técnica de servicio la define el grupo de Datos y seguridad. No se crean endpoints de escritura para M4/M6.
-- El umbral de cobertura vigente es `65 %` en `ci.yml`; para la Iteración 2 se propone `70 %`. Las pruebas nuevas de contrato e integración se incorporan al job `integracion-real-m3`.
+- El umbral de cobertura vigente es `65 %` en `ci.yml`; para la Iteración 2 se propone `70 %`. Las pruebas nuevas de contrato e integración se incorporan al jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`).
 
 ## Fuera de alcance
 

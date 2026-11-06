@@ -51,21 +51,21 @@ uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=70
 
 ## Ejecutar flujo E2E del Compose
 
-Completar `infra/.env` a partir de `infra/.env.example` usando solo credenciales efímeras de prueba. No versionar `.env`.
+Completar `.env` a partir de `.env.example` usando solo credenciales efímeras de prueba. No versionar `.env`.
 
 ```powershell
-docker compose --env-file infra/.env -f infra/docker-compose.yml up --build --wait -d
+docker compose --env-file infra/.env -f docker-compose.yml up --build --wait -d
 Set-Location backend
 uv run pytest tests/e2e -v
 Set-Location ..
-docker compose --env-file infra/.env -f infra/docker-compose.yml down
+docker compose --env-file infra/.env -f docker-compose.yml down
 ```
 
 El E2E solicita tokens a Keycloak local del Compose, realiza las altas y aprobaciones contra la API HTTP, valida el historial, reinicia la API sin reiniciar PostgreSQL y vuelve a leer los registros. La validación de eventos en RabbitMQ queda bloqueada hasta la decisión sobre FR-007/FR-013; la persistencia se verifica sin broker.
 
 ## Ejecución CI
 
-El job `integracion-real-m3` ejecuta las secciones de contrato, integración y E2E: crea configuración efímera sin secretos de usuario, inicia Compose, ejecuta toda la suite requerida y reporta cobertura con el umbral acordado; la limpieza de contenedores/volúmenes corre siempre al finalizar el job. Las pruebas nuevas de contrato e integración de los 7 endpoints deben estar dentro de este job.
+Los jobs `contrato`, `test` y `entorno` de `ci.yml` ejecutan las secciones de contrato, integración y E2E: crea configuración efímera sin secretos de usuario, inicia Compose, ejecuta toda la suite requerida y reporta cobertura con el umbral acordado; la limpieza de contenedores/volúmenes corre siempre al finalizar el job. Las pruebas nuevas de contrato e integración de los 7 endpoints deben estar dentro de este job.
 
 ## Resultados esperados
 

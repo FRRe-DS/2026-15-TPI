@@ -6,7 +6,7 @@
 
 ## Resumen
 
-Demostrar en CI el flujo de habilitación con tokens reales de Keycloak, la unicidad ante altas concurrentes, la persistencia PostgreSQL tras reiniciar la API y los contratos con M1/M4/M5. La publicación de eventos a RabbitMQ queda **bloqueada** hasta una decisión de cátedra: el contrato 1.2.0 no define eventos, el backend de la Iteración 2 no los incluye y FR-013 prohíbe introducir funcionalidades de negocio nuevas. Si se confirma que M3 debe publicarlos, se especifican e implementan en un trabajo propio de Backend; mientras tanto, la PR 3 no avanza y la persistencia en PostgreSQL se verifica por separado. Las pruebas de adaptadores usarán PostgreSQL real mediante Testcontainers; el flujo HTTP y la persistencia golpearán el stack de Docker Compose con Keycloak real. Todos los conjuntos de pruebas nuevos se ejecutarán en el job `integracion-real-m3` de GitHub Actions.
+Demostrar en CI el flujo de habilitación con tokens reales de Keycloak, la unicidad ante altas concurrentes, la persistencia PostgreSQL tras reiniciar la API y los contratos con M1/M4/M5. La publicación de eventos a RabbitMQ queda **bloqueada** hasta una decisión de cátedra: el contrato 1.2.0 no define eventos, el backend de la Iteración 2 no los incluye y FR-013 prohíbe introducir funcionalidades de negocio nuevas. Si se confirma que M3 debe publicarlos, se especifican e implementan en un trabajo propio de Backend; mientras tanto, la PR 3 no avanza y la persistencia en PostgreSQL se verifica por separado. Las pruebas de adaptadores usarán PostgreSQL real mediante Testcontainers; el flujo HTTP y la persistencia golpearán el stack de Docker Compose con Keycloak real. Todos los conjuntos de pruebas nuevos se ejecutarán en los jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`).
 
 La planificación parte del contrato vigente de M3, que tiene 17 operaciones (antes 19). Se retiraron `PATCH /integraciones/m4/.../disponibilidad` y `POST /integraciones/m6/.../finalizacion`: M3 no expone escrituras para otros módulos ni implementa clientes HTTP salientes en la Iteración 2. M4 es un consumidor de solo lectura de `GET /conductores`, `GET /conductores/{id}`, `GET /conductores/{id}/estado` y `GET /conductores/{id}/ubicacion`; M5 queda para la Iteración 2 y M1 incorpora el rol `servicio` de solo lectura. Se respetarán los contratos bilaterales aprobados; no se fijarán payloads ni nombres de eventos a partir de borradores incompatibles.
 
@@ -48,13 +48,26 @@ Fuente disponible: [`docs/constitucion.md`](../../docs/constitucion.md), versió
 | VI. Sin secretos/versiones | Credenciales efímeras inyectadas por entorno; versiones fijas de imágenes y dependencias; ninguna etiqueta `latest`. | Cumple |
 | VII. Código claro | Puertos pequeños, adaptadores explícitos, ruff check/format. El cliente Rabbit síncrono, si se desbloquea, corre en el proceso publicador, fuera de handlers HTTP. | Cumple |
 | VIII. Trabajo en paralelo | Los contratos compartidos y, si se desbloquea, el esquema outbox son puntos de sincronización; dueños de rutas delimitados en la matriz siguiente. | Cumple |
-| IX. Documentación breve | Especificación y guías de ejecución bajo `specs/001-verificacion-integracion-m3/`; README se actualiza al implementar. | Cumple |
+| IX. Documentación breve | Especificación y guías de ejecución bajo `specs/iteracion2-testing/`; README se actualiza al implementar. | Cumple |
 | X. Propiedad de datos | M3 solo consulta su PostgreSQL; dobles de módulos externos exponen contratos, no sus tablas. | Cumple |
 | XI. Concurrencia | Restricción única de DNI permanece como árbitro; dos peticiones HTTP concurrentes verifican un único alta y respuesta perdedora 409. Para los endpoints nuevos, el bloqueo de fila del conductor serializa `PATCH /estado` y la aceptación de solicitudes, y una segunda respuesta de solicitud da 409. | Cumple |
 
 **Puerta previa a integrar dobles**: el contrato vigente de M3 tiene 17 operaciones. Se retiraron `PATCH /integraciones/m4/.../disponibilidad` y `POST /integraciones/m6/.../finalizacion`, por lo que M3 no expone escrituras para otros módulos. `Conductor.estado` reemplaza a `conectado`/`disponible` con `DESCONECTADO`, `CONECTADO`, `DISPONIBLE` y `OCUPADO`; `OCUPADO` lo asigna M3 al aceptar una solicitud y no se puede pedir por `PATCH /conductores/{id}/estado` (responde `400`). M4 solo lee (`GET /conductores`, detalle, estado y ubicación), M5 queda para la Iteración 2 y M1 incluye el rol `servicio` de solo lectura. Antes de dar por cubierta una frontera se deberá acordar y versionar su contrato bilateral y hacer que el test contractual falle ante cualquier incompatibilidad. La suite no aprobará tests basados solo en los esqueletos.
 
 **Resultado de gate**: principios constitucionales cumplidos. El diseño técnico está resuelto; la implementación de pruebas contractuales M1/M4/M5 queda condicionada a publicar la matriz bilateral acordada. Este gate no autoriza a inventar un contrato.
+
+## Reparto con Backend y Seguridad
+
+| Qué | Dueño | Testing hace |
+|---|---|---|
+| Reglas de negocio por capa (dominio, casos de uso, repositorios SQL, routers) y sus tests Red/Green | Backend (T301–T401) | No las repite |
+| Helper de token `servicio` y matriz de roles en pruebas de API | Backend (V1, V2) | Lo reutiliza; verifica la matriz con tokens reales de Keycloak (T612) |
+| Migración `0002`, modelos, seed, rol `servicio` y cuenta técnica de M4 | Datos y seguridad (T501–T599) | Depende de ellos; no los modifica |
+| Migrar tests de `conectado`/`disponible` a `estado` | Backend (L1, L9) | Verifica que no queden referencias |
+| `docker-compose.yml`, `.env.example` y `.github/workflows/ci.yml` | Testing (CI) y Datos y seguridad (variables) | Extiende los jobs `contrato`, `test` y `entorno`; no crea un job paralelo |
+| Contrato de 17 operaciones, E2E con Keycloak real, concurrencia HTTP, umbral de cobertura | Testing | Es su aporte propio |
+
+Los IDs de tareas de Testing van de **T601 en adelante** para no chocar con la Iteración 1 (T001–T125), Backend (T301–T401), Datos y seguridad (T501–T599) y Frontend (T701+).
 
 ## Cobertura de los 7 endpoints nuevos (Iteración 2)
 
@@ -79,27 +92,27 @@ Estas pruebas se ejecutan **después** de la migración `0002` y del backend de 
 - El rol `servicio` es de **solo lectura**: recibe `403` en acciones de operador, en `PATCH /conductores/{id}/estado` y en `POST /solicitudes/{id}`. Puede leer `GET /conductores`, detalle, habilitación, vehículos, tipos de servicio, `/estado` y `/ubicacion`.
 - Un conductor solo opera sobre su propio `id_conductor`: recibe `403` al consultar o modificar datos de otro conductor y `403` en `GET /conductores`.
 - El conductor dueño de una solicitud puede responderla; la de otro conductor responde `403 ACCESO_PROHIBIDO` (inexistente responde `404`).
-- Se agrega un helper de token con rol `servicio`, equivalente a `headers_conductor` y `headers_operador`; debe aceptar la lista de roles y los claims `id_conductor`/`id_operador` del caso.
+- El helper de token con rol `servicio` (`headers_servicio`, `headers_conductor_de`) lo crea Backend en V1; Testing lo reutiliza y no agrega uno propio.
 - La cuenta técnica de servicio la define el grupo de Datos y seguridad; en las pruebas se representa con un token firmado con rol `servicio`, no con un endpoint de escritura.
 
 ## Conflictos de planificación
 
 1. **Eventos RabbitMQ vs. FR-013**: el contrato 1.2.0 no define eventos y el backend de la Iteración 2 no los incluye. FR-013 prohíbe introducir funcionalidades de negocio nuevas. Se debe confirmar con la cátedra si M3 publica eventos (trabajo propio de Backend) o si se retira la Historia 3/FR-007–FR-009. Mientras tanto, **PR 3 queda bloqueada**.
-2. **Clientes salientes M4/M6**: las tareas T008–T010 no prueban clientes salientes porque M3 no consume APIs de M4 ni M6 en esta iteración. La PR 4 se limita a lo que M3 expone: lecturas de M4 (`estado` y `/ubicacion`, además del listado y detalle) y solicitudes de M5.
+2. **Clientes salientes M4/M6**: las tareas T608–T610 no prueban clientes salientes porque M3 no consume APIs de M4 ni M6 en esta iteración. La PR 4 se limita a lo que M3 expone: lecturas de M4 (`estado` y `/ubicacion`, además del listado y detalle) y solicitudes de M5.
 3. **Dobles de M4/M6**: ya no hay endpoints que M4 o M6 llamen para escribir en M3. Para las lecturas con rol `servicio` el doble es un token firmado con ese rol; no se crean endpoints HTTP de escritura ni se accede a bases ajenas.
 4. **Orden**: PR 1 (flujo de habilitación) y PR 2 (alta concurrente con DNI duplicado) usan endpoints existentes y pueden avanzar sin esperar. La migración `0002` reemplaza `conectado` y `disponible` por `estado`, así que los tests que usan esas columnas se ajustan cuando llegue. Las pruebas de los 7 endpoints dependen de esa migración y del backend, y van después.
 5. **PR 4**: no depende de PR 3; puede avanzar cuando los contratos de M4/M5 estén aprobados y versionados, sin inventar esquemas locales.
 
 ## Cobertura y CI
 
-El umbral vigente en `.github/workflows/ci.yml` es `--cov-fail-under=65`. Para la Iteración 2 se propone `70 %`, una vez integradas las pruebas de los 7 endpoints. Las pruebas nuevas de contrato (`test_openapi_ejemplos.py` con 17 operaciones, `openapi-core` y catálogo ampliado) y las de integración con PostgreSQL real (estado, vehículo activo, solicitudes, concurrencia, promedio y ubicación) deben ejecutarse dentro del job `integracion-real-m3`, no en jobs separados que puedan quedar verdes por omisión.
+El umbral vigente en `.github/workflows/ci.yml` es `--cov-fail-under=65`. Para la Iteración 2 se propone `70 %`, una vez integradas las pruebas de los 7 endpoints. Las pruebas nuevas de contrato (`test_openapi_ejemplos.py` con 17 operaciones, `openapi-core` y catálogo ampliado) y las de integración con PostgreSQL real (estado, vehículo activo, solicitudes, concurrencia, promedio y ubicación) deben ejecutarse dentro del jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`), no en jobs separados que puedan quedar verdes por omisión.
 
 ## Estructura del proyecto
 
 ### Documentación de esta funcionalidad
 
 ```text
-specs/001-verificacion-integracion-m3/
+specs/iteracion2-testing/
 ├── spec.md
 ├── plan.md
 ├── research.md
@@ -152,7 +165,7 @@ docs/contract/openapi.yaml            # Actualización solo tras acuerdo bilater
 4. **Concurrencia**: generar DNI único por prueba; dos workers con clientes HTTP independientes y barrera de sincronización disparan el mismo `POST /conductores`. Aserciones exactas: respuestas `[201, 409]`, error perdedor `DNI_DUPLICADO`, exactamente una fila y un único evento `ALTA` correspondiente. Para la Iteración 2 se agregan dos carreras: `PATCH /conductores/{id}/estado` contra aceptar una solicitud sobre el mismo conductor, y dos respuestas paralelas de la misma solicitud (`200` y `409 SOLICITUD_YA_RESPONDIDA`).
 5. **E2E Compose**: iniciar PostgreSQL, Keycloak, migraciones, seed y API; conseguir tokens por el endpoint OIDC del realm real de Compose; recorrer alta, licencia, vehículo y aprobaciones; validar roles e historial. Si se desbloquea la publicación, agregar RabbitMQ/publicador, confirmar el mensaje en cola temporal y reiniciar solo API/publicador. En todos los casos, reiniciar la API sin reiniciar PostgreSQL y comprobar que los datos siguen disponibles.
 6. **Contratos vecinos**: cada doble se construye a partir del OpenAPI/esquema bilateral aprobado y valida request/response con los mismos documentos versionados. Un documento faltante, vacío, desactualizado o incompatible falla el job antes de considerar completa la historia.
-7. **CI**: el job Linux `integracion-real-m3` prepara variables de prueba, arranca Compose, verifica salud, corre pytest completo con cobertura (incluyendo Testcontainers, E2E y las pruebas de los 7 endpoints) y siempre ejecuta `docker compose down -v` en `if: always()`. Un fallo de Docker, servicio requerido, test marcado como skip o contrato no disponible hace fallar este job. La cobertura se ejecuta con `--cov-fail-under=70` para la Iteración 2; 65 % es el umbral vigente hasta que se integre la suite nueva. Los jobs de lint y frontend existentes conservan su independencia.
+7. **CI**: los jobs existentes `contrato` y `test` corren pytest completo y el job `entorno` (que ya prepara variables de prueba, arranca Compose, verifica salud y limpia con `if: always()`) agrega los E2E; no se crea un job paralelo. Se corre pytest completo con cobertura (incluyendo Testcontainers, E2E y las pruebas de los 7 endpoints) y siempre ejecuta `docker compose down -v` en `if: always()`. Un fallo de Docker, servicio requerido, test marcado como skip o contrato no disponible hace fallar este job. La cobertura se ejecuta con `--cov-fail-under=70` para la Iteración 2; 65 % es el umbral vigente hasta que se integre la suite nueva. Los jobs de lint y frontend existentes conservan su independencia.
 8. **Endpoints nuevos**: contrato de 17 operaciones y `CODIGOS_POR_ESTADO` con `410`; pruebas de estado y vehículo activo, aceptación de solicitudes, concurrencia `PATCH`/aceptación, solicitudes vencidas y duplicadas, promedio del seed, ubicación nula/simulada y matriz de roles con token `servicio`. Se ejecutan después de la migración `0002` y del backend de la Iteración 2.
 
 ## Complejidad

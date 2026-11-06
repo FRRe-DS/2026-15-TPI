@@ -2,7 +2,7 @@
 
 **Fecha**: 2026-11-01
 
-**Fuentes locales**: `docs/constitucion.md`, `docs/contract/openapi.yaml`, `infra/docker-compose.yml`, `backend/pyproject.toml`, `backend/uv.lock`, `specs/iteracion1/contracts/token-jwt.md`.
+**Fuentes locales**: `docs/constitucion.md`, `docs/contract/openapi.yaml`, `docker-compose.yml`, `backend/pyproject.toml`, `backend/uv.lock`, `specs/iteracion1/contracts/token-jwt.md`.
 
 **Fuente de contratos del grupo**: [`FRRe-DS/2026-TPI`](https://github.com/FRRe-DS/2026-TPI). La versión vigente acordada es la que contiene las 17 operaciones de M3 y la matriz [`contracts/integraciones-modulos.md`](./contracts/integraciones-modulos.md).
 
@@ -108,14 +108,14 @@
 ### 11. Conflictos de planificación
 
 1. **Eventos RabbitMQ vs. FR-013**: el contrato 1.2.0 no define eventos y el backend de la Iteración 2 no los incluye. FR-013 pide no introducir funcionalidades de negocio nuevas. Hay que decidir entre confirmar con la cátedra que M3 publica eventos (trabajo propio de Backend) o retirar la Historia 3/FR-007–FR-009. Mientras tanto, **PR 3 queda bloqueada**.
-2. **T008–T010 no prueban clientes salientes**: M3 no consume APIs de M4 ni M6 en esta iteración. La PR 4 se limita a lo que M3 expone: lecturas de M4 (`estado` y `/ubicacion`, además de listado y detalle) y solicitudes de M5.
+2. **T608–T610 no prueban clientes salientes**: M3 no consume APIs de M4 ni M6 en esta iteración. La PR 4 se limita a lo que M3 expone: lecturas de M4 (`estado` y `/ubicacion`, además de listado y detalle) y solicitudes de M5.
 3. **Dobles de M4/M6**: ya no hay endpoints que M4 o M6 llamen para escribir en M3. Para lecturas con rol `servicio` el doble es un token firmado; no se crean endpoints de escritura ni se accede a bases ajenas.
 4. **Orden**: PR 1 y PR 2 usan endpoints existentes y pueden avanzar sin esperar. La migración `0002` reemplaza `conectado`/`disponible`; los tests que usan esas columnas se ajustan cuando llegue. Las pruebas de los 7 endpoints dependen de esa migración y del backend, y van después.
 5. **PR 4 no depende de PR 3**: puede avanzar cuando los contratos de M4/M5 estén aprobados y versionados, sin inventar esquemas locales.
 
 ### 12. Cobertura y CI para la Iteración 2
 
-**Decisión**: conservar el umbral vigente de `65 %` en `ci.yml` durante la transición y proponer `70 %` para la Iteración 2. Las pruebas nuevas de contrato (17 operaciones, `openapi-core`, catálogo con `410`) y de integración PostgreSQL (estado, vehículo activo, solicitudes, concurrencia, promedio y ubicación) se ejecutan en el job `integracion-real-m3`.
+**Decisión**: conservar el umbral vigente de `65 %` en `ci.yml` durante la transición y proponer `70 %` para la Iteración 2. Las pruebas nuevas de contrato (17 operaciones, `openapi-core`, catálogo con `410`) y de integración PostgreSQL (estado, vehículo activo, solicitudes, concurrencia, promedio y ubicación) se ejecutan en el jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`).
 
 **Motivo**: la lógica nueva es principalmente dominio y casos de uso con tests unitarios, donde subir cobertura es barato. Dejar las pruebas nuevas fuera del job obligatorio permitiría que CI quede verde sin ejecutarlas.
 
