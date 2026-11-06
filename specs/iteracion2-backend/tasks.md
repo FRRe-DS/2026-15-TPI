@@ -68,6 +68,7 @@ Cierre: C1
 | Datos y seguridad | Rol `servicio`, cuenta técnica de M4 y claim `id_conductor` del conductor | La verificación contra el entorno real (C1) |
 | Testing | Ampliar las pruebas de contrato a las 17 operaciones, el umbral de cobertura y los casos de concurrencia de punta a punta (tareas T601+ en [su plan](../iteracion2-testing/plan.md)) | Después de la ola 6 |
 | Testing | Reutiliza los helpers `headers_servicio` y `headers_conductor_de` de V1 en `backend/tests/api/conftest.py`; Testing no crea otros | Después de V1 |
+| Datos y seguridad | Rate limiting con Redis (T515–T523, T529): su T517 se conecta en `seguridad.py` **después de V1 (T364)**; Backend no agrega nada de limitación | Después de V1 |
 | Frontend | Pasar de `conectado` y `disponible` a `estado` en tipos y pantallas | Después de V6 |
 
 **Puntos de sincronización**: `docs/contract/openapi.yaml` · [data-model.md](./data-model.md) · [contracts/casos-de-uso.md](./contracts/casos-de-uso.md) · [contracts/token-jwt.md](./contracts/token-jwt.md) · [contracts/errores.md](./contracts/errores.md).
@@ -176,7 +177,7 @@ Cierre: C1
 
 ### PR `feat/s2-seguridad-rol-servicio` (V1, T359–T366): Rol servicio, claim del conductor y dependencias de acceso
 
-- [ ] T359 [S2] [US1] Test (Red) `backend/tests/api/conftest.py`: `crear_token` acepta varios roles e `id_conductor`; fixtures `headers_servicio` (solo rol `servicio`) y `headers_conductor_de(id)` (rol `conductor` con ese `id_conductor`); `test_fixtures_de_acceso` verifica el contenido de cada token
+- [ ] T359 [S2] [US1] Test (Red) `backend/tests/api/conftest.py`: `crear_token` acepta varios roles e `id_conductor` e incluye por defecto un `sub` de texto no vacío (junto al `iss` existente), porque el rate limiting de Datos y seguridad (T517) clasifica por `(iss, sub)`; fixtures `headers_servicio` (solo rol `servicio`) y `headers_conductor_de(id)` (rol `conductor` con ese `id_conductor`); `test_fixtures_de_acceso` verifica el contenido de cada token
 - [ ] T360 [S2] [US1] Impl (Green) `backend/tests/api/conftest.py`: los ayudantes anteriores, sin cambiar las fixtures existentes, hasta que pase T359
 - [ ] T361 [S2] [US1] Test (Red) `backend/tests/api/test_seguridad_servicio.py`: un token con solo el rol `servicio` es aceptado; un token sin ningún rol reconocido responde `403`; se lee el claim `id_conductor` entero; un `id_conductor` booleano o no numérico se trata como ausente
 - [ ] T362 [S2] [US1] Impl (Green) `backend/app/api/seguridad.py`: agregar `servicio` a `ROLES_VALIDOS` y construir la `Identidad` desde el payload, hasta que pase T361

@@ -1,6 +1,6 @@
 # Tareas: Iteración 2 — Seguridad y plataforma
 
-**Fuentes**: `specs/iteracion2-seguridad/plan.md`, `research.md`, `data-model.md`, `contracts/rate-limiting.md`, `quickstart.md` y el modelo compartido `specs/iteracion2-backend/data-model.md`. No hay `spec.md` ni plantilla Speckit en este checkout; las historias y prioridades se derivan de las áreas, criterios de aceptación y acuerdos de integración del plan.
+**Fuentes**: `specs/iteracion2-seguridad/plan.md`, `research.md`, `data-model.md`, `contracts/rate-limiting.md`, `quickstart.md` y el modelo compartido `specs/iteracion2-backend/data-model.md`. Todavía no hay `spec.md` en esta carpeta (pendiente, lo agrega Seguridad); las historias y prioridades se derivan de las áreas, criterios de aceptación y acuerdos de integración del plan.
 
 **Constitución**: No existe `.specify/memory/constitution.md` en este checkout.
 
@@ -48,7 +48,7 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 **Prueba independiente**: Ejecutar `pytest backend/tests/infra/test_seed.py` y correr `cargar_datos` dos veces sobre una base migrada; comparar escenarios y registros.
 
-- [ ] T510 [P] [US2] Extender `backend/tests/infra/test_seed.py` para exigir conductores en los cuatro estados, casos sin ubicación y sin vehículo activo, con y sin calificaciones, solicitudes en los cuatro estados más una pendiente vigente y otra vencida, documentos vigentes/vencidos y un usuario conductor vinculado mediante `id_conductor`.
+- [ ] T510 [P] [US2] Extender `backend/tests/infra/test_seed.py` para exigir conductores en los cuatro estados, casos sin ubicación y sin vehículo activo, con y sin calificaciones, solicitudes en los cuatro estados más una pendiente vigente y otra vencida, documentos vigentes/vencidos, un usuario conductor vinculado mediante `id_conductor` y un conductor `CONECTADO` con vehículo activo `APROBADA` que pueda aceptar las solicitudes pendientes vigentes (escenario pedido en `specs/iteracion2-backend/data-model.md`, «Datos de prueba mínimos»).
 - [ ] T511 [US2] Actualizar `infra/seed/cargar_datos.py` para insertar esos escenarios con claves naturales deterministas, relaciones válidas y acumuladores de calificaciones coherentes; garantizar idempotencia al ejecutarlo repetidamente y no agregar escrituras de viajes o calificaciones.
 
 ## Fase 5: US3 — Identidad de servicio en Keycloak
@@ -59,7 +59,7 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 - [ ] T512 [P] [US3] Extender `backend/tests/infra/test_realm.py` y `backend/tests/infra/test_keycloak_claim.py` para verificar rol `servicio`, parametrización de la cuenta técnica, usuario conductor del seed, claim JSON entero `id_conductor` y ausencia de credenciales literales versionadas.
 - [ ] T513 [US3] Actualizar `infra/keycloak/realm-m3.json` para declarar el rol de realm `servicio`, la cuenta técnica de M4 y el mapper entero `id_conductor` en el token de acceso; leer identidad y credenciales desde placeholders de entorno y no asignar permisos de escritura al usuario técnico.
-- [ ] T514 [US3] Agregar en `.env.example` placeholders vacíos para las credenciales e identificador de las cuentas técnicas y del usuario conductor; pasar las variables al servicio `keycloak` en `docker-compose.yml` y generarlas en «Preparar variables de entorno» de `.github/workflows/ci.yml`, sin versionar secretos.
+- [ ] T514 [US3] Agregar en `.env.example` los placeholders `M3_SERVICIO_USERNAME` (valor de ejemplo `servicio.m4`) y `M3_SERVICIO_PASSWORD` (vacío) para la cuenta técnica de M4, con el mismo patrón que `M3_OPERADOR_*`; el usuario conductor del seed reutiliza `M3_CONDUCTOR_USERNAME` y `M3_CONDUCTOR_PASSWORD` ya existentes. Testing (T612) y los e2e leen esos nombres exactos; pasar las variables al servicio `keycloak` en `docker-compose.yml` y generarlas en «Preparar variables de entorno» de `.github/workflows/ci.yml`, sin versionar secretos.
 
 ## Fase 6: US4 — Rate limiting distribuido con Redis
 
@@ -67,15 +67,16 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 **Prueba independiente**: Ejecutar las pruebas unitarias/API y de integración descritas abajo; verificar límite exacto, exceso, identidades separadas, expiración, concurrencia, rechazo de `sub` inválido, error Redis y disponibilidad de `/salud`.
 
-- [ ] T515 [P] [US4] Crear `backend/tests/api/test_rate_limit.py` con pruebas deterministas del límite exacto, ventana deslizante, claves separadas por identidad/scope, `Retry-After` redondeado hacia arriba, no contabilización de solicitudes denegadas, límites configurables y errores de Redis mediante cliente/reloj falso.
+- [ ] T515 [P] [US4] Crear `backend/tests/api/test_rate_limit.py` (los tokens de prueba incluyen `sub` desde Backend V1/T359; no se edita `conftest.py` aquí) con pruebas deterministas del límite exacto, ventana deslizante, claves separadas por identidad/scope, `Retry-After` redondeado hacia arriba, no contabilización de solicitudes denegadas, límites configurables y errores de Redis mediante cliente/reloj falso.
 - [ ] T516 [US4] Implementar `backend/app/api/rate_limit.py` con sorted set y script Lua atómico usando `TIME` de Redis; eliminar eventos fuera de ventana, agregar solo solicitudes permitidas, asignar TTL y calcular el reintento sin extender la ventana en una denegación.
-- [ ] T517 [US4] Integrar el limitador en `backend/app/api/seguridad.py`: verificar firma, issuer y expiración antes de usar claims; usar `(iss, sub)` solo si ambos son texto no vacío, y aplicar cuota por `request.client.host` cuando no haya JWT válido o `sub` válido; no confiar en `X-Forwarded-For` sin proxy confiable configurado.
+- [ ] T517 [US4] Integrar el limitador como dependencia/middleware propio de `backend/app/api/rate_limit.py` y conectarlo en `backend/app/api/seguridad.py` **después de que Backend integre V1 (T364)**, que reescribe las dependencias de acceso del mismo archivo; el cambio aquí se limita a obtener la identidad verificada y llamar al limitador, sin tocar `ROLES_VALIDOS` ni `Identidad`: verificar firma, issuer y expiración antes de usar claims; usar `(iss, sub)` solo si ambos son texto no vacío, y aplicar cuota por `request.client.host` cuando no haya JWT válido o `sub` válido; no confiar en `X-Forwarded-For` sin proxy confiable configurado.
 - [ ] T518 [US4] Actualizar `backend/app/api/errores.py` y `backend/tests/api/test_errores.py` para emitir 429 `LIMITE_DE_SOLICITUDES` con `Retry-After` y 503 `SERVICIO_TEMPORALMENTE_NO_DISPONIBLE` ante timeout/falla Redis; mantener el cuerpo común `{"codigo": "...", "mensaje": "..."}` sin detalles internos ni caché de 429.
 - [ ] T519 [US4] Actualizar el ciclo de vida de `backend/app/api/main.py` para crear y cerrar el cliente Redis sin hacer `PING` obligatorio al iniciar; excluir `/salud` del limitador y permitir que la API arranque aunque Redis no responda, traduciendo errores de solicitudes limitadas a 503.
 - [ ] T520 [US4] Agregar Redis con versión fijada, contraseña obligatoria, red privada y healthcheck mediante `REDISCLI_AUTH` en `docker-compose.yml`; no publicar puerto ni agregar volumen; documentar `REDIS_URL`, `REDIS_PASSWORD` y límites en `.env.example`, con contraseña vacía y valores de límite por defecto.
-- [ ] T521 [US4] Actualizar `.github/workflows/ci.yml` para generar aleatoriamente `REDIS_PASSWORD` para el smoke test y esperar Redis saludable; extender `.github/scripts/humo.sh` para comprobar healthcheck, respuesta 429 con `Retry-After`, respuesta 503 al detener Redis y disponibilidad de `/salud` durante esa falla.
+- [ ] T521 [US4] Actualizar `.github/workflows/ci.yml` para generar aleatoriamente `REDIS_PASSWORD` para el smoke test y esperar Redis saludable; extender `.github/scripts/humo.sh` para comprobar healthcheck, respuesta 429 con `Retry-After`, respuesta 503 al detener Redis y disponibilidad de `/salud` durante esa falla. Esas comprobaciones son el **último paso** del job `entorno`, después de los e2e de Testing: la ráfaga anónima agota el cupo de la IP durante la ventana y detener Redis dejaría el stack en 503.
 - [ ] T522 [US4] Crear `backend/tests/integracion/test_rate_limit_redis.py` para probar concurrencia, expiración y cuotas compartidas contra Redis real; configurar en `.github/workflows/ci.yml` un Redis aislado para el job `test` y un `REDIS_URL` de integración independiente del smoke test.
-- [ ] T523 [US4] Coordinar con Testing y actualizar `docs/contract/openapi.yaml` y `backend/tests/contrato/test_openapi_ejemplos.py` para documentar las respuestas comunes 429/503, sus códigos y encabezados de `specs/iteracion2-seguridad/contracts/rate-limiting.md`, sin añadir rutas ni modificar permisos existentes.
+- [ ] T523 [US4] Entregar a Testing el texto de las respuestas comunes 429/503 (códigos, cuerpo y `Retry-After`) tal como están en `specs/iteracion2-seguridad/contracts/rate-limiting.md`. **Testing edita** `docs/contract/openapi.yaml` y `backend/tests/contrato/test_openapi_ejemplos.py` en su tarea T617; el contrato **sigue en la versión 1.2.0** (son respuestas transversales, sin rutas ni permisos nuevos). Esta tarea se cierra cuando T617 está integrada.
+- [ ] T529 [US4] Configurar los límites de CI para no interferir con otros grupos: en «Preparar variables de entorno» de `.github/workflows/ci.yml` (jobs `entorno` y `test`) fijar `RATE_LIMIT_AUTH_REQUESTS=1000` y dejar `RATE_LIMIT_ANON_REQUESTS=60`; los e2e y las pruebas de concurrencia de Testing usan JWT (cuota por `(iss, sub)`), y las pocas llamadas anónimas no alcanzan 60. Documentar en `quickstart.md` que bajar esos valores en CI rompe a Testing.
 
 ## Fase 7: US5 — Publicación de imagen de API en Docker Hub
 
@@ -85,13 +86,12 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 - [ ] T524 [US5] Parametrizar `image` de `api`, `migraciones` y `seed` en `docker-compose.yml` con `${M3_API_IMAGE:-m3-backend:local}`, conservar el build local desde `backend/Dockerfile` y permitir levantar una imagen descargada sin build.
 - [ ] T525 [US5] Agregar a `.github/workflows/ci.yml` un job de publicación dependiente de `ci`, limitado a eventos `push` en `dev`/`main`; autenticarse con secretos `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` y variable `DOCKERHUB_IMAGE`, publicar solo Backend con tag SHA completo y tag de rama, fijar acciones externas por SHA, usar permisos mínimos y no publicar en PR.
-- [ ] T526 [US5] Actualizar `DESPLIEGUE.md` para documentar configuración de secretos/variable de Docker Hub, build local, `docker compose pull` y despliegue por tag SHA usando `M3_API_IMAGE`, sin incluir credenciales en texto plano.
+- [ ] T526 [US5] Actualizar `DESPLIEGUE.md` (una sola vez, incluyendo `REDIS_*`, límites y las cuentas `M3_SERVICIO_*` que agregan T514 y T520) para documentar configuración de secretos/variable de Docker Hub, build local, `docker compose pull` y despliegue por tag SHA usando `M3_API_IMAGE`, sin incluir credenciales en texto plano.
 
 ## Fase 8: Pulido y coordinación transversal
 
 - [ ] T527 Actualizar `specs/iteracion2-seguridad/quickstart.md` para que preparación de entorno, comandos Compose y resultados esperados coincidan con la configuración Redis, migración, seed, realm, rate limiting, smoke test y publicación de imagen.
-- [ ] T528 Revisar `specs/iteracion2-seguridad/plan.md`, `specs/iteracion2-seguridad/data-model.md` y `specs/iteracion2-seguridad/contracts/rate-limiting.md` para eliminar contradicciones de variables, códigos HTTP, límites, identidad, fail-closed y propiedad de archivos entre Seguridad, Backend y Testing; mantener fuera de alcance las rutas retiradas de M4/M6.
-- [ ] T529 Ejecutar las validaciones de `specs/iteracion2-seguridad/quickstart.md`, migración/esquema/seed/realm, pruebas de rate limiting y contrato, `docker compose config` y smoke test; confirmar que `/salud` sigue disponible ante una falla Redis y que el workflow nunca publica en `pull_request`.
+- [ ] T528 Ejecutar las validaciones de `specs/iteracion2-seguridad/quickstart.md`, migración/esquema/seed/realm, pruebas de rate limiting y contrato, `docker compose config` y smoke test; confirmar que `/salud` sigue disponible ante una falla Redis y que el workflow nunca publica en `pull_request`.
 
 ## Dependencias
 
@@ -110,13 +110,17 @@ US4: T515 -> T516 -> T517
      T520 requiere T503; se integra después de T514 por cambios compartidos en Compose/env
      T521 requiere T519 y T520
      T522 requiere T516 y T520; serializar cambios al workflow después de T521
-     T523 requiere el contrato de respuestas acordado con Testing y T518
+     T523 requiere T518 (códigos definidos); se cierra cuando Testing integra T617
+     T529 requiere T520 y T521 (mismo ci.yml); el humo del 429 va último en el job `entorno`
+     T517 requiere que Backend haya integrado V1 (T364) en `seguridad.py`
 
 US5: T524 requiere T520 (mismo docker-compose.yml)
      T525 requiere T521 y T522 (mismo workflow y CI verde)
      T526 requiere T524 para documentar la referencia de imagen publicada
 
-Pulido: T527 requiere US1–US5; T528 revisa documentos finales; T529 requiere T527 y T528
+Pulido: T527 requiere US1–US5; T528 requiere T527
+
+T501–T503 (configuración de Redis) no bloquean a US1–US3: US1 se integra primero para desbloquear a Backend L9/L10.
 ```
 
 US1 y el desarrollo inicial de US4 son independientes en esquema. Los cambios sobre `.env.example`, `docker-compose.yml` y `.github/workflows/ci.yml` se integran en secuencia para evitar conflictos entre US3, US4 y US5.
@@ -128,6 +132,18 @@ US1 y el desarrollo inicial de US4 son independientes en esquema. Los cambios so
 - **US3**: T512 puede prepararse en paralelo con T510; T513 requiere T512 y T514 se serializa con las tareas de Redis que modifican Compose/env/CI.
 - **US4**: T515 (tests/unitarios) y T523 (contrato/OpenAPI, coordinado con Testing) pueden desarrollarse en paralelo; T516–T519 implementan el flujo API; T520–T522 integran secuencialmente configuración compartida y pruebas de stack.
 - **US5**: T526 (documentación de despliegue) puede prepararse en paralelo con T525 cuando la referencia de imagen esté definida; T524 y T525 esperan la estabilización de Compose y CI de US4.
+
+## PRs de implementación (todas contra `dev`, en este orden)
+
+| PR | Tareas | Contenido | Depende de |
+|---|---|---|---|
+| S1 | T504–T511 | Migración `0002`, modelos, adaptación mínima de `sql_conductores.py` y seed | — (desbloquea Backend L9/L10) |
+| S2 | T512–T514 | Rol `servicio`, cuenta M4 y usuario conductor en Keycloak | S1 |
+| S3 | T501–T503, T515–T523, T529 | Redis y rate limiting | S2 (Compose/env/CI) y Backend V1 para T517 |
+| S4 | T524–T526 | Publicación de la imagen | S3 |
+| S5 | T527–T528 | Quickstart y validación integrada | S1–S4 |
+
+Orden de edición sobre `docker-compose.yml`, `.env.example` y `.github/workflows/ci.yml` entre grupos: Seguridad S2 → Testing PR 1 → Seguridad S3 → Testing PR 5 → Seguridad S4. Detalle en `specs/iteracion2-testing/plan.md` («Reparto con Backend y Seguridad»).
 
 ## Estrategia de implementación
 

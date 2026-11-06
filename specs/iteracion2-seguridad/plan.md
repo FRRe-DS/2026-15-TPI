@@ -89,12 +89,12 @@ Las tareas de Backend que usan repositorios en memoria pueden avanzar en paralel
 
 ## Acuerdos de integración con Backend y Testing
 
-- **Carpeta y tareas**: este plan vive en `specs/iteracion2-seguridad/`. Cuando se generen las tareas, usar los IDs **T501–T599** (Backend usa T301–T401, Testing T601+ y Frontend T701+).
+- **Carpeta y tareas**: este plan vive en `specs/iteracion2-seguridad/`. Las tareas están en [tasks.md](./tasks.md) con los IDs **T501–T599** (Backend usa T301–T401, Testing T601+ y Frontend T701+).
 - **Quién toca `sql_conductores.py`**: Datos y seguridad entra primero con `0002`, los modelos y una adaptación mínima que lee y escribe la columna `estado` a partir de los booleanos del dominio vigente. Cuando Backend integra L1 (dominio con `estado`), esa adaptación se reemplaza por el mapeo directo; L1 no agrega otra adaptación transitoria. Los campos nuevos (`id_vehiculo_activo`, fecha, puntajes) y el filtro por `tipo_servicio` los mapea Backend en L9.
 - **Helper de token `servicio`**: lo crea Backend en V1 (`backend/tests/api/conftest.py`). Datos y seguridad no agrega helpers de token de API; sus pruebas de realm usan el realm importado.
 - **Variables de entorno nuevas**: `REDIS_URL`, `REDIS_PASSWORD`, los límites y `M3_API_IMAGE` se documentan en `.env.example` según corresponda; Compose y el paso «Preparar variables de entorno» de `.github/workflows/ci.yml` reciben las variables necesarias. El smoke test verifica que Redis esté saludable y las respuestas de límite. Los secretos de Docker Hub viven solo en la configuración de GitHub Actions.
 - **Guía de despliegue**: `DESPLIEGUE.md` describe el Compose unificado de la raíz (frontend incluido); si cambian variables o puertos, se actualiza en la misma PR.
-- **Contrato de respuestas**: Testing mantiene OpenAPI y pruebas de contrato; Datos y seguridad entrega los códigos y encabezados requeridos para 429/503 sin modificar las 17 rutas.
+- **Contrato de respuestas**: el contrato **se mantiene en 1.2.0**; las respuestas 429/503 son transversales. Testing mantiene OpenAPI y pruebas de contrato (T617); Datos y seguridad entrega los códigos y encabezados requeridos para 429/503 sin modificar las 17 rutas.
 
 ## Criterios de aceptación
 

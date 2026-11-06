@@ -66,6 +66,10 @@ Fuente disponible: [`docs/constitucion.md`](../../docs/constitucion.md), versió
 | Migrar tests de `conectado`/`disponible` a `estado` | Backend (L1, L9) | Verifica que no queden referencias |
 | `docker-compose.yml`, `.env.example` y `.github/workflows/ci.yml` | Testing (CI) y Datos y seguridad (variables) | Extiende los jobs `contrato`, `test` y `entorno`; no crea un job paralelo |
 | Contrato de 17 operaciones, E2E con Keycloak real, concurrencia HTTP, umbral de cobertura | Testing | Es su aporte propio |
+| Respuestas transversales 429/503 en `openapi.yaml` (versión 1.2.0 sin cambio) | Testing edita el YAML y las pruebas de contrato (T617); Datos y seguridad define códigos y encabezados | T617 |
+| Límites de rate limiting en CI (`RATE_LIMIT_AUTH_REQUESTS=1000`, anónimo 60) | Datos y seguridad (T529) | Sus e2e y pruebas de concurrencia usan JWT, así que no alcanzan el límite; la ráfaga de humo del 429 corre al final del job `entorno` |
+| Nombres de variables de la cuenta técnica | Datos y seguridad (T514): `M3_SERVICIO_USERNAME` y `M3_SERVICIO_PASSWORD`; el conductor usa `M3_CONDUCTOR_*` | T612 lee esos nombres |
+| Orden de edición de `docker-compose.yml`, `.env.example` y `ci.yml` | Seguridad S2 → Testing PR 1 → Seguridad S3 → Testing PR 5 → Seguridad S4 | Respeta el orden para evitar conflictos |
 
 Los IDs de tareas de Testing van de **T601 en adelante** para no chocar con la Iteración 1 (T001–T125), Backend (T301–T401), Datos y seguridad (T501–T599) y Frontend (T701+).
 
