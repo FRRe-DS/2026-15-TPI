@@ -44,6 +44,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 12. [Cómo trabajamos](#cómo-trabajamos)
 13. [Estado de la Iteración 1](#estado-de-la-iteración-1)
 14. [Pendientes](#pendientes) 
+15. [Planificación de la Iteración 2 — Plataforma y Seguridad](./specs/iteracion2-seguridad/plan.md)
 
 ---
 
@@ -129,7 +130,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ## Contrato de la API
 
-- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.0.0.
+- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.2.0.
 - **El contrato dirige:** no se implementa ningún endpoint que no esté en el `openapi.yaml`.
 - URL base en desarrollo local: `http://localhost:8080/api/v1`
 - Formato: JSON.
@@ -186,24 +187,6 @@ El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `esta
 - `GET .../vehiculos` lista los vehículos del conductor. Filtros: `tipo` y `habilitacion`.
 - `GET .../vehiculos/{id_vehiculo}` devuelve el vehículo. Si es de otro conductor, responde `404`.
 - `POST .../vehiculos/{id_vehiculo}/habilitacion` funciona igual que la del conductor, pero sobre el vehículo.
-
-### Endpoints de M6 que consumimos
-
-Los implementa M6 y M3 solo los consume. **No forman parte de nuestro contrato** (`docs/contract/openapi.yaml`); los define el contrato de M6.
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/viajes/{id_viaje}` | Consultar estado y resumen del viaje. |
-| `POST` | `/viajes/{id_viaje}/finalizar` | Finalizar un viaje en curso. Body: `tiempo` (minutos), `distancia` (km), `cierre`. |
-| `POST` | `/viajes/{id_viaje}/cancelar` | Cancelar un viaje. Motivos: `OTRO`, `DEFECTO MECANICO`, `PASAJERO NO VINO`. |
-
-### Endpoint de M4 que consumimos
-
-Lo implementa M4 y M3 solo lo consume. **No forma parte de nuestro contrato**; la ruta es provisoria hasta que M4 la confirme.
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| `PUT` | `/integraciones/m4/conductores/{id_conductor}/ubicacion` | Enviar a M4 el conductor, su vehículo activo y su ubicación. Como el TPI no tiene app móvil, M3 puede simular la ubicación. |
 
 ---
 
@@ -266,14 +249,18 @@ Todos los errores usan el mismo formato:
 | HTTP | Código | Cuándo |
 |---|---|---|
 | `400` | `SOLICITUD_INVALIDA` | La forma del pedido no cumple el contrato (DNI inválido, motivo vacío, sin tipos de servicio, etc.). |
-| `401` | _(por definir)_ | Token ausente, malformado, con firma inválida, vencido o de otro emisor. |
-| `403` | _(por definir)_ | Sin permisos: acción de habilitación sin rol operador, o token de operador sin `id_operador` numérico. |
+| `401` | `NO_AUTENTICADO` | Token ausente, malformado, con firma inválida, vencido o de otro emisor. |
+| `403` | `SIN_PERMISOS` | El rol no permite la operación. |
+| `403` | `ACCESO_PROHIBIDO` | El conductor intenta acceder a recursos de otro conductor o el token no trae un `id_conductor` numérico. |
 | `404` | `NO_ENCONTRADO` | El recurso no existe. |
 | `409` | `DNI_DUPLICADO` | Ya existe un conductor con ese DNI. |
 | `409` | `PATENTE_DUPLICADA` | Ya existe un vehículo con esa patente. |
 | `409` | `TRANSICION_INVALIDA` | La transición de habilitación no está permitida. |
+| `409` | `SOLICITUD_YA_RESPONDIDA` | La solicitud ya fue aceptada o rechazada. |
+| `410` | `SOLICITUD_VENCIDA` | La oferta superó su vencimiento o ya figura como vencida. |
 | `422` | `LICENCIA_VIGENTE_REQUERIDA` | Se intenta aprobar un conductor sin licencia vigente. |
 | `422` | `DATOS_INVALIDOS` | Se incumple una regla de negocio (por ejemplo, vencimiento anterior a la emisión). |
+| `422` | `CONDUCTOR_NO_HABILITADO` | El conductor no cumple las condiciones para quedar disponible o aceptar una solicitud. |
 | `500` | `ERROR_INTERNO` | Error inesperado. No expone detalles internos. |
 
 El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
@@ -361,7 +348,7 @@ Puertos: `5432`, `8081` y `8080`. La API usa el `8080`.
 
 ### Arranque rápido
 
-> ⚠️ **Pendiente:** completar con los comandos de `quickstart.md`. El objetivo es que API, base e identidad levanten en menos de 10 minutos con un solo comando.
+Guía de despliegue local de punta a punta: [DESPLIEGUE.md](./DESPLIEGUE.md).
 
 ---
 
@@ -424,30 +411,11 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 | Módulo | Qué aparece en el contrato | Qué recibimos / qué entregamos |
 |---|---|---|
 | **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
-| **M4 - Ubicación y Disponibilidad** | Lectura del estado del conductor, `latitud`, `longitud` y `fecha_act_ubic` en los GET de conductores (hoy como `conectado` y `disponible`; el contrato los unifica en `estado`) y, en el contrato, `GET .../estado` y `GET .../ubicacion` por conductor (el contrato suma `id_vehiculo_activo`, que se implementa en la Iteración 2); y `PUT /integraciones/m4/.../ubicacion` (M3 → M4, ruta provisoria). | M4 consulta la API; M3 le envía el conductor y su ubicación (simulada). M4 no escribe en M3: `OCUPADO` lo asigna M3 al aceptar una solicitud, y si M4 necesita marcarlo hay que acordarlo. |
-| **M5 - Solicitud y Despacho** | El contrato define `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`, con el esquema `Solicitud`. |⚠️ *Por definir.* |
-| **M6 - Viajes y Ciclo de Vida** | Consumimos de M6: `GET /viajes/{id}`, `POST /viajes/{id}/finalizar` y `POST /viajes/{id}/cancelar`. | Consumimos esos tres endpoints. M6 no escribe en M3: cómo se actualizan el puntaje y la ubicación tras un viaje queda por acordar con M6. ⚠️ *Por definir.* |
+| **M4 - Ubicación y Disponibilidad** | Consulta `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`, con rol `servicio` de solo lectura. | M4 lee estado y ubicación de M3; no hay operaciones de escritura de M4 en el contrato. |
+| **M5 - Solicitud y Despacho** | `GET /conductores/{id_conductor}/solicitudes` y `POST /solicitudes/{id_solicitud}`. | M5 origina las solicitudes; M3 las lista y el conductor puede aceptarlas o rechazarlas. |
+| **M6 - Viajes y Ciclo de Vida** | Sin operaciones consumidas ni de integración en el alcance de esta iteración. | No se implementan viajes ni calificación. El puntaje y la cantidad de calificaciones son de solo lectura. |
 
-Las actualizaciones de estado y ubicación, las solicitudes y los viajes corresponden a la **Iteración 2**. La lectura de disponibilidad y ubicación ya está disponible en los GET existentes.
-| `400` | Solicitud mal formada |
-| `401` | Token ausente o inválido |
-| `403` | Sin permisos |
-| `404` | Recurso inexistente |
-| `409` | Duplicado o transición inválida |
-| `410` | Oferta vencida |
-| `422` | Incumple una regla de negocio |
-| `500` | Error interno |
-
-### Lecturas para M4
-
-Con un JWT de nuestro realm que tenga rol `conductor` u `operador`:
-
-- `GET /api/v1/conductores?disponible=true&habilitado=true`: lista los conductores disponibles y aprobados. Puede combinarse con `tipo_vehiculo=AUTO` o `MOTO`.
-- `GET /api/v1/conductores/{id_conductor}`: consulta un conductor por su ID entero; un ID inexistente responde `404`.
-
-Ambos devuelven `conectado`, `disponible`, `latitud`, `longitud` y `fecha_act_ubic`. Las coordenadas y la fecha salen de PostgreSQL; cuando no están registradas se devuelve `null`. La fecha indica cuándo se registró la ubicación, no cuándo se hizo el GET. Este cambio solo permite leer: no actualiza posiciones ni aplica vencimiento, distancias, cercanía o ETA. Los parámetros de búsqueda `latitud` y `longitud` siguen sin ordenar ni filtrar.
-
-El [esquema preliminar del grupo de M4](https://github.com/FRRe-DS/2026-03-TPI/blob/main/app/schemas/schemas.py) usa otros nombres: `conductor_id`, `lat_conductor`, `lon_conductor` y `tipo_v`. Al consumir M3 deben mapearlos desde `id`, `latitud`, `longitud` y el tipo del vehículo correspondiente en `vehiculos`. M3 usa IDs enteros; su esquema preliminar declara UUID y requiere ajustar ese tipo en M4. No hay una integración ejecutable en ese repositorio que permita verificar todavía el cliente de M4. Las ubicaciones nulas deben tratarse como desconocidas, nunca como `(0, 0)`.
+Las 17 operaciones propias y sus permisos se definen en [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml). No se agregan rutas de escritura para M4/M6 ni operaciones de viaje o calificación.
 
 ---
 
