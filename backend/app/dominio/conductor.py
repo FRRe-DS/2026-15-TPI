@@ -74,7 +74,7 @@ class Conductor:
 
     @property
     def tiene_ubicacion(self) -> bool:
-        return not (self.latitud is None and self.longitud is None and self.fecha_act_ubic is None)
+        return self.latitud is not None and self.longitud is not None
 
     def fijar_ubicacion(self, latitud: float, longitud: float, ahora: datetime) -> None:
         if not -90 <= latitud <= 90:
