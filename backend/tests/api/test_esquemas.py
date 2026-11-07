@@ -9,7 +9,7 @@ from app.api.esquemas.habilitacion import (
 )
 from app.api.esquemas.vehiculo import VehiculoCreate
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from pydantic import ValidationError
 
 
@@ -51,17 +51,16 @@ def test_email_invalido(email: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("conectado", "disponible", "estado_esperado"),
+    ("estado_dominio", "estado_esperado"),
     [
-        (False, False, EstadoOperativo.DESCONECTADO),
-        (True, False, EstadoOperativo.CONECTADO),
-        (True, True, EstadoOperativo.DISPONIBLE),
-        (False, True, EstadoOperativo.DESCONECTADO),
+        (EstadoConductor.DESCONECTADO, EstadoOperativo.DESCONECTADO),
+        (EstadoConductor.CONECTADO, EstadoOperativo.CONECTADO),
+        (EstadoConductor.DISPONIBLE, EstadoOperativo.DISPONIBLE),
+        (EstadoConductor.OCUPADO, EstadoOperativo.OCUPADO),
     ],
 )
 def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
-    conectado: bool,
-    disponible: bool,
+    estado_dominio: EstadoConductor,
     estado_esperado: EstadoOperativo,
 ) -> None:
     conductor = Conductor.crear(
@@ -72,14 +71,15 @@ def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
         email="ana@example.com",
     )
     conductor.id = 1
-    conductor.conectado = conectado
-    conductor.disponible = disponible
+    conductor.estado = estado_dominio
 
     respuesta = conductor_desde_detalle(
         ConductorDetalle(conductor=conductor, documentos=[], vehiculos=[])
     )
 
     assert respuesta.estado == estado_esperado
+    assert respuesta.conectado is (estado_dominio is not EstadoConductor.DESCONECTADO)
+    assert respuesta.disponible is (estado_dominio is EstadoConductor.DISPONIBLE)
 
 
 def test_nombre_obligatorio() -> None:

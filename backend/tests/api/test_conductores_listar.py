@@ -1,4 +1,8 @@
+from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
+from app.dominio.conductor import EstadoConductor
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
+
+from tests.api.conftest import conductor_de_prueba
 
 URL = "/api/v1/conductores"
 
@@ -10,16 +14,18 @@ def test_lista_sin_filtros(client, casos, headers_conductor) -> None:
     assert len(respuesta.json()) == 1
     assert respuesta.json()[0]["id"] == 1
     assert casos["listar_conductores"].llamadas == [
-        {"habilitado": None, "disponible": None, "tipo_vehiculo": None}
+        {"habilitado": None, "estado": None, "tipo_vehiculo": None}
     ]
 
 
-def test_pasa_los_filtros_al_caso_de_uso(client, casos, headers_conductor) -> None:
+def test_disponible_verdadero_se_traduce_al_estado_disponible(
+    client, casos, headers_conductor
+) -> None:
     respuesta = client.get(
         URL,
         params={
             "habilitado": "true",
-            "disponible": "false",
+            "disponible": "true",
             "tipo_vehiculo": "AUTO",
         },
         headers=headers_conductor,
@@ -29,9 +35,28 @@ def test_pasa_los_filtros_al_caso_de_uso(client, casos, headers_conductor) -> No
     assert casos["listar_conductores"].llamadas == [
         {
             "habilitado": True,
-            "disponible": False,
+            "estado": EstadoConductor.DISPONIBLE,
             "tipo_vehiculo": TipoVehiculoDominio.AUTO,
         }
+    ]
+    assert len(respuesta.json()) == 1
+
+
+def test_disponible_falso_excluye_a_los_conductores_disponibles(
+    client, casos, headers_conductor
+) -> None:
+    disponible = ConductorDetalle(conductor_de_prueba(id=1), documentos=[], vehiculos=[])
+    no_disponible = ConductorDetalle(
+        conductor_de_prueba(id=2, estado=EstadoConductor.CONECTADO), documentos=[], vehiculos=[]
+    )
+    casos["listar_conductores"].resultado = [disponible, no_disponible]
+
+    respuesta = client.get(URL, params={"disponible": "false"}, headers=headers_conductor)
+
+    assert respuesta.status_code == 200
+    assert [conductor["id"] for conductor in respuesta.json()] == [2]
+    assert casos["listar_conductores"].llamadas == [
+        {"habilitado": None, "estado": None, "tipo_vehiculo": None}
     ]
 
 

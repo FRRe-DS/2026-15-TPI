@@ -6,13 +6,17 @@ Firmas bajo prueba:
 
 Devuelve el conductor con sus documentos (estado VIGENTE/VENCIDO calculado con
 `reloj.hoy()`) y sus vehiculos, solo los suyos. Lanza NoEncontrado si el id no existe.
+
+Los tests de los campos de Iteracion 2 del conductor (T345) son de CARACTERIZACION: L1 y L7
+ya los dejaron soportados, asi que pasan de entrada, sin fase Red, y T346 no requirio cambios.
 """
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import pytest
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -82,7 +86,7 @@ def test_devuelve_los_datos_del_conductor(obtener_conductor, uow):
         uow,
         "30123456",
         habilitacion=EstadoHabilitacion.APROBADA,
-        disponible=True,
+        estado=EstadoConductor.DISPONIBLE,
     )
 
     conductor = obtener_conductor.ejecutar(id_conductor=guardado.id).conductor
@@ -94,8 +98,40 @@ def test_devuelve_los_datos_del_conductor(obtener_conductor, uow):
     assert conductor.telefono == "+54 379 4000000"
     assert conductor.email == "ana@example.com"
     assert conductor.habilitacion is EstadoHabilitacion.APROBADA
-    assert conductor.conectado is False
-    assert conductor.disponible is True
+    assert conductor.estado is EstadoConductor.DISPONIBLE
+
+
+def test_devuelve_estado_vehiculo_activo_y_puntajes_con_los_valores_guardados(
+    obtener_conductor, uow
+):
+    guardado = guardar_conductor(
+        uow,
+        "30123456",
+        estado=EstadoConductor.OCUPADO,
+        id_vehiculo_activo=7,
+        suma_puntajes=14,
+        cantidad_calificaciones=3,
+    )
+
+    conductor = obtener_conductor.ejecutar(id_conductor=guardado.id).conductor
+
+    assert conductor.estado is EstadoConductor.OCUPADO
+    assert conductor.id_vehiculo_activo == 7
+    assert conductor.suma_puntajes == 14
+    assert conductor.cantidad_calificaciones == 3
+    assert conductor.puntaje_promedio == Decimal("4.67")
+
+
+def test_un_conductor_sin_calificaciones_ni_vehiculo_activo_no_tiene_promedio(
+    obtener_conductor, uow
+):
+    guardado = guardar_conductor(uow, "30123456")
+
+    conductor = obtener_conductor.ejecutar(id_conductor=guardado.id).conductor
+
+    assert conductor.id_vehiculo_activo is None
+    assert conductor.cantidad_calificaciones == 0
+    assert conductor.puntaje_promedio is None
 
 
 def test_devuelve_solo_el_conductor_pedido_con_sus_documentos_y_vehiculos(obtener_conductor, uow):

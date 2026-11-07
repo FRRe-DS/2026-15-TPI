@@ -15,8 +15,11 @@ Reglas: la transicion debe estar en la matriz (la misma del conductor, pero sin 
 licencia: APROBAR no exige documentos); el motivo es obligatorio; el vehiculo se toma con
 `uow.bloquear_vehiculo(id_conductor, id_vehiculo)`; un vehiculo inexistente, de un
 conductor inexistente o de otro conductor es NoEncontrado. El estado y el evento se
-confirman juntos con `uow.commit()`; ante cualquier error no queda nada persistido. La
-habilitacion de los tipos de servicio no cambia (llega en la Iteracion 2).
+confirman juntos con `uow.commit()`; ante cualquier error no queda nada persistido.
+
+Iteracion 2: el `habilitado` de los tipos de servicio se sincroniza con la accion en la misma
+transaccion que el evento. Aprobar habilita todos; suspender o rechazar los deshabilita;
+observar no los toca.
 """
 
 import itertools
@@ -76,6 +79,11 @@ class UnidadDeTrabajoQueRegistraBloqueos(UnidadDeTrabajoEnMemoria):
     def __init__(self):
         super().__init__()
         self.vehiculos_bloqueados = []
+        self.confirmaciones = 0
+
+    def commit(self):
+        self.confirmaciones += 1
+        super().commit()
 
     def bloquear_vehiculo(self, id_conductor, id_vehiculo):
         self.vehiculos_bloqueados.append((id_conductor, id_vehiculo))
@@ -348,20 +356,143 @@ def test_el_historial_no_mezcla_eventos_de_otro_vehiculo_ni_del_conductor(accion
     assert len(uow.habilitaciones.historial_conductor(conductor.id)) == 1
 
 
-def test_los_tipos_de_servicio_siguen_sin_habilitar_tras_aprobar(accionar, uow):
-    conductor = sembrar_conductor(uow)
-    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+def fijar_habilitados(uow, vehiculo, habilitados):
+    for servicio, habilitado in zip(vehiculo.tipos_servicio, habilitados, strict=True):
+        servicio.habilitado = habilitado
+    uow.vehiculos.guardar(vehiculo)
+    uow.commit()
 
-    accionar.ejecutar(
+
+def habilitados_guardados(uow, id_conductor, id_vehiculo):
+    guardado = uow.vehiculos.obtener(id_conductor, id_vehiculo)
+    return [servicio.habilitado for servicio in guardado.tipos_servicio]
+
+
+def accionar_sobre(accionar, conductor, vehiculo, accion):
+    return accionar.ejecutar(
         id_conductor=conductor.id,
         id_vehiculo=vehiculo.id,
-        accion=APROBAR,
+        accion=accion,
         motivo=MOTIVO,
         id_operador=ID_OPERADOR,
     )
 
-    guardado = uow.vehiculos.obtener(conductor.id, vehiculo.id)
-    assert [s.habilitado for s in guardado.tipos_servicio] == [False, False]
+
+@pytest.mark.parametrize(
+    ("estado_inicial", "habilitados_iniciales"),
+    [
+        (PENDIENTE, [False, False]),
+        (OBSERVADA, [False, False]),
+        (SUSPENDIDA, [False, False]),
+        (PENDIENTE, [True, False]),
+    ],
+    ids=["desde_pendiente", "desde_observada", "desde_suspendida", "con_uno_ya_habilitado"],
+)
+def test_aprobar_habilita_todos_los_tipos_de_servicio(
+    accionar, uow, estado_inicial, habilitados_iniciales
+):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, estado_inicial)
+    fijar_habilitados(uow, vehiculo, habilitados_iniciales)
+
+    accionar_sobre(accionar, conductor, vehiculo, APROBAR)
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [True, True]
+
+
+@pytest.mark.parametrize(
+    ("estado_inicial", "accion"),
+    [
+        (APROBADA, SUSPENDER),
+        (PENDIENTE, RECHAZAR),
+        (OBSERVADA, RECHAZAR),
+        (SUSPENDIDA, RECHAZAR),
+    ],
+    ids=["suspender_aprobada", "rechazar_pendiente", "rechazar_observada", "rechazar_suspendida"],
+)
+def test_suspender_o_rechazar_deshabilita_todos_los_tipos_de_servicio(
+    accionar, uow, estado_inicial, accion
+):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, estado_inicial)
+    fijar_habilitados(uow, vehiculo, [True, True])
+
+    accionar_sobre(accionar, conductor, vehiculo, accion)
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [False, False]
+
+
+@pytest.mark.parametrize(
+    "habilitados_iniciales",
+    [[False, False], [True, False], [True, True]],
+    ids=["ninguno", "uno", "todos"],
+)
+def test_observar_no_toca_los_tipos_de_servicio(accionar, uow, habilitados_iniciales):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+    fijar_habilitados(uow, vehiculo, habilitados_iniciales)
+
+    accionar_sobre(accionar, conductor, vehiculo, OBSERVAR)
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == habilitados_iniciales
+
+
+def test_el_habilitado_queda_confirmado_junto_con_el_estado_y_el_evento(accionar, uow):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+
+    accionar_sobre(accionar, conductor, vehiculo, APROBAR)
+    uow.rollback()  # lo que no se confirmo se descarta: lo confirmado debe sobrevivir
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [True, True]
+    assert estado_guardado(uow, conductor.id, vehiculo.id) is APROBADA
+    assert len(uow.habilitaciones.historial_vehiculo(vehiculo.id)) == 1
+
+
+def test_una_sola_confirmacion_cubre_estado_habilitado_y_evento(accionar, uow):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+    uow.confirmaciones = 0
+
+    accionar_sobre(accionar, conductor, vehiculo, APROBAR)
+
+    assert uow.confirmaciones == 1
+
+
+def test_si_falla_el_registro_del_evento_los_tipos_de_servicio_no_cambian(
+    accionar, uow, monkeypatch
+):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
+
+    def registrar_evento_que_falla(id_vehiculo, evento):
+        raise RuntimeError("falla simulada al registrar el evento")
+
+    monkeypatch.setattr(uow.habilitaciones, "registrar_evento_vehiculo", registrar_evento_que_falla)
+
+    with pytest.raises(RuntimeError):
+        accionar_sobre(accionar, conductor, vehiculo, APROBAR)
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [False, False]
+    assert estado_guardado(uow, conductor.id, vehiculo.id) is PENDIENTE
+
+
+@pytest.mark.parametrize(
+    ("estado_inicial", "accion"),
+    TRANSICIONES_NO_PERMITIDAS,
+    ids=lambda valor: valor.name,
+)
+def test_una_transicion_no_permitida_no_toca_los_tipos_de_servicio(
+    accionar, uow, estado_inicial, accion
+):
+    conductor = sembrar_conductor(uow)
+    vehiculo = sembrar_vehiculo(uow, conductor.id, estado_inicial)
+    fijar_habilitados(uow, vehiculo, [True, False])
+
+    with pytest.raises(TransicionInvalida):
+        accionar_sobre(accionar, conductor, vehiculo, accion)
+
+    assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [True, False]
 
 
 def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_alta(accionar, uow):

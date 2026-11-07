@@ -1,11 +1,18 @@
+from collections.abc import Sequence
 from types import TracebackType
 from typing import Self
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload, sessionmaker
 
+from app.aplicacion.puertos.repositorio_documentos_vehiculo import (
+    RepositorioDocumentosVehiculo,
+)
+from app.aplicacion.puertos.repositorio_solicitudes import RepositorioSolicitudes
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.conductor import Conductor
+from app.dominio.documento_vehiculo import DocumentoVehiculo
+from app.dominio.solicitud import Solicitud
 from app.dominio.vehiculo import Vehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
@@ -25,6 +32,43 @@ from app.infraestructura.repositorios.sql_vehiculos import (
 )
 
 
+def _pendiente(que: str) -> NotImplementedError:
+    return NotImplementedError(f"{que} todavía no tiene implementación SQL")
+
+
+class _SqlRepositorioSolicitudesPendiente(RepositorioSolicitudes):
+    """Marcador hasta que exista la implementación SQL: falla al usarse, no al arrancar."""
+
+    def guardar(self, solicitud: Solicitud) -> Solicitud:
+        raise _pendiente("El repositorio de solicitudes")
+
+    def obtener(self, id_solicitud: int) -> Solicitud | None:
+        raise _pendiente("El repositorio de solicitudes")
+
+    def listar_por_conductor(self, id_conductor: int) -> list[Solicitud]:
+        raise _pendiente("El repositorio de solicitudes")
+
+
+class _SqlRepositorioDocumentosVehiculoPendiente(RepositorioDocumentosVehiculo):
+    """Marcador hasta que exista la implementación SQL: falla al usarse, no al arrancar.
+
+    La única excepción es `listar_por_vehiculo`, que devuelve "sin documentos" para que el
+    detalle del vehículo (`ObtenerVehiculo`) siga respondiendo mientras no haya tabla donde
+    guardarlos. `listar_por_vehiculos` no tiene quien lo llame, así que falla como `guardar`.
+    """
+
+    def guardar(self, id_vehiculo: int, documento: DocumentoVehiculo) -> DocumentoVehiculo:
+        raise _pendiente("El repositorio de documentos del vehículo")
+
+    def listar_por_vehiculo(self, id_vehiculo: int) -> list[DocumentoVehiculo]:
+        return []
+
+    def listar_por_vehiculos(
+        self, ids_vehiculo: Sequence[int]
+    ) -> dict[int, list[DocumentoVehiculo]]:
+        raise _pendiente("El repositorio de documentos del vehículo")
+
+
 class SqlUnidadDeTrabajo(UnidadDeTrabajo):
     """Una transaccion por `with`: abre una Session nueva y la cierra al salir."""
 
@@ -37,6 +81,8 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
         self.vehiculos = SqlRepositorioVehiculos(self._sesion)
         self.documentos = SqlRepositorioDocumentos(self._sesion)
         self.habilitaciones = SqlRepositorioHabilitaciones(self._sesion)
+        self.solicitudes = _SqlRepositorioSolicitudesPendiente()
+        self.documentos_vehiculo = _SqlRepositorioDocumentosVehiculoPendiente()
         return self
 
     def __exit__(
@@ -73,3 +119,6 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
         )
         fila = self._sesion.scalars(consulta).first()
         return None if fila is None else vehiculo_a_dominio(fila)
+
+    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+        raise _pendiente("El bloqueo de solicitudes")

@@ -2,8 +2,9 @@
 
 Los fakes se comportan como los repositorios SQL (T034-T039) frente a los puertos:
 - Punto de entrada: `UnidadDeTrabajoEnMemoria()`, que expone `conductores`, `vehiculos`,
-  `documentos` y `habilitaciones`. Los cuatro comparten el mismo estado, asi que
-  `conductores.listar(tipo_vehiculo=...)` ve los vehiculos guardados en `vehiculos`.
+  `documentos`, `habilitaciones`, `solicitudes` y `documentos_vehiculo`. Todos comparten el
+  mismo estado, asi que `conductores.listar(tipo_vehiculo=...)` ve los vehiculos guardados
+  en `vehiculos`.
 - Los repositorios funcionan con o sin `with uow:`.
 - `guardar` es un alta si la entidad no tiene id y una actualizacion si ya lo tiene
   (los casos de uso cambian el estado de habilitacion y vuelven a llamar a `guardar`).
@@ -14,25 +15,31 @@ Los fakes se comportan como los repositorios SQL (T034-T039) frente a los puerto
 - `RelojFijo(ahora)` devuelve siempre ese instante hasta que se lo avanza.
 """
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
+from app.aplicacion.puertos.repositorio_documentos_vehiculo import (
+    RepositorioDocumentosVehiculo,
+)
 from app.aplicacion.puertos.repositorio_habilitaciones import (
     RepositorioHabilitaciones,
 )
+from app.aplicacion.puertos.repositorio_solicitudes import RepositorioSolicitudes
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, TipoDocumento
+from app.dominio.documento_vehiculo import DocumentoVehiculo, TipoDocumentoVehiculo
 from app.dominio.errores import DniDuplicado, PatenteDuplicada
 from app.dominio.habilitacion import (
     AccionHabilitacion,
     EstadoHabilitacion,
     EventoHabilitacion,
 )
+from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
@@ -96,6 +103,21 @@ def nuevo_evento(motivo="Documentacion revisada"):
     )
 
 
+def nueva_solicitud(id_conductor):
+    return Solicitud(id_conductor=id_conductor, vence_en=AHORA + timedelta(minutes=2))
+
+
+def nuevo_documento_vehiculo(numero="SEG-1", tipo=TipoDocumentoVehiculo.SEGURO):
+    return DocumentoVehiculo.crear(
+        tipo=tipo,
+        numero=numero,
+        entidad_emisora="Seguros del Litoral",
+        fecha_emision=date(2026, 1, 10),
+        fecha_vencimiento=date(2027, 1, 10),
+        url_archivo="https://almacen.example.com/vehiculos/seguro.pdf",
+    )
+
+
 def dnis(conductores):
     return [conductor.dni for conductor in conductores]
 
@@ -113,6 +135,8 @@ def test_la_unidad_de_trabajo_expone_repositorios_que_implementan_los_puertos(uo
     assert isinstance(uow.vehiculos, RepositorioVehiculos)
     assert isinstance(uow.documentos, RepositorioDocumentos)
     assert isinstance(uow.habilitaciones, RepositorioHabilitaciones)
+    assert isinstance(uow.solicitudes, RepositorioSolicitudes)
+    assert isinstance(uow.documentos_vehiculo, RepositorioDocumentosVehiculo)
 
 
 def test_entrar_al_with_devuelve_la_misma_unidad_de_trabajo(uow):
@@ -129,6 +153,27 @@ def test_guardar_conductor_asigna_ids_incrementales(uow):
 
     assert primero.id is not None
     assert segundo.id == primero.id + 1
+
+
+def test_guardar_conductor_nuevo_le_asigna_fecha_de_alta_como_hace_la_base(uow):
+    guardado = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+
+    assert guardado.fecha_alta is not None
+
+
+def test_guardar_conductor_nuevo_respeta_la_fecha_de_alta_que_ya_trae(uow):
+    guardado = uow.conductores.guardar(nuevo_conductor(dni="30000001", fecha_alta=AHORA))
+
+    assert guardado.fecha_alta == AHORA
+
+
+def test_guardar_de_nuevo_un_conductor_existente_no_cambia_su_fecha_de_alta(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+    fecha_de_alta_original = conductor.fecha_alta
+
+    uow.conductores.guardar(conductor)
+
+    assert uow.conductores.obtener(conductor.id).fecha_alta == fecha_de_alta_original
 
 
 def test_obtener_conductor_devuelve_el_guardado(uow):
@@ -202,14 +247,21 @@ def test_listar_conductores_habilitado_falso_devuelve_los_que_no_estan_aprobados
 
 
 @pytest.mark.parametrize(
-    ("disponible", "dnis_esperados"),
-    [(True, ["30000001"]), (False, ["30000002"])],
+    ("estado", "dnis_esperados"),
+    [
+        (EstadoConductor.DESCONECTADO, ["30000001"]),
+        (EstadoConductor.CONECTADO, ["30000002"]),
+        (EstadoConductor.DISPONIBLE, ["30000003"]),
+        (EstadoConductor.OCUPADO, ["30000004"]),
+    ],
 )
-def test_listar_conductores_filtra_por_disponible(uow, disponible, dnis_esperados):
-    uow.conductores.guardar(nuevo_conductor(dni="30000001", disponible=True))
-    uow.conductores.guardar(nuevo_conductor(dni="30000002", disponible=False))
+def test_listar_conductores_filtra_por_estado(uow, estado, dnis_esperados):
+    uow.conductores.guardar(nuevo_conductor(dni="30000001", estado=EstadoConductor.DESCONECTADO))
+    uow.conductores.guardar(nuevo_conductor(dni="30000002", estado=EstadoConductor.CONECTADO))
+    uow.conductores.guardar(nuevo_conductor(dni="30000003", estado=EstadoConductor.DISPONIBLE))
+    uow.conductores.guardar(nuevo_conductor(dni="30000004", estado=EstadoConductor.OCUPADO))
 
-    assert dnis(uow.conductores.listar(disponible=disponible)) == dnis_esperados
+    assert dnis(uow.conductores.listar(estado=estado)) == dnis_esperados
 
 
 def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(
@@ -234,14 +286,37 @@ def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_
     ]
 
 
+def test_listar_conductores_filtra_por_tipo_de_servicio_habilitado_en_al_menos_un_vehiculo(uow):
+    con_habilitado = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+    con_sin_habilitar = uow.conductores.guardar(nuevo_conductor(dni="30000002"))
+    uow.conductores.guardar(nuevo_conductor(dni="30000003"))  # sin vehiculos
+    vehiculo_habilitado = nuevo_vehiculo(con_habilitado.id, "AAA111")
+    vehiculo_habilitado.tipos_servicio[0].habilitado = True
+    uow.vehiculos.guardar(vehiculo_habilitado)
+    uow.vehiculos.guardar(nuevo_vehiculo(con_sin_habilitar.id, "BBB222"))
+
+    assert dnis(uow.conductores.listar(tipo_servicio=TipoServicio.PASAJEROS)) == ["30000001"]
+    assert uow.conductores.listar(tipo_servicio=TipoServicio.ENVIOS) == []
+
+
 def test_listar_conductores_combina_los_filtros(uow):
     aprobado_disponible = uow.conductores.guardar(
-        nuevo_conductor(dni="30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True)
+        nuevo_conductor(
+            dni="30000001",
+            habilitacion=EstadoHabilitacion.APROBADA,
+            estado=EstadoConductor.DISPONIBLE,
+        )
     )
     aprobado_no_disponible = uow.conductores.guardar(
-        nuevo_conductor(dni="30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False)
+        nuevo_conductor(
+            dni="30000002",
+            habilitacion=EstadoHabilitacion.APROBADA,
+            estado=EstadoConductor.CONECTADO,
+        )
     )
-    pendiente_disponible = uow.conductores.guardar(nuevo_conductor(dni="30000003", disponible=True))
+    pendiente_disponible = uow.conductores.guardar(
+        nuevo_conductor(dni="30000003", estado=EstadoConductor.DISPONIBLE)
+    )
     for conductor, patente in [
         (aprobado_disponible, "AAA111"),
         (aprobado_no_disponible, "BBB222"),
@@ -250,7 +325,7 @@ def test_listar_conductores_combina_los_filtros(uow):
         uow.vehiculos.guardar(nuevo_vehiculo(conductor.id, patente))
 
     resultado = uow.conductores.listar(
-        habilitado=True, disponible=True, tipo_vehiculo=TipoVehiculo.AUTO
+        habilitado=True, estado=EstadoConductor.DISPONIBLE, tipo_vehiculo=TipoVehiculo.AUTO
     )
 
     assert dnis(resultado) == ["30000001"]
@@ -633,3 +708,156 @@ def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(
     uow, repositorio, sembrar, etiqueta
 ):
     assert getattr(uow, repositorio).listar_por_conductores([998, 999]) == {998: [], 999: []}
+
+
+# --- Solicitudes ---
+
+
+def test_guardar_solicitud_asigna_ids_incrementales(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+
+    primera = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+    segunda = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+
+    assert primera.id is not None
+    assert segunda.id == primera.id + 1
+
+
+def test_obtener_solicitud_devuelve_la_guardada(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+    guardada = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+
+    assert uow.solicitudes.obtener(guardada.id).id_conductor == conductor.id
+
+
+def test_obtener_solicitud_inexistente_devuelve_none(uow):
+    assert uow.solicitudes.obtener(999) is None
+
+
+def test_guardar_de_nuevo_una_solicitud_existente_la_actualiza_sin_duplicar(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+    solicitud = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+    solicitud.estado = EstadoSolicitud.RECHAZADO
+
+    actualizada = uow.solicitudes.guardar(solicitud)
+
+    assert actualizada.id == solicitud.id
+    assert uow.solicitudes.obtener(solicitud.id).estado is EstadoSolicitud.RECHAZADO
+    assert len(uow.solicitudes.listar_por_conductor(conductor.id)) == 1
+
+
+def test_listar_solicitudes_devuelve_solo_las_del_conductor_en_orden_de_alta(uow):
+    uno = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+    otro = uow.conductores.guardar(nuevo_conductor(dni="30000002"))
+    primera = uow.solicitudes.guardar(nueva_solicitud(uno.id))
+    uow.solicitudes.guardar(nueva_solicitud(otro.id))
+    tercera = uow.solicitudes.guardar(nueva_solicitud(uno.id))
+
+    ids = [solicitud.id for solicitud in uow.solicitudes.listar_por_conductor(uno.id)]
+
+    assert ids == [primera.id, tercera.id]
+
+
+def test_listar_solicitudes_de_un_conductor_sin_solicitudes_devuelve_lista_vacia(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+
+    assert uow.solicitudes.listar_por_conductor(conductor.id) == []
+
+
+# --- Documentos del vehiculo ---
+
+
+def test_guardar_documento_de_vehiculo_asigna_ids_incrementales(uow):
+    primero = uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+    segundo = uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-2"))
+
+    assert primero.id is not None
+    assert segundo.id == primero.id + 1
+
+
+def test_guardar_de_nuevo_un_documento_de_vehiculo_existente_lo_actualiza_sin_duplicar(uow):
+    documento = uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+    documento.numero = "SEG-1-RENOVADO"
+
+    actualizado = uow.documentos_vehiculo.guardar(1, documento)
+
+    assert actualizado.id == documento.id
+    numeros = [d.numero for d in uow.documentos_vehiculo.listar_por_vehiculo(1)]
+    assert numeros == ["SEG-1-RENOVADO"]
+
+
+def test_listar_documentos_de_vehiculo_devuelve_solo_los_del_vehiculo_en_orden_de_alta(uow):
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+    uow.documentos_vehiculo.guardar(2, nuevo_documento_vehiculo("SEG-2"))
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("VTV-1", TipoDocumentoVehiculo.VTV))
+
+    numeros = [d.numero for d in uow.documentos_vehiculo.listar_por_vehiculo(1)]
+
+    assert numeros == ["SEG-1", "VTV-1"]
+
+
+def test_listar_documentos_de_un_vehiculo_sin_documentos_devuelve_lista_vacia(uow):
+    assert uow.documentos_vehiculo.listar_por_vehiculo(1) == []
+
+
+def test_listar_documentos_por_vehiculos_devuelve_una_clave_por_id_pedido_incluso_sin_datos(uow):
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+
+    resultado = uow.documentos_vehiculo.listar_por_vehiculos([1, 2])
+
+    assert set(resultado) == {1, 2}
+    assert [d.numero for d in resultado[1]] == ["SEG-1"]
+    assert resultado[2] == []
+
+
+def test_listar_documentos_por_vehiculos_devuelve_cada_lista_en_orden_de_alta(uow):
+    for id_vehiculo, numero in [(1, "C"), (2, "X"), (1, "A"), (2, "Y")]:
+        uow.documentos_vehiculo.guardar(id_vehiculo, nuevo_documento_vehiculo(numero))
+
+    resultado = uow.documentos_vehiculo.listar_por_vehiculos([2, 1])
+
+    assert [d.numero for d in resultado[1]] == ["C", "A"]
+    assert [d.numero for d in resultado[2]] == ["X", "Y"]
+
+
+def test_listar_documentos_por_vehiculos_no_mezcla_los_ids_no_pedidos(uow):
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("PEDIDO"))
+    uow.documentos_vehiculo.guardar(2, nuevo_documento_vehiculo("AJENO"))
+
+    resultado = uow.documentos_vehiculo.listar_por_vehiculos([1])
+
+    assert set(resultado) == {1}
+    assert [d.numero for d in resultado[1]] == ["PEDIDO"]
+
+
+def test_listar_documentos_por_vehiculos_sin_ids_devuelve_un_diccionario_vacio(uow):
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+
+    assert uow.documentos_vehiculo.listar_por_vehiculos([]) == {}
+
+
+# --- Unidad de trabajo: solicitudes y documentos del vehiculo ---
+
+
+def test_bloquear_solicitud_devuelve_la_solicitud_o_none(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+    guardada = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+
+    assert uow.bloquear_solicitud(guardada.id).id_conductor == conductor.id
+    assert uow.bloquear_solicitud(999) is None
+
+
+def test_rollback_descarta_las_solicitudes_y_documentos_de_vehiculo_no_confirmados(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor())
+    confirmada = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
+    uow.commit()
+    sin_confirmar = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
+    uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-2"))
+
+    uow.rollback()
+
+    assert uow.solicitudes.obtener(confirmada.id) is not None
+    assert uow.solicitudes.obtener(sin_confirmar.id) is None
+    numeros = [d.numero for d in uow.documentos_vehiculo.listar_por_vehiculo(1)]
+    assert numeros == ["SEG-1"]

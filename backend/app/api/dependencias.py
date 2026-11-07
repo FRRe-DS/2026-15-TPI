@@ -115,7 +115,7 @@ def obtener_caso_listar_vehiculos(
 def obtener_caso_obtener_vehiculo(
     uow: UnidadDeTrabajoInyectada,
 ) -> ObtenerVehiculo:
-    return ObtenerVehiculo(uow)
+    return ObtenerVehiculo(uow, RelojDelSistema())
 
 
 def obtener_caso_accionar_habilitacion_vehiculo(

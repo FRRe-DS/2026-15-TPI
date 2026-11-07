@@ -19,6 +19,7 @@ from app.api.esquemas.vehiculo import TipoServicio, TipoVehiculo
 from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
+from app.dominio.conductor import EstadoConductor
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
 
 router = APIRouter(tags=["Conductores"])
@@ -62,17 +63,21 @@ def listar_conductores(
             "latitud y longitud deben enviarse juntas",
         )
 
-    # En la Iteración 1 la ubicación y el tipo de servicio se aceptan pero no
-    # filtran ni ordenan; quedan para la Iteración 2.
+    # TRANSITORIO hasta V6: el contrato HTTP sigue con `disponible` y `tipo_servicio` se
+    # acepta sin filtrar (V6 lo pasa al caso de uso; el repositorio SQL ya lo soporta).
+    # La ubicación nunca filtra.
     _ = (tipo_servicio, latitud, longitud)
 
     conductores = caso.ejecutar(
         habilitado=habilitado,
-        disponible=disponible,
+        estado=EstadoConductor.DISPONIBLE if disponible is True else None,
         tipo_vehiculo=(
             TipoVehiculoDominio(tipo_vehiculo.value) if tipo_vehiculo is not None else None
         ),
     )
+    if disponible is False:
+        # `estado` admite un solo valor: "no disponible" se resuelve excluyendo a los DISPONIBLE.
+        conductores = [detalle for detalle in conductores if not detalle.conductor.disponible]
     return [conductor_desde_detalle(detalle) for detalle in conductores]
 
 

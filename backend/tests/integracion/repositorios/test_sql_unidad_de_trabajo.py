@@ -21,6 +21,7 @@ from datetime import UTC, date, datetime
 import pytest
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento, TipoDocumento
+from app.dominio.documento_vehiculo import DocumentoVehiculo, TipoDocumentoVehiculo
 from app.dominio.errores import DniDuplicado
 from app.dominio.habilitacion import (
     AccionHabilitacion,
@@ -256,6 +257,35 @@ def test_el_conductor_y_su_evento_de_alta_se_guardan_en_la_misma_transaccion(uow
 
     assert contar(fabrica_sesiones, "conductor") == 0
     assert contar(fabrica_sesiones, "habilitacion_evento_conductor") == 0
+
+
+# --- Marcador de documentos del vehiculo (hasta que exista su repositorio SQL) ---
+
+
+def documento_de_vehiculo():
+    return DocumentoVehiculo.crear(
+        tipo=TipoDocumentoVehiculo.SEGURO,
+        numero="POL-123",
+        entidad_emisora=None,
+        fecha_emision=date(2026, 1, 1),
+        fecha_vencimiento=date(2027, 1, 1),
+        url_archivo="https://example.com/seguro.pdf",
+    )
+
+
+def test_el_marcador_de_documentos_del_vehiculo_lista_vacio_para_no_romper_el_detalle(uow):
+    with uow:
+        assert uow.documentos_vehiculo.listar_por_vehiculo(1) == []
+
+
+def test_el_marcador_de_documentos_del_vehiculo_no_guarda_y_lanza_not_implemented(uow):
+    with uow, pytest.raises(NotImplementedError):
+        uow.documentos_vehiculo.guardar(1, documento_de_vehiculo())
+
+
+def test_el_marcador_de_documentos_del_vehiculo_no_lista_por_lote_y_lanza_not_implemented(uow):
+    with uow, pytest.raises(NotImplementedError):
+        uow.documentos_vehiculo.listar_por_vehiculos([1, 2])
 
 
 # --- Bloqueo de fila: valor devuelto ---

@@ -56,14 +56,6 @@ class ConductorConUbicacion(Conductor):
     fecha_act_ubic: datetime | None = None
 
 
-def _estado_operativo(*, conectado: bool, disponible: bool) -> EstadoOperativo:
-    if not conectado:
-        return EstadoOperativo.DESCONECTADO
-    if disponible:
-        return EstadoOperativo.DISPONIBLE
-    return EstadoOperativo.CONECTADO
-
-
 def conductor_desde_detalle(
     detalle: ConductorDetalle,
 ) -> ConductorConUbicacion:
@@ -82,7 +74,7 @@ def conductor_desde_detalle(
         ],
         vehiculos=[vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos],
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
-        estado=_estado_operativo(conectado=conductor.conectado, disponible=conductor.disponible),
+        estado=EstadoOperativo(conductor.estado.value),
         conectado=conductor.conectado,
         disponible=conductor.disponible,
         latitud=conductor.latitud,

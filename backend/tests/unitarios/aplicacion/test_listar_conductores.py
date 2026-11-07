@@ -2,21 +2,30 @@
 
 Firmas bajo prueba:
     ListarConductores(uow: UnidadDeTrabajo, reloj: Reloj)
-    ListarConductores.ejecutar(*, habilitado=None, disponible=None, tipo_vehiculo=None)
-        -> list[ConductorDetalle]
+    ListarConductores.ejecutar(
+        *, habilitado=None, estado=None, tipo_vehiculo=None, tipo_servicio=None
+    ) -> list[ConductorDetalle]
 
 Reglas: sin filtros devuelve todos (en orden de alta); `habilitado=True` solo APROBADA y
-`habilitado=False` cualquier otro estado; `tipo_vehiculo` exige al menos un vehiculo de
-ese tipo; los filtros se combinan con AND. Cada ConductorDetalle trae los documentos del
-conductor como DocumentoConEstado (estado calculado con `reloj.hoy()`) y sus vehiculos.
+`habilitado=False` cualquier otro estado; `estado` devuelve solo los conductores en ese
+EstadoConductor; `tipo_vehiculo` exige al menos un vehiculo de ese tipo; `tipo_servicio`
+exige al menos un vehiculo con ese tipo de servicio habilitado; los filtros se combinan
+con AND. El caso de uso no recibe `latitud` ni `longitud`. Cada ConductorDetalle trae el
+conductor con sus campos de Iteracion 2 (estado, vehiculo activo y puntajes), los
+documentos como DocumentoConEstado (estado calculado con `reloj.hoy()`) y sus vehiculos.
+
+Los tests de los campos de Iteracion 2 del conductor (T345) son de CARACTERIZACION: L1 y L7
+ya los dejaron soportados, asi que pasan de entrada, sin fase Red, y T346 no requirio cambios.
 """
 
+import inspect
 from collections import defaultdict
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 import pytest
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
@@ -53,15 +62,24 @@ def guardar_conductor(uow, dni, **estado):
     return guardado
 
 
-def guardar_vehiculo(uow, id_conductor, patente, tipo=TipoVehiculo.AUTO):
+def guardar_vehiculo(
+    uow,
+    id_conductor,
+    patente,
+    tipo=TipoVehiculo.AUTO,
+    tipos_servicio=(TipoServicio.PASAJEROS,),
+    servicios_habilitados=(),
+):
     vehiculo = Vehiculo.crear(
         tipo=tipo,
         patente=patente,
         marca="Toyota",
         modelo="Etios",
         anio=2019,
-        tipos_servicio=[TipoServicio.PASAJEROS],
+        tipos_servicio=list(tipos_servicio),
     )
+    for servicio in vehiculo.tipos_servicio:
+        servicio.habilitado = servicio.tipo in servicios_habilitados
     vehiculo.id_conductor = id_conductor
     guardado = uow.vehiculos.guardar(vehiculo)
     uow.commit()
@@ -121,14 +139,23 @@ def test_habilitado_falso_devuelve_los_que_no_estan_aprobados(listar_conductores
 
 
 @pytest.mark.parametrize(
-    ("disponible", "dnis_esperados"),
-    [(True, ["30000001"]), (False, ["30000002"])],
+    ("estado", "dnis_esperados"),
+    [
+        (EstadoConductor.DESCONECTADO, ["30000001"]),
+        (EstadoConductor.CONECTADO, ["30000002"]),
+        (EstadoConductor.DISPONIBLE, ["30000003"]),
+        (EstadoConductor.OCUPADO, ["30000004"]),
+    ],
 )
-def test_filtra_por_disponible(listar_conductores, uow, disponible, dnis_esperados):
-    guardar_conductor(uow, "30000001", disponible=True)
-    guardar_conductor(uow, "30000002", disponible=False)
+def test_filtra_por_estado_devuelve_solo_los_conductores_en_ese_estado(
+    listar_conductores, uow, estado, dnis_esperados
+):
+    guardar_conductor(uow, "30000001", estado=EstadoConductor.DESCONECTADO)
+    guardar_conductor(uow, "30000002", estado=EstadoConductor.CONECTADO)
+    guardar_conductor(uow, "30000003", estado=EstadoConductor.DISPONIBLE)
+    guardar_conductor(uow, "30000004", estado=EstadoConductor.OCUPADO)
 
-    assert dnis(listar_conductores.ejecutar(disponible=disponible)) == dnis_esperados
+    assert dnis(listar_conductores.ejecutar(estado=estado)) == dnis_esperados
 
 
 def test_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(listar_conductores, uow):
@@ -148,16 +175,77 @@ def test_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(listar_conduct
     assert dnis(con_tipo_moto) == ["30000002", "30000003"]
 
 
+def test_filtra_por_tipo_de_servicio_con_al_menos_un_vehiculo_con_ese_tipo_habilitado(
+    listar_conductores, uow
+):
+    con_pasajeros = guardar_conductor(uow, "30000001")
+    con_envios = guardar_conductor(uow, "30000002")
+    con_ambos_en_vehiculos_distintos = guardar_conductor(uow, "30000003")
+    guardar_conductor(uow, "30000004")  # sin vehiculos
+    guardar_vehiculo(
+        uow, con_pasajeros.id, "AAA111", servicios_habilitados=(TipoServicio.PASAJEROS,)
+    )
+    guardar_vehiculo(
+        uow,
+        con_envios.id,
+        "BBB222",
+        tipos_servicio=(TipoServicio.ENVIOS,),
+        servicios_habilitados=(TipoServicio.ENVIOS,),
+    )
+    guardar_vehiculo(
+        uow,
+        con_ambos_en_vehiculos_distintos.id,
+        "CCC333",
+        servicios_habilitados=(TipoServicio.PASAJEROS,),
+    )
+    guardar_vehiculo(
+        uow,
+        con_ambos_en_vehiculos_distintos.id,
+        "DDD444",
+        tipos_servicio=(TipoServicio.ENVIOS,),
+        servicios_habilitados=(TipoServicio.ENVIOS,),
+    )
+
+    con_pasajeros_habilitado = listar_conductores.ejecutar(tipo_servicio=TipoServicio.PASAJEROS)
+    con_envios_habilitado = listar_conductores.ejecutar(tipo_servicio=TipoServicio.ENVIOS)
+
+    assert dnis(con_pasajeros_habilitado) == ["30000001", "30000003"]
+    assert dnis(con_envios_habilitado) == ["30000002", "30000003"]
+
+
+def test_tipo_de_servicio_no_habilitado_no_cuenta_para_el_filtro(listar_conductores, uow):
+    conductor = guardar_conductor(uow, "30000001")
+    guardar_vehiculo(
+        uow,
+        conductor.id,
+        "AAA111",
+        tipos_servicio=(TipoServicio.PASAJEROS, TipoServicio.ENVIOS),
+        servicios_habilitados=(TipoServicio.PASAJEROS,),
+    )
+
+    assert dnis(listar_conductores.ejecutar(tipo_servicio=TipoServicio.PASAJEROS)) == ["30000001"]
+    assert listar_conductores.ejecutar(tipo_servicio=TipoServicio.ENVIOS) == []
+
+
 def test_combina_los_filtros_con_and(listar_conductores, uow):
     cumple_todo = guardar_conductor(
-        uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA, disponible=True
+        uow,
+        "30000001",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
     )
     no_disponible = guardar_conductor(
-        uow, "30000002", habilitacion=EstadoHabilitacion.APROBADA, disponible=False
+        uow,
+        "30000002",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.CONECTADO,
     )
-    no_aprobado = guardar_conductor(uow, "30000003", disponible=True)
+    no_aprobado = guardar_conductor(uow, "30000003", estado=EstadoConductor.DISPONIBLE)
     sin_el_tipo = guardar_conductor(
-        uow, "30000004", habilitacion=EstadoHabilitacion.APROBADA, disponible=True
+        uow,
+        "30000004",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
     )
     for conductor, patente in [
         (cumple_todo, "AAA111"),
@@ -168,16 +256,118 @@ def test_combina_los_filtros_con_and(listar_conductores, uow):
     guardar_vehiculo(uow, sin_el_tipo.id, "DDD444", TipoVehiculo.MOTO)
 
     resultado = listar_conductores.ejecutar(
-        habilitado=True, disponible=True, tipo_vehiculo=TipoVehiculo.AUTO
+        habilitado=True, estado=EstadoConductor.DISPONIBLE, tipo_vehiculo=TipoVehiculo.AUTO
     )
 
     assert dnis(resultado) == ["30000001"]
+
+
+def test_combina_estado_y_tipo_de_servicio_con_habilitado_y_tipo_de_vehiculo(
+    listar_conductores, uow
+):
+    cumple_todo = guardar_conductor(
+        uow,
+        "30000001",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
+    )
+    otro_estado = guardar_conductor(
+        uow,
+        "30000002",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.OCUPADO,
+    )
+    no_aprobado = guardar_conductor(uow, "30000003", estado=EstadoConductor.DISPONIBLE)
+    otro_tipo_de_vehiculo = guardar_conductor(
+        uow,
+        "30000004",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
+    )
+    servicio_sin_habilitar = guardar_conductor(
+        uow,
+        "30000005",
+        habilitacion=EstadoHabilitacion.APROBADA,
+        estado=EstadoConductor.DISPONIBLE,
+    )
+    habilitados = (TipoServicio.PASAJEROS,)
+    for conductor, patente in [
+        (cumple_todo, "AAA111"),
+        (otro_estado, "BBB222"),
+        (no_aprobado, "CCC333"),
+    ]:
+        guardar_vehiculo(
+            uow, conductor.id, patente, TipoVehiculo.AUTO, servicios_habilitados=habilitados
+        )
+    guardar_vehiculo(
+        uow,
+        otro_tipo_de_vehiculo.id,
+        "DDD444",
+        TipoVehiculo.MOTO,
+        servicios_habilitados=habilitados,
+    )
+    guardar_vehiculo(uow, servicio_sin_habilitar.id, "EEE555", TipoVehiculo.AUTO)
+
+    resultado = listar_conductores.ejecutar(
+        habilitado=True,
+        estado=EstadoConductor.DISPONIBLE,
+        tipo_vehiculo=TipoVehiculo.AUTO,
+        tipo_servicio=TipoServicio.PASAJEROS,
+    )
+
+    assert dnis(resultado) == ["30000001"]
+
+
+def test_estado_y_tipo_de_servicio_sin_coincidencias_devuelven_lista_vacia(listar_conductores, uow):
+    conductor = guardar_conductor(uow, "30000001", estado=EstadoConductor.DISPONIBLE)
+    guardar_vehiculo(uow, conductor.id, "AAA111", servicios_habilitados=(TipoServicio.PASAJEROS,))
+
+    resultado = listar_conductores.ejecutar(
+        estado=EstadoConductor.OCUPADO, tipo_servicio=TipoServicio.PASAJEROS
+    )
+
+    assert resultado == []
+
+
+def test_el_caso_de_uso_no_recibe_latitud_ni_longitud():
+    parametros = inspect.signature(ListarConductores.ejecutar).parameters
+
+    assert "latitud" not in parametros
+    assert "longitud" not in parametros
+    assert "disponible" not in parametros
 
 
 def test_filtros_sin_coincidencias_devuelven_lista_vacia_sin_error(listar_conductores, uow):
     guardar_conductor(uow, "30000001")
 
     assert listar_conductores.ejecutar(habilitado=True) == []
+
+
+def test_cada_conductor_trae_estado_vehiculo_activo_y_puntajes_con_los_valores_guardados(
+    listar_conductores, uow
+):
+    guardar_conductor(
+        uow,
+        "30000001",
+        estado=EstadoConductor.OCUPADO,
+        id_vehiculo_activo=7,
+        suma_puntajes=14,
+        cantidad_calificaciones=3,
+    )
+    guardar_conductor(uow, "30000002")
+
+    con_datos, sin_datos = (detalle.conductor for detalle in listar_conductores.ejecutar())
+
+    assert con_datos.estado is EstadoConductor.OCUPADO
+    assert con_datos.id_vehiculo_activo == 7
+    assert con_datos.suma_puntajes == 14
+    assert con_datos.cantidad_calificaciones == 3
+    assert con_datos.puntaje_promedio == Decimal("4.67")
+    assert sin_datos.estado is EstadoConductor.DESCONECTADO
+    assert sin_datos.id_vehiculo_activo is None
+    assert sin_datos.suma_puntajes == 0
+    assert sin_datos.cantidad_calificaciones == 0
+    assert sin_datos.puntaje_promedio is None
 
 
 def test_cada_conductor_trae_sus_documentos_con_el_estado_calculado_con_el_reloj(
