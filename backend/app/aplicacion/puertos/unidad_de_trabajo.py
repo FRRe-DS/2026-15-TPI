@@ -48,12 +48,23 @@ class UnidadDeTrabajo(ABC):
 
     @abstractmethod
     def bloquear_conductor(self, id_conductor: int) -> Conductor | None:
-        """Obtiene el conductor con bloqueo de fila (SELECT ... FOR UPDATE)."""
+        """Obtiene el conductor con bloqueo de fila (SELECT ... FOR UPDATE).
+
+        Devuelve el valor vigente en la base aunque la transacción ya haya leído al conductor.
+        """
 
     @abstractmethod
     def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
-        """Obtiene el vehículo del conductor con bloqueo de fila (SELECT ... FOR UPDATE)."""
+        """Obtiene el vehículo del conductor con bloqueo de fila (SELECT ... FOR UPDATE).
+
+        Devuelve el valor vigente en la base aunque la transacción ya haya leído el vehículo.
+        """
 
     @abstractmethod
     def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
-        """Obtiene la solicitud con bloqueo de fila (SELECT ... FOR UPDATE)."""
+        """Obtiene la solicitud con bloqueo de fila (SELECT ... FOR UPDATE).
+
+        Devuelve el valor vigente en la base aunque la transacción ya haya leído la solicitud:
+        quien la relee tras esperar el bloqueo debe ver la respuesta que otra transacción
+        confirmó mientras tanto, no la copia que la sesión tenía cargada.
+        """

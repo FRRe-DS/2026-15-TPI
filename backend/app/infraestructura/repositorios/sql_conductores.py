@@ -50,6 +50,7 @@ def a_dominio(fila: ConductorOrm) -> Conductor:
         latitud=fila.latitud,
         longitud=fila.longitud,
         fecha_act_ubic=fila.fecha_act_ubic,
+        fecha_alta=fila.fecha_alta,
     )
 
 

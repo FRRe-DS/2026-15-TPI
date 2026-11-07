@@ -107,6 +107,18 @@ def test_el_conductor_confirmado_se_lee_con_todos_sus_campos_desde_otra_sesion(
     assert leido.estado is EstadoConductor.DISPONIBLE
 
 
+def test_el_conductor_leido_trae_la_fecha_de_alta_que_asigna_la_base(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    guardado = repositorio.guardar(nuevo_conductor())
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        leido = SqlRepositorioConductores(otra_sesion).obtener(guardado.id)
+
+    assert leido.fecha_alta is not None
+
+
 def test_obtener_conductor_inexistente_devuelve_none(repositorio):
     repositorio.guardar(nuevo_conductor())
 
