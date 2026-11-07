@@ -36,3 +36,11 @@ class SolicitudVencida(ErrorDeDominio):
 
 class SolicitudYaRespondida(ErrorDeDominio):
     pass
+
+
+class AccesoProhibido(ErrorDeDominio):
+    pass
+
+
+class RolNoAutorizado(ErrorDeDominio):
+    pass
