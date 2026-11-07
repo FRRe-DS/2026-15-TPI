@@ -17,7 +17,7 @@ from app.aplicacion.casos_de_uso.resultados import (
     HabilitacionVehiculoEventos,
     VehiculoDetalle,
 )
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import (
@@ -62,8 +62,7 @@ def conductor_de_prueba(**cambios: Any) -> Conductor:
         "telefono": "3415550000",
         "email": "ana@example.com",
         "habilitacion": EstadoHabilitacion.APROBADA,
-        "conectado": True,
-        "disponible": True,
+        "estado": EstadoConductor.DISPONIBLE,
         "id": 1,
     }
     datos.update(cambios)

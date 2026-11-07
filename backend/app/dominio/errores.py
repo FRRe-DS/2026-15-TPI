@@ -24,3 +24,23 @@ class LicenciaVigenteRequerida(ErrorDeDominio):
 
 class DatosInvalidos(ErrorDeDominio):
     pass
+
+
+class ConductorNoHabilitado(ErrorDeDominio):
+    pass
+
+
+class SolicitudVencida(ErrorDeDominio):
+    pass
+
+
+class SolicitudYaRespondida(ErrorDeDominio):
+    pass
+
+
+class AccesoProhibido(ErrorDeDominio):
+    pass
+
+
+class RolNoAutorizado(ErrorDeDominio):
+    pass

@@ -3,7 +3,23 @@ from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionVehiculoEventos
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.habilitacion import AccionHabilitacion, aplicar_accion
+from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion, aplicar_accion
+from app.dominio.vehiculo import Vehiculo
+
+HABILITADO_SEGUN_ESTADO: dict[EstadoHabilitacion, bool] = {
+    EstadoHabilitacion.APROBADA: True,
+    EstadoHabilitacion.SUSPENDIDA: False,
+    EstadoHabilitacion.RECHAZADA: False,
+}
+
+
+def _sincronizar_tipos_servicio(vehiculo: Vehiculo) -> None:
+    """Observar (u otro estado fuera del mapa) deja `habilitado` como estaba."""
+    habilitado = HABILITADO_SEGUN_ESTADO.get(vehiculo.habilitacion)
+    if habilitado is None:
+        return
+    for servicio in vehiculo.tipos_servicio:
+        servicio.habilitado = habilitado
 
 
 class AccionarHabilitacionVehiculo:
@@ -32,6 +48,7 @@ class AccionarHabilitacionVehiculo:
                 self._reloj.ahora(),
             )
             vehiculo.habilitacion = evento.estado_nuevo
+            _sincronizar_tipos_servicio(vehiculo)
             self._uow.vehiculos.guardar(vehiculo)
             self._uow.habilitaciones.registrar_evento_vehiculo(id_vehiculo, evento)
             self._uow.commit()

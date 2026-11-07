@@ -38,7 +38,7 @@ Los nombres de entrada y salida coinciden con los esquemas de `docs/contract/ope
 
 | Módulo | Contenido |
 |---|---|
-| `conductor.py` (cambia) | `estado` (enum `EstadoConductor` con `DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) reemplaza a `conectado` y `disponible`; campos nuevos: `id_vehiculo_activo`, `fecha_ultimo_cambio_estado`, `suma_puntajes`, `cantidad_calificaciones`; propiedad `puntaje_promedio` (decisión 4, solo lectura) |
+| `conductor.py` (cambia) | `estado` (enum `EstadoConductor` con `DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) reemplaza a `conectado` y `disponible`; campos nuevos: `id_vehiculo_activo`, `fecha_ultimo_cambio_estado`, `fecha_alta` (solo lectura: la asigna la base en el alta y es el valor de `actualizado` mientras el estado nunca cambió), `suma_puntajes`, `cantidad_calificaciones`; propiedad `puntaje_promedio` (decisión 4, solo lectura) |
 | `disponibilidad.py` (nuevo) | Regla "puede quedar `DISPONIBLE`", transición a `OCUPADO` al aceptar y función que aplica un cambio de estado (decisión 5) |
 | `solicitud.py` (nuevo) | Entidad, enum `EstadoSolicitud`, `estado_efectivo(ahora)` y `responder(...)` |
 | `documento_vehiculo.py` (nuevo) | Entidad y enum `TipoDocumentoVehiculo` (`SEGURO`, `CEDULA_VERDE`, `VTV`), con las mismas validaciones del documento del conductor |

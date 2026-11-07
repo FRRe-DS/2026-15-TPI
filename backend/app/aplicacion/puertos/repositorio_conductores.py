@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from app.dominio.conductor import Conductor
-from app.dominio.vehiculo import TipoVehiculo
+from app.dominio.conductor import Conductor, EstadoConductor
+from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 
 
 class RepositorioConductores(ABC):
@@ -18,7 +18,12 @@ class RepositorioConductores(ABC):
         self,
         *,
         habilitado: bool | None = None,
-        disponible: bool | None = None,
+        estado: EstadoConductor | None = None,
         tipo_vehiculo: TipoVehiculo | None = None,
+        tipo_servicio: TipoServicio | None = None,
     ) -> list[Conductor]:
-        """Lista los conductores que cumplen los filtros indicados."""
+        """Lista los conductores que cumplen todos los filtros indicados.
+
+        `tipo_vehiculo` exige al menos un vehiculo de ese tipo y `tipo_servicio` al menos un
+        vehiculo con ese tipo de servicio habilitado.
+        """

@@ -36,6 +36,7 @@ from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
+from app.dominio.conductor import EstadoConductor
 from app.dominio.errores import (
     DatosInvalidos,
     DniDuplicado,
@@ -88,8 +89,7 @@ class Normalizador:
             "telefono": c.telefono,
             "email": c.email,
             "habilitacion": c.habilitacion.value,
-            "conectado": c.conectado,
-            "disponible": c.disponible,
+            "estado": c.estado.value,
         }
 
     def documento(self, d):
@@ -156,7 +156,7 @@ def ejecutar_escenario(uow, reloj):
     listar_conductores = ListarConductores(uow, reloj)
     registrar_vehiculo = RegistrarVehiculo(uow, reloj)
     listar_vehiculos = ListarVehiculos(uow)
-    obtener_vehiculo = ObtenerVehiculo(uow)
+    obtener_vehiculo = ObtenerVehiculo(uow, reloj)
     accionar_vehiculo = AccionarHabilitacionVehiculo(uow, reloj)
 
     def intentar(clave, funcion):
@@ -370,7 +370,7 @@ def ejecutar_escenario(uow, reloj):
 
     with uow:  # el unico modo de marcar "disponible" en la Iteracion 1 es guardar directo
         conductor_b = uow.conductores.obtener(id_de["B"])
-        conductor_b.disponible = True
+        conductor_b.estado = EstadoConductor.DISPONIBLE
         uow.conductores.guardar(conductor_b)
         uow.commit()
 
@@ -383,18 +383,18 @@ def ejecutar_escenario(uow, reloj):
     listar_cond("listar_todos")
     listar_cond("listar_habilitados", habilitado=True)
     listar_cond("listar_no_habilitados", habilitado=False)
-    listar_cond("listar_disponibles", disponible=True)
-    listar_cond("listar_no_disponibles", disponible=False)
+    listar_cond("listar_disponibles", estado=EstadoConductor.DISPONIBLE)
+    listar_cond("listar_desconectados", estado=EstadoConductor.DESCONECTADO)
     listar_cond("listar_con_auto", tipo_vehiculo=AUTO)
     listar_cond("listar_con_moto", tipo_vehiculo=MOTO)
     listar_cond("listar_habilitados_con_moto", habilitado=True, tipo_vehiculo=MOTO)
     listar_cond(
         "listar_habilitados_disponibles_con_auto",
         habilitado=True,
-        disponible=True,
+        estado=EstadoConductor.DISPONIBLE,
         tipo_vehiculo=AUTO,
     )
-    listar_cond("listar_sin_coincidencias", habilitado=False, disponible=True)
+    listar_cond("listar_sin_coincidencias", habilitado=False, estado=EstadoConductor.DISPONIBLE)
     return r
 
 
@@ -564,7 +564,7 @@ def test_los_filtros_de_conductores_devuelven_los_esperados(resultados):
     assert dnis_de("listar_habilitados") == ["30000001", "30000002"]
     assert dnis_de("listar_no_habilitados") == ["30000003"]
     assert dnis_de("listar_disponibles") == ["30000002"]
-    assert dnis_de("listar_no_disponibles") == ["30000001", "30000003"]
+    assert dnis_de("listar_desconectados") == ["30000001", "30000003"]
     assert dnis_de("listar_con_auto") == ["30000001", "30000002"]
     assert dnis_de("listar_con_moto") == ["30000001", "30000003"]
     assert dnis_de("listar_habilitados_con_moto") == ["30000001"]
