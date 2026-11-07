@@ -334,6 +334,21 @@ def test_listar_por_tipo_de_servicio_excluye_al_conductor_cuyo_servicio_esta_des
     assert dnis(repositorio.listar(tipo_servicio=PASAJEROS)) == ["30000002"]
 
 
+def test_listar_por_tipo_de_servicio_exige_que_el_tipo_y_habilitado_sean_de_la_misma_fila(
+    repositorio, sesion_bd
+):
+    """Test de CARACTERIZACION: pasa de entrada, sin fase Red.
+
+    Se valido con el mutante que reemplaza el `any()` anidado por dos EXISTS independientes
+    (uno para el tipo y otro para `habilitado`): con ese cambio este test falla.
+    """
+    mezclado = repositorio.guardar(nuevo_conductor("30000001"))
+    sembrar_vehiculo(sesion_bd, mezclado.id, "AAA111", AUTO, [(PASAJEROS, False), (ENVIOS, True)])
+
+    assert repositorio.listar(tipo_servicio=PASAJEROS) == []
+    assert dnis(repositorio.listar(tipo_servicio=ENVIOS)) == ["30000001"]
+
+
 def test_listar_por_tipo_de_servicio_no_duplica_al_conductor_con_varios_vehiculos_habilitados(
     repositorio, sesion_bd
 ):
