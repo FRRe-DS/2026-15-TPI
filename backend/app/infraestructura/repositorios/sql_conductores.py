@@ -1,3 +1,5 @@
+from typing import assert_never
+
 from sqlalchemy import ColumnElement, and_, false, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,6 +11,7 @@ from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
+from app.infraestructura.db.modelos import VehiculoTipoServicio as VehiculoTipoServicioOrm
 from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
 from app.infraestructura.repositorios._sesion_sql import flush_aislado
 
@@ -49,7 +52,18 @@ def _condicion_de_estado(estado: EstadoConductor) -> ColumnElement[bool]:
         return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(True))
     if estado is EstadoConductor.CONECTADO:
         return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(False))
-    return false()
+    if estado is EstadoConductor.OCUPADO:
+        return false()
+    assert_never(estado)
+
+
+def _tiene_servicio_habilitado(tipo_servicio: TipoServicio) -> ColumnElement[bool]:
+    """Al menos un vehiculo del conductor con ese servicio habilitado, no solo declarado."""
+    servicio_habilitado = and_(
+        VehiculoTipoServicioOrm.tipo_servicio == tipo_servicio.value,
+        VehiculoTipoServicioOrm.habilitado.is_(True),
+    )
+    return ConductorOrm.vehiculos.any(VehiculoOrm.tipos_servicio.any(servicio_habilitado))
 
 
 def a_dominio(fila: ConductorOrm) -> Conductor:
@@ -104,9 +118,6 @@ class SqlRepositorioConductores(RepositorioConductores):
         tipo_vehiculo: TipoVehiculo | None = None,
         tipo_servicio: TipoServicio | None = None,
     ) -> list[Conductor]:
-        if tipo_servicio is not None:
-            # TRANSITORIO hasta L9: `vehiculo_tipo_servicio` llega con la migracion 0002.
-            raise NotImplementedError("El filtro por tipo de servicio llega con L9")
         consulta = select(ConductorOrm).order_by(ConductorOrm.id_conductor)
         if habilitado is True:
             consulta = consulta.where(ConductorOrm.estado_habilitacion == ESTADO_APROBADA)
@@ -118,6 +129,8 @@ class SqlRepositorioConductores(RepositorioConductores):
             consulta = consulta.where(
                 ConductorOrm.vehiculos.any(VehiculoOrm.tipo == tipo_vehiculo.value)
             )
+        if tipo_servicio is not None:
+            consulta = consulta.where(_tiene_servicio_habilitado(tipo_servicio))
         return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
     def _fila_a_guardar(self, conductor: Conductor) -> ConductorOrm:

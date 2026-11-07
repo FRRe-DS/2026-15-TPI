@@ -64,7 +64,8 @@ def listar_conductores(
         )
 
     # TRANSITORIO hasta V6: el contrato HTTP sigue con `disponible` y `tipo_servicio` se
-    # acepta sin filtrar (el repositorio SQL todavía no lo soporta). La ubicación nunca filtra.
+    # acepta sin filtrar (V6 lo pasa al caso de uso; el repositorio SQL ya lo soporta).
+    # La ubicación nunca filtra.
     _ = (tipo_servicio, latitud, longitud)
 
     conductores = caso.ejecutar(
