@@ -135,14 +135,14 @@ Cierre: C1
 
 ### PR `feat/s1-casos-vehiculo-i2` (L7, T335–T342): Casos de uso del vehículo: tipos de servicio y documentación
 
-- [ ] T335 [P] [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_tipos_servicio_vehiculo.py`: devuelve cada tipo de servicio del vehículo con su `habilitado`; `NoEncontrado` si el vehículo no existe o es de otro conductor
-- [ ] T336 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_tipos_servicio_vehiculo.py`, hasta que pase T335
-- [ ] T337 [P] [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_documento_vehiculo.py`: guarda el documento y devuelve el estado `VIGENTE` o `VENCIDO` calculado con `reloj.hoy()`; vencimiento no posterior a la emisión lanza `DatosInvalidos`; `NoEncontrado` si el vehículo es de otro conductor
-- [ ] T338 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_documento_vehiculo.py`, hasta que pase T337
-- [ ] T339 [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: el detalle incluye los documentos del vehículo con su estado calculado y una lista vacía si no tiene
-- [ ] T340 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` y el resultado `VehiculoDetalle` en `resultados.py`, hasta que pase T339
-- [ ] T341 [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: aprobar un vehículo habilita todos sus tipos de servicio; suspender o rechazar los deshabilita; observar no los toca; el cambio queda en la misma transacción que el evento (decisión 9)
-- [ ] T342 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py`: sincronizar `habilitado` de los tipos de servicio con la acción, hasta que pase T341
+- [X] T335 [P] [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_tipos_servicio_vehiculo.py`: devuelve cada tipo de servicio del vehículo con su `habilitado`; `NoEncontrado` si el vehículo no existe o es de otro conductor
+- [X] T336 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_tipos_servicio_vehiculo.py`, hasta que pase T335
+- [X] T337 [P] [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_registrar_documento_vehiculo.py`: guarda el documento y devuelve el estado `VIGENTE` o `VENCIDO` calculado con `reloj.hoy()`; vencimiento no posterior a la emisión lanza `DatosInvalidos`; `NoEncontrado` si el vehículo es de otro conductor
+- [X] T338 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/registrar_documento_vehiculo.py`, hasta que pase T337
+- [X] T339 [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_vehiculo.py`: el detalle incluye los documentos del vehículo con su estado calculado y una lista vacía si no tiene
+- [X] T340 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/obtener_vehiculo.py` y el resultado `VehiculoDetalle` en `resultados.py`, hasta que pase T339
+- [X] T341 [S1] [US6] Test (Red) `backend/tests/unitarios/aplicacion/test_accionar_habilitacion_vehiculo.py`: aprobar un vehículo habilita todos sus tipos de servicio; suspender o rechazar los deshabilita; observar no los toca; el cambio queda en la misma transacción que el evento (decisión 9)
+- [X] T342 [S1] [US6] Impl (Green) `backend/app/aplicacion/casos_de_uso/accionar_habilitacion_vehiculo.py`: sincronizar `habilitado` de los tipos de servicio con la acción, hasta que pase T341
 
 ### PR `feat/s1-casos-conductor-i2` (L8, T343–T346): Casos de uso del conductor: listado y campos nuevos
 
