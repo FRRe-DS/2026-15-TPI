@@ -37,6 +37,7 @@ class Conductor:
     latitud: float | None = None
     longitud: float | None = None
     fecha_act_ubic: datetime | None = None
+    fecha_alta: datetime | None = None
 
     @classmethod
     def crear(
