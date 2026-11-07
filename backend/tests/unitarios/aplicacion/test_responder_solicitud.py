@@ -13,6 +13,7 @@ con `fecha_ultimo_cambio_estado` del `Reloj`; al rechazar no toca su estado. Si 
 nada persistido.
 """
 
+import copy
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -38,7 +39,10 @@ from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
-from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
+from tests.unitarios.fakes.repositorios_en_memoria import (
+    RepositorioSolicitudesEnMemoria,
+    UnidadDeTrabajoEnMemoria,
+)
 
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 ULTIMO_CAMBIO = AHORA - timedelta(days=3)
@@ -59,6 +63,7 @@ RECHAZADO = EstadoSolicitud.RECHAZADO
 
 BLOQUEO_CONDUCTOR = "conductor"
 BLOQUEO_SOLICITUD = "solicitud"
+HORA_RTA_DE_LA_RESPUESTA_GANADORA = AHORA - timedelta(seconds=45)
 
 
 class UnidadDeTrabajoQueRegistraBloqueos(UnidadDeTrabajoEnMemoria):
@@ -75,6 +80,28 @@ class UnidadDeTrabajoQueRegistraBloqueos(UnidadDeTrabajoEnMemoria):
         return super().bloquear_solicitud(id_solicitud)
 
 
+class RepositorioSolicitudesQueEntregaCopias(RepositorioSolicitudesEnMemoria):
+    """Como una lectura sin bloqueo: lo leido no se actualiza si otra transaccion confirma."""
+
+    def obtener(self, id_solicitud):
+        return copy.deepcopy(super().obtener(id_solicitud))
+
+
+class UnidadDeTrabajoDondeOtraRespuestaGano(UnidadDeTrabajoEnMemoria):
+    """Entre la lectura sin bloqueo y el bloqueo, otra transaccion acepta y confirma."""
+
+    def __init__(self):
+        super().__init__()
+        self.solicitudes = RepositorioSolicitudesQueEntregaCopias(self._estado)
+
+    def bloquear_solicitud(self, id_solicitud):
+        vigente = self._estado.solicitudes[id_solicitud]
+        vigente.estado = vigente.respuesta = ACEPTADO
+        vigente.hora_rta = HORA_RTA_DE_LA_RESPUESTA_GANADORA
+        self.commit()
+        return vigente
+
+
 @pytest.fixture
 def uow():
     return UnidadDeTrabajoQueRegistraBloqueos()
@@ -83,6 +110,16 @@ def uow():
 @pytest.fixture
 def responder(uow):
     return ResponderSolicitud(uow, RelojFijo(AHORA))
+
+
+@pytest.fixture
+def uow_con_respuesta_ganadora():
+    return UnidadDeTrabajoDondeOtraRespuestaGano()
+
+
+@pytest.fixture
+def responder_con_respuesta_ganadora(uow_con_respuesta_ganadora):
+    return ResponderSolicitud(uow_con_respuesta_ganadora, RelojFijo(AHORA))
 
 
 def identidad_de_conductor(id_conductor):
@@ -468,3 +505,44 @@ def test_al_rechazar_tambien_bloquea_primero_al_conductor_y_despues_a_la_solicit
     rechazar(responder, solicitud, identidad_de_conductor(conductor.id))
 
     assert uow.bloqueos == [BLOQUEO_CONDUCTOR, BLOQUEO_SOLICITUD]
+
+
+# --- Revalidacion tras el bloqueo --------------------------------------------------------
+
+RESPONDER_SEGUN_RESPUESTA = {ACEPTADO: aceptar, RECHAZADO: rechazar}
+
+
+@pytest.mark.parametrize("respuesta", [ACEPTADO, RECHAZADO])
+def test_si_otra_respuesta_gano_antes_del_bloqueo_lanza_solicitud_ya_respondida(
+    uow_con_respuesta_ganadora, responder_con_respuesta_ganadora, respuesta
+):
+    uow = uow_con_respuesta_ganadora
+    conductor = sembrar_conductor_habilitado(uow)
+    solicitud = sembrar_solicitud(uow, conductor.id)
+    responder_segun_respuesta = RESPONDER_SEGUN_RESPUESTA[respuesta]
+
+    with pytest.raises(SolicitudYaRespondida):
+        responder_segun_respuesta(
+            responder_con_respuesta_ganadora, solicitud, identidad_de_conductor(conductor.id)
+        )
+
+
+@pytest.mark.parametrize("respuesta", [ACEPTADO, RECHAZADO])
+def test_si_otra_respuesta_gano_antes_del_bloqueo_no_se_pisa_ni_se_toca_al_conductor(
+    uow_con_respuesta_ganadora, responder_con_respuesta_ganadora, respuesta
+):
+    uow = uow_con_respuesta_ganadora
+    conductor = sembrar_conductor_habilitado(uow)
+    solicitud = sembrar_solicitud(uow, conductor.id)
+    responder_segun_respuesta = RESPONDER_SEGUN_RESPUESTA[respuesta]
+
+    with pytest.raises(SolicitudYaRespondida):
+        responder_segun_respuesta(
+            responder_con_respuesta_ganadora, solicitud, identidad_de_conductor(conductor.id)
+        )
+
+    guardada = solicitud_guardada(uow, solicitud.id)
+    assert guardada.estado is ACEPTADO
+    assert guardada.respuesta is ACEPTADO
+    assert guardada.hora_rta == HORA_RTA_DE_LA_RESPUESTA_GANADORA
+    assert_conductor_sin_cambios(uow, conductor.id, CONECTADO)
