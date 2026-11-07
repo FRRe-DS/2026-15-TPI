@@ -28,3 +28,11 @@ class DatosInvalidos(ErrorDeDominio):
 
 class ConductorNoHabilitado(ErrorDeDominio):
     pass
+
+
+class SolicitudVencida(ErrorDeDominio):
+    pass
+
+
+class SolicitudYaRespondida(ErrorDeDominio):
+    pass

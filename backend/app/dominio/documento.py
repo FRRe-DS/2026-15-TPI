@@ -16,7 +16,7 @@ class EstadoDocumento(Enum):
     VENCIDO = "VENCIDO"
 
 
-def _es_url_valida(url: str) -> bool:
+def es_url_valida(url: str) -> bool:
     partes = urlparse(url)
     return bool(partes.scheme and partes.netloc)
 
@@ -45,7 +45,7 @@ class Documento:
         exigir_texto("numero", numero)
         if fecha_vencimiento <= fecha_emision:
             raise DatosInvalidos("La fecha de vencimiento debe ser posterior a la de emisión")
-        if not _es_url_valida(url_archivo):
+        if not es_url_valida(url_archivo):
             raise DatosInvalidos("La URL del archivo no es válida")
         return cls(
             tipo=tipo,
