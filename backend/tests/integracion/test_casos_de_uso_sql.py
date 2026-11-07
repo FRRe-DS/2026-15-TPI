@@ -156,7 +156,7 @@ def ejecutar_escenario(uow, reloj):
     listar_conductores = ListarConductores(uow, reloj)
     registrar_vehiculo = RegistrarVehiculo(uow, reloj)
     listar_vehiculos = ListarVehiculos(uow)
-    obtener_vehiculo = ObtenerVehiculo(uow)
+    obtener_vehiculo = ObtenerVehiculo(uow, reloj)
     accionar_vehiculo = AccionarHabilitacionVehiculo(uow, reloj)
 
     def intentar(clave, funcion):

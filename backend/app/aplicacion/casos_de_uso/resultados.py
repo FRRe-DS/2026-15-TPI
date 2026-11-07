@@ -3,6 +3,7 @@ from datetime import datetime
 
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento
+from app.dominio.documento_vehiculo import DocumentoVehiculo
 from app.dominio.habilitacion import EstadoHabilitacion, EventoHabilitacion
 from app.dominio.vehiculo import Vehiculo
 
@@ -42,9 +43,22 @@ class DocumentoDeConductor:
 
 
 @dataclass
+class DocumentoVehiculoConEstado:
+    documento: DocumentoVehiculo
+    estado: EstadoDocumento
+
+
+@dataclass
+class DocumentoDeVehiculo:
+    id_vehiculo: int
+    documento: DocumentoVehiculo
+    estado: EstadoDocumento
+
+
+@dataclass
 class VehiculoDetalle:
     vehiculo: Vehiculo
-    documentos: list = field(default_factory=list)
+    documentos: list[DocumentoVehiculoConEstado] = field(default_factory=list)
 
 
 @dataclass
