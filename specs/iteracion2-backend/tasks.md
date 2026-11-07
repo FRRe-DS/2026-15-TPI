@@ -146,10 +146,10 @@ Cierre: C1
 
 ### PR `feat/s1-casos-conductor-i2` (L8, T343–T346): Casos de uso del conductor: listado y campos nuevos
 
-- [ ] T343 [S1] [US7] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: el filtro `estado` devuelve solo los conductores en ese estado; el filtro `tipo_servicio` devuelve los conductores con al menos un vehículo con ese tipo habilitado; se combinan con `habilitado` y `tipo_vehiculo` en conjunción; sin coincidencias devuelve lista vacía; el caso de uso no recibe `latitud` ni `longitud`
-- [ ] T344 [S1] [US7] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` y `backend/app/aplicacion/puertos/repositorio_conductores.py`: `listar` recibe `estado` (en lugar de `disponible`) y `tipo_servicio`; el fake en memoria los aplica y el repositorio SQL traduce `estado` a las columnas actuales y lanza `NotImplementedError` si llega `tipo_servicio` hasta L9, hasta que pase T343
-- [ ] T345 [S1] [US7] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py` y `test_listar_conductores.py`: el conductor devuelto trae `estado`, `id_vehiculo_activo`, `suma_puntajes`, `cantidad_calificaciones` y `puntaje_promedio` con los valores guardados
-- [ ] T346 [S1] [US7] Impl (Green) `backend/app/aplicacion/casos_de_uso/resultados.py` y los casos de uso `obtener_conductor` y `listar_conductores` si hace falta, hasta que pase T345
+- [X] T343 [S1] [US7] Test (Red) `backend/tests/unitarios/aplicacion/test_listar_conductores.py`: el filtro `estado` devuelve solo los conductores en ese estado; el filtro `tipo_servicio` devuelve los conductores con al menos un vehículo con ese tipo habilitado; se combinan con `habilitado` y `tipo_vehiculo` en conjunción; sin coincidencias devuelve lista vacía; el caso de uso no recibe `latitud` ni `longitud`
+- [X] T344 [S1] [US7] Impl (Green) `backend/app/aplicacion/casos_de_uso/listar_conductores.py` y `backend/app/aplicacion/puertos/repositorio_conductores.py`: `listar` recibe `estado` (en lugar de `disponible`) y `tipo_servicio`; el fake en memoria los aplica y el repositorio SQL traduce `estado` a las columnas actuales y lanza `NotImplementedError` si llega `tipo_servicio` hasta L9, hasta que pase T343
+- [X] T345 [S1] [US7] Test (Red) `backend/tests/unitarios/aplicacion/test_obtener_conductor.py` y `test_listar_conductores.py`: el conductor devuelto trae `estado`, `id_vehiculo_activo`, `suma_puntajes`, `cantidad_calificaciones` y `puntaje_promedio` con los valores guardados
+- [X] T346 [S1] [US7] Impl (Green) `backend/app/aplicacion/casos_de_uso/resultados.py` y los casos de uso `obtener_conductor` y `listar_conductores` si hace falta, hasta que pase T345
 
 ### PR `feat/s1-sql-conductor-i2` (L9, T347–T350): Repositorio SQL del conductor con estado y campos nuevos
 
