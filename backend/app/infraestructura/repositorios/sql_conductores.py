@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import and_, not_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,9 @@ RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 ESTADO_APROBADA = EstadoHabilitacion.APROBADA.value
 
 
+# TRANSITORIO hasta L9 (migracion 0002): la base no tiene `estado`, `id_vehiculo_activo`,
+# `fecha_ultimo_cambio_estado` ni los totales de puntaje. `OCUPADO` se guarda como `CONECTADO`
+# y esos campos no se persisten.
 def _estado_desde_booleanos(conectado: bool, disponible: bool) -> EstadoConductor:
     """Adaptacion transitoria: la base todavia no tiene la columna `estado`."""
     if not conectado:
@@ -90,7 +93,11 @@ class SqlRepositorioConductores(RepositorioConductores):
         elif habilitado is False:
             consulta = consulta.where(ConductorOrm.estado_habilitacion != ESTADO_APROBADA)
         if disponible is not None:
-            consulta = consulta.where(ConductorOrm.disponible == disponible)
+            # El dominio deriva `disponible` de `estado`: exige tambien `conectado`.
+            esta_disponible = and_(
+                ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(True)
+            )
+            consulta = consulta.where(esta_disponible if disponible else not_(esta_disponible))
         if tipo_vehiculo is not None:
             consulta = consulta.where(
                 ConductorOrm.vehiculos.any(VehiculoOrm.tipo == tipo_vehiculo.value)

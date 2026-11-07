@@ -151,3 +151,13 @@ def test_fijar_ubicacion_rechaza_coordenadas_fuera_de_rango(latitud, longitud):
 
 def test_tiene_ubicacion_es_falso_sin_coordenadas_ni_fecha():
     assert crear().tiene_ubicacion is False
+
+
+def test_tiene_ubicacion_es_falso_con_coordenadas_incompletas():
+    solo_latitud = crear()
+    solo_latitud.latitud = -31.4
+    solo_longitud = crear()
+    solo_longitud.longitud = -64.2
+
+    assert solo_latitud.tiene_ubicacion is False
+    assert solo_longitud.tiene_ubicacion is False

@@ -20,6 +20,7 @@ from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo
+from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.repositorios.sql_conductores import SqlRepositorioConductores
 from sqlalchemy import event
@@ -327,3 +328,35 @@ def test_listar_con_filtros_sin_coincidencias_devuelve_lista_vacia(repositorio):
     repositorio.guardar(nuevo_conductor("30000001"))
 
     assert repositorio.listar(habilitado=True) == []
+
+
+@pytest.mark.parametrize(
+    ("disponible", "dnis_esperados"),
+    [(True, []), (False, ["30000001"])],
+)
+def test_listar_disponible_deriva_del_estado_y_no_de_la_columna_cruda(
+    repositorio, sesion_bd, disponible, dnis_esperados
+):
+    """Fila `conectado=false, disponible=true`: el dominio la lee como DESCONECTADO."""
+    guardado = repositorio.guardar(nuevo_conductor("30000001"))
+    fila = sesion_bd.get(ConductorOrm, guardado.id)
+    fila.conectado, fila.disponible = False, True
+    sesion_bd.flush()
+
+    assert dnis(repositorio.listar(disponible=disponible)) == dnis_esperados
+
+
+@pytest.mark.parametrize(
+    ("estado", "estado_leido"),
+    [
+        (EstadoConductor.DESCONECTADO, EstadoConductor.DESCONECTADO),
+        (EstadoConductor.CONECTADO, EstadoConductor.CONECTADO),
+        (EstadoConductor.DISPONIBLE, EstadoConductor.DISPONIBLE),
+        # TRANSITORIO hasta L9: la base no distingue OCUPADO de CONECTADO.
+        (EstadoConductor.OCUPADO, EstadoConductor.CONECTADO),
+    ],
+)
+def test_guardar_y_leer_el_estado_con_el_mapeo_transitorio(repositorio, estado, estado_leido):
+    guardado = repositorio.guardar(nuevo_conductor("30000001", estado=estado))
+
+    assert repositorio.obtener(guardado.id).estado is estado_leido

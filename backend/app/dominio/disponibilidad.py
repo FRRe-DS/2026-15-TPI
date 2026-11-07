@@ -27,6 +27,26 @@ def puede_quedar_disponible(conductor: Conductor, vehiculo_activo: Vehiculo | No
     )
 
 
+def _normalizar_estado(estado: object) -> EstadoConductor | None:
+    """Acepta el enum del dominio o su texto; cualquier otro valor es un dato invalido."""
+    if estado is None:
+        return None
+    try:
+        return EstadoConductor(estado)
+    except ValueError:
+        raise DatosInvalidos(f"Estado de conductor desconocido: {estado!r}") from None
+
+
+def _verificar_vehiculo(
+    conductor: Conductor, vehiculo: Vehiculo | None, id_esperado: int | None
+) -> None:
+    """El vehiculo recibido debe ser el que se pretende dejar activo y ser del conductor."""
+    if vehiculo is None:
+        return
+    if vehiculo.id != id_esperado or vehiculo.id_conductor != conductor.id:
+        raise DatosInvalidos("El vehiculo informado no es el vehiculo activo del conductor")
+
+
 def aplicar_cambio_estado(
     conductor: Conductor,
     vehiculo_activo: Vehiculo | None,
@@ -40,11 +60,13 @@ def aplicar_cambio_estado(
     `estado=None` y `id_vehiculo_activo=NO_INFORMADO` significan "no informado": no se
     modifican. `id_vehiculo_activo=None` quita el vehiculo activo.
     """
+    estado = _normalizar_estado(estado)
     if estado is EstadoConductor.OCUPADO:
         raise DatosInvalidos("OCUPADO lo asigna el sistema al aceptar una solicitud")
 
     id_anterior = conductor.id_vehiculo_activo
     id_nuevo = id_anterior if id_vehiculo_activo is NO_INFORMADO else id_vehiculo_activo
+    _verificar_vehiculo(conductor, vehiculo_activo, id_nuevo)
     cambio_vehiculo = id_nuevo != id_anterior
 
     if estado is EstadoConductor.DISPONIBLE:
@@ -78,6 +100,7 @@ def marcar_ocupado(
     vehiculo_activo: Vehiculo | None,
     ahora: datetime,
 ) -> None:
+    _verificar_vehiculo(conductor, vehiculo_activo, conductor.id_vehiculo_activo)
     if (
         conductor.estado not in (EstadoConductor.CONECTADO, EstadoConductor.DISPONIBLE)
         or conductor.id_vehiculo_activo is None
