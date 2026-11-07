@@ -50,18 +50,22 @@ class _SqlRepositorioSolicitudesPendiente(RepositorioSolicitudes):
 
 
 class _SqlRepositorioDocumentosVehiculoPendiente(RepositorioDocumentosVehiculo):
-    """Marcador hasta que exista la implementación SQL: falla al usarse, no al arrancar."""
+    """Marcador hasta que exista la implementación SQL.
+
+    Guardar falla al usarse, no al arrancar. Las lecturas devuelven "sin documentos" para que
+    el detalle del vehículo siga respondiendo mientras no haya tabla donde guardarlos.
+    """
 
     def guardar(self, id_vehiculo: int, documento: DocumentoVehiculo) -> DocumentoVehiculo:
         raise _pendiente("El repositorio de documentos del vehículo")
 
     def listar_por_vehiculo(self, id_vehiculo: int) -> list[DocumentoVehiculo]:
-        raise _pendiente("El repositorio de documentos del vehículo")
+        return []
 
     def listar_por_vehiculos(
         self, ids_vehiculo: Sequence[int]
     ) -> dict[int, list[DocumentoVehiculo]]:
-        raise _pendiente("El repositorio de documentos del vehículo")
+        return {id_vehiculo: [] for id_vehiculo in ids_vehiculo}
 
 
 class SqlUnidadDeTrabajo(UnidadDeTrabajo):
