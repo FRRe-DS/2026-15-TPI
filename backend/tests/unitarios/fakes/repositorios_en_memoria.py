@@ -1,6 +1,7 @@
 import copy
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
 
@@ -61,6 +62,9 @@ class RepositorioConductoresEnMemoria(RepositorioConductores):
         )
         if dni_en_uso:
             raise DniDuplicado(f"Ya existe un conductor con el DNI {conductor.dni}")
+        if conductor.id is None:
+            # Imita el server_default=now() de la base: el alta siempre trae fecha_alta.
+            conductor.fecha_alta = conductor.fecha_alta or datetime.now(UTC)
         return _guardar(self._estado.conductores, conductor)
 
     def obtener(self, id_conductor: int) -> Conductor | None:
