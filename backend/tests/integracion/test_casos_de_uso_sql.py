@@ -383,18 +383,18 @@ def ejecutar_escenario(uow, reloj):
     listar_cond("listar_todos")
     listar_cond("listar_habilitados", habilitado=True)
     listar_cond("listar_no_habilitados", habilitado=False)
-    listar_cond("listar_disponibles", disponible=True)
-    listar_cond("listar_no_disponibles", disponible=False)
+    listar_cond("listar_disponibles", estado=EstadoConductor.DISPONIBLE)
+    listar_cond("listar_desconectados", estado=EstadoConductor.DESCONECTADO)
     listar_cond("listar_con_auto", tipo_vehiculo=AUTO)
     listar_cond("listar_con_moto", tipo_vehiculo=MOTO)
     listar_cond("listar_habilitados_con_moto", habilitado=True, tipo_vehiculo=MOTO)
     listar_cond(
         "listar_habilitados_disponibles_con_auto",
         habilitado=True,
-        disponible=True,
+        estado=EstadoConductor.DISPONIBLE,
         tipo_vehiculo=AUTO,
     )
-    listar_cond("listar_sin_coincidencias", habilitado=False, disponible=True)
+    listar_cond("listar_sin_coincidencias", habilitado=False, estado=EstadoConductor.DISPONIBLE)
     return r
 
 
@@ -564,7 +564,7 @@ def test_los_filtros_de_conductores_devuelven_los_esperados(resultados):
     assert dnis_de("listar_habilitados") == ["30000001", "30000002"]
     assert dnis_de("listar_no_habilitados") == ["30000003"]
     assert dnis_de("listar_disponibles") == ["30000002"]
-    assert dnis_de("listar_no_disponibles") == ["30000001", "30000003"]
+    assert dnis_de("listar_desconectados") == ["30000001", "30000003"]
     assert dnis_de("listar_con_auto") == ["30000001", "30000002"]
     assert dnis_de("listar_con_moto") == ["30000001", "30000003"]
     assert dnis_de("listar_habilitados_con_moto") == ["30000001"]

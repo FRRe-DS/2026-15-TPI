@@ -8,8 +8,9 @@ Se comporta como el fake `RepositorioConductoresEnMemoria` (ver `tests/unitarios
   insertar, para no tener una carrera entre la consulta y el INSERT); el INSERT se aisla
   para que la sesion siga siendo usable despues del error. Cualquier otro
   `IntegrityError` se propaga sin traducir.
-- `listar` ordena por id y filtra por `habilitado` (True solo APROBADA), `disponible` y
+- `listar` ordena por id y filtra por `habilitado` (True solo APROBADA), `estado` y
   `tipo_vehiculo` (al menos un vehiculo de ese tipo, sin duplicar al conductor), con AND.
+  `tipo_servicio` lanza `NotImplementedError` hasta que la base tenga la tabla de servicios.
 - `test_guardar_un_conductor_con_id_inexistente_lanza_no_encontrado` es un test de
   CARACTERIZACION: fija una decision tomada en la implementacion (los ids los genera la
   base, un id que no existe no es un alta) y pasa de entrada, sin fase Red.
@@ -19,7 +20,7 @@ import pytest
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
-from app.dominio.vehiculo import TipoVehiculo
+from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.repositorios.sql_conductores import SqlRepositorioConductores
@@ -255,14 +256,32 @@ def test_listar_habilitado_falso_devuelve_los_que_no_estan_aprobados(repositorio
 
 
 @pytest.mark.parametrize(
-    ("disponible", "dnis_esperados"),
-    [(True, ["30000001"]), (False, ["30000002"])],
+    ("estado", "dnis_esperados"),
+    [
+        (EstadoConductor.DESCONECTADO, ["30000001"]),
+        (EstadoConductor.CONECTADO, ["30000002"]),
+        (EstadoConductor.DISPONIBLE, ["30000003"]),
+    ],
 )
-def test_listar_filtra_por_disponible(repositorio, disponible, dnis_esperados):
-    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.DISPONIBLE))
+def test_listar_filtra_por_estado(repositorio, estado, dnis_esperados):
+    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.DESCONECTADO))
     repositorio.guardar(nuevo_conductor("30000002", estado=EstadoConductor.CONECTADO))
+    repositorio.guardar(nuevo_conductor("30000003", estado=EstadoConductor.DISPONIBLE))
 
-    assert dnis(repositorio.listar(disponible=disponible)) == dnis_esperados
+    assert dnis(repositorio.listar(estado=estado)) == dnis_esperados
+
+
+def test_listar_por_ocupado_no_devuelve_nada_hasta_que_la_base_distinga_el_estado(repositorio):
+    """TRANSITORIO hasta L9: `OCUPADO` se guarda como `CONECTADO` y se lee como tal."""
+    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.OCUPADO))
+
+    assert repositorio.listar(estado=EstadoConductor.OCUPADO) == []
+    assert dnis(repositorio.listar(estado=EstadoConductor.CONECTADO)) == ["30000001"]
+
+
+def test_listar_por_tipo_de_servicio_lanza_not_implemented_hasta_la_migracion(repositorio):
+    with pytest.raises(NotImplementedError):
+        repositorio.listar(tipo_servicio=TipoServicio.PASAJEROS)
 
 
 def test_listar_filtra_por_tipo_de_vehiculo_sin_duplicar_conductores(repositorio, sesion_bd):
@@ -319,7 +338,9 @@ def test_listar_combina_los_filtros_con_and(repositorio, sesion_bd):
         sembrar_vehiculo(sesion_bd, conductor.id, patente, AUTO)
     sembrar_vehiculo(sesion_bd, sin_el_tipo.id, "DDD444", MOTO)
 
-    resultado = repositorio.listar(habilitado=True, disponible=True, tipo_vehiculo=AUTO)
+    resultado = repositorio.listar(
+        habilitado=True, estado=EstadoConductor.DISPONIBLE, tipo_vehiculo=AUTO
+    )
 
     assert dnis(resultado) == ["30000001"]
 
@@ -331,11 +352,14 @@ def test_listar_con_filtros_sin_coincidencias_devuelve_lista_vacia(repositorio):
 
 
 @pytest.mark.parametrize(
-    ("disponible", "dnis_esperados"),
-    [(True, []), (False, ["30000001"])],
+    ("estado", "dnis_esperados"),
+    [
+        (EstadoConductor.DISPONIBLE, []),
+        (EstadoConductor.DESCONECTADO, ["30000001"]),
+    ],
 )
-def test_listar_disponible_deriva_del_estado_y_no_de_la_columna_cruda(
-    repositorio, sesion_bd, disponible, dnis_esperados
+def test_listar_por_estado_deriva_del_estado_y_no_de_la_columna_cruda(
+    repositorio, sesion_bd, estado, dnis_esperados
 ):
     """Fila `conectado=false, disponible=true`: el dominio la lee como DESCONECTADO."""
     guardado = repositorio.guardar(nuevo_conductor("30000001"))
@@ -343,7 +367,7 @@ def test_listar_disponible_deriva_del_estado_y_no_de_la_columna_cruda(
     fila.conectado, fila.disponible = False, True
     sesion_bd.flush()
 
-    assert dnis(repositorio.listar(disponible=disponible)) == dnis_esperados
+    assert dnis(repositorio.listar(estado=estado)) == dnis_esperados
 
 
 @pytest.mark.parametrize(

@@ -226,14 +226,21 @@ def test_listar_conductores_habilitado_falso_devuelve_los_que_no_estan_aprobados
 
 
 @pytest.mark.parametrize(
-    ("disponible", "dnis_esperados"),
-    [(True, ["30000001"]), (False, ["30000002"])],
+    ("estado", "dnis_esperados"),
+    [
+        (EstadoConductor.DESCONECTADO, ["30000001"]),
+        (EstadoConductor.CONECTADO, ["30000002"]),
+        (EstadoConductor.DISPONIBLE, ["30000003"]),
+        (EstadoConductor.OCUPADO, ["30000004"]),
+    ],
 )
-def test_listar_conductores_filtra_por_disponible(uow, disponible, dnis_esperados):
-    uow.conductores.guardar(nuevo_conductor(dni="30000001", estado=EstadoConductor.DISPONIBLE))
+def test_listar_conductores_filtra_por_estado(uow, estado, dnis_esperados):
+    uow.conductores.guardar(nuevo_conductor(dni="30000001", estado=EstadoConductor.DESCONECTADO))
     uow.conductores.guardar(nuevo_conductor(dni="30000002", estado=EstadoConductor.CONECTADO))
+    uow.conductores.guardar(nuevo_conductor(dni="30000003", estado=EstadoConductor.DISPONIBLE))
+    uow.conductores.guardar(nuevo_conductor(dni="30000004", estado=EstadoConductor.OCUPADO))
 
-    assert dnis(uow.conductores.listar(disponible=disponible)) == dnis_esperados
+    assert dnis(uow.conductores.listar(estado=estado)) == dnis_esperados
 
 
 def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_tipo(
@@ -256,6 +263,19 @@ def test_listar_conductores_filtra_por_tipo_de_vehiculo_con_al_menos_uno_de_ese_
         "30000002",
         "30000003",
     ]
+
+
+def test_listar_conductores_filtra_por_tipo_de_servicio_habilitado_en_al_menos_un_vehiculo(uow):
+    con_habilitado = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+    con_sin_habilitar = uow.conductores.guardar(nuevo_conductor(dni="30000002"))
+    uow.conductores.guardar(nuevo_conductor(dni="30000003"))  # sin vehiculos
+    vehiculo_habilitado = nuevo_vehiculo(con_habilitado.id, "AAA111")
+    vehiculo_habilitado.tipos_servicio[0].habilitado = True
+    uow.vehiculos.guardar(vehiculo_habilitado)
+    uow.vehiculos.guardar(nuevo_vehiculo(con_sin_habilitar.id, "BBB222"))
+
+    assert dnis(uow.conductores.listar(tipo_servicio=TipoServicio.PASAJEROS)) == ["30000001"]
+    assert uow.conductores.listar(tipo_servicio=TipoServicio.ENVIOS) == []
 
 
 def test_listar_conductores_combina_los_filtros(uow):
@@ -284,7 +304,7 @@ def test_listar_conductores_combina_los_filtros(uow):
         uow.vehiculos.guardar(nuevo_vehiculo(conductor.id, patente))
 
     resultado = uow.conductores.listar(
-        habilitado=True, disponible=True, tipo_vehiculo=TipoVehiculo.AUTO
+        habilitado=True, estado=EstadoConductor.DISPONIBLE, tipo_vehiculo=TipoVehiculo.AUTO
     )
 
     assert dnis(resultado) == ["30000001"]
