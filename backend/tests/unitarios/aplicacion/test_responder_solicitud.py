@@ -513,24 +513,14 @@ RESPONDER_SEGUN_RESPUESTA = {ACEPTADO: aceptar, RECHAZADO: rechazar}
 
 
 @pytest.mark.parametrize("respuesta", [ACEPTADO, RECHAZADO])
-def test_si_otra_respuesta_gano_antes_del_bloqueo_lanza_solicitud_ya_respondida(
+def test_si_otra_respuesta_gano_antes_del_bloqueo_lanza_ya_respondida_y_no_cambia_nada(
     uow_con_respuesta_ganadora, responder_con_respuesta_ganadora, respuesta
 ):
-    uow = uow_con_respuesta_ganadora
-    conductor = sembrar_conductor_habilitado(uow)
-    solicitud = sembrar_solicitud(uow, conductor.id)
-    responder_segun_respuesta = RESPONDER_SEGUN_RESPUESTA[respuesta]
+    """Test de caracterizacion: la revalidacion ya esta implementada (T334) y pasa de entrada.
 
-    with pytest.raises(SolicitudYaRespondida):
-        responder_segun_respuesta(
-            responder_con_respuesta_ganadora, solicitud, identidad_de_conductor(conductor.id)
-        )
-
-
-@pytest.mark.parametrize("respuesta", [ACEPTADO, RECHAZADO])
-def test_si_otra_respuesta_gano_antes_del_bloqueo_no_se_pisa_ni_se_toca_al_conductor(
-    uow_con_respuesta_ganadora, responder_con_respuesta_ganadora, respuesta
-):
+    Se valido con el mutante "responder sobre la solicitud leida sin bloquear": con ese cambio
+    fallan los dos casos (la respuesta ganadora se pisa y el conductor se modifica).
+    """
     uow = uow_con_respuesta_ganadora
     conductor = sembrar_conductor_habilitado(uow)
     solicitud = sembrar_solicitud(uow, conductor.id)
