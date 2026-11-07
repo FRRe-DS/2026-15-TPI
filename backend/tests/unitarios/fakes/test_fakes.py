@@ -155,6 +155,27 @@ def test_guardar_conductor_asigna_ids_incrementales(uow):
     assert segundo.id == primero.id + 1
 
 
+def test_guardar_conductor_nuevo_le_asigna_fecha_de_alta_como_hace_la_base(uow):
+    guardado = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+
+    assert guardado.fecha_alta is not None
+
+
+def test_guardar_conductor_nuevo_respeta_la_fecha_de_alta_que_ya_trae(uow):
+    guardado = uow.conductores.guardar(nuevo_conductor(dni="30000001", fecha_alta=AHORA))
+
+    assert guardado.fecha_alta == AHORA
+
+
+def test_guardar_de_nuevo_un_conductor_existente_no_cambia_su_fecha_de_alta(uow):
+    conductor = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
+    fecha_de_alta_original = conductor.fecha_alta
+
+    uow.conductores.guardar(conductor)
+
+    assert uow.conductores.obtener(conductor.id).fecha_alta == fecha_de_alta_original
+
+
 def test_obtener_conductor_devuelve_el_guardado(uow):
     guardado = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
 

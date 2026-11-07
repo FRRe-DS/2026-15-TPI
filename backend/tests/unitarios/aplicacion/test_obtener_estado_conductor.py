@@ -4,7 +4,7 @@ Firmas bajo prueba:
     ObtenerEstadoConductor(uow: UnidadDeTrabajo)
     ObtenerEstadoConductor.ejecutar(*, id_conductor) -> EstadoDelConductor
     EstadoDelConductor(id_conductor, estado: EstadoConductor, id_vehiculo_activo: int | None,
-                       actualizado: datetime | None)
+                       actualizado: datetime)
 
 `actualizado` es `fecha_ultimo_cambio_estado`; si el estado nunca cambio, la fecha de alta del
 conductor. El resultado no incluye la ubicacion. Lanza NoEncontrado si el conductor no existe.
@@ -82,6 +82,14 @@ def test_si_el_estado_nunca_cambio_actualizado_es_la_fecha_de_alta(uow, obtener_
 
     assert resultado.estado is EstadoConductor.DESCONECTADO
     assert resultado.actualizado == FECHA_DE_ALTA
+
+
+def test_un_conductor_recien_creado_devuelve_actualizado_no_nulo(uow, obtener_estado):
+    conductor = guardar_conductor(uow)
+
+    resultado = obtener_estado.ejecutar(id_conductor=conductor.id)
+
+    assert resultado.actualizado is not None
 
 
 def test_el_resultado_no_incluye_la_ubicacion(uow, obtener_estado):
