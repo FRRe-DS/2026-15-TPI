@@ -1,4 +1,4 @@
-from sqlalchemy import and_, not_, select
+from sqlalchemy import ColumnElement, and_, false, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -6,7 +6,7 @@ from app.aplicacion.puertos.repositorio_conductores import RepositorioConductore
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import DniDuplicado, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
-from app.dominio.vehiculo import TipoVehiculo
+from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.repositorios._errores_sql import nombre_de_restriccion
@@ -35,6 +35,21 @@ def _booleanos_desde_estado(estado: EstadoConductor) -> tuple[bool, bool]:
     if estado is EstadoConductor.DISPONIBLE:
         return True, True
     return True, False
+
+
+def _condicion_de_estado(estado: EstadoConductor) -> ColumnElement[bool]:
+    """Traduce `estado` a las columnas actuales, de modo que coincida con lo que lee `a_dominio`.
+
+    TRANSITORIO hasta L9: `OCUPADO` no existe en la base (se guarda y se lee como `CONECTADO`),
+    asi que filtrar por `OCUPADO` no devuelve ningun conductor.
+    """
+    if estado is EstadoConductor.DESCONECTADO:
+        return ConductorOrm.conectado.is_(False)
+    if estado is EstadoConductor.DISPONIBLE:
+        return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(True))
+    if estado is EstadoConductor.CONECTADO:
+        return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(False))
+    return false()
 
 
 def a_dominio(fila: ConductorOrm) -> Conductor:
@@ -84,20 +99,20 @@ class SqlRepositorioConductores(RepositorioConductores):
         self,
         *,
         habilitado: bool | None = None,
-        disponible: bool | None = None,
+        estado: EstadoConductor | None = None,
         tipo_vehiculo: TipoVehiculo | None = None,
+        tipo_servicio: TipoServicio | None = None,
     ) -> list[Conductor]:
+        if tipo_servicio is not None:
+            # TRANSITORIO hasta L9: `vehiculo_tipo_servicio` llega con la migracion 0002.
+            raise NotImplementedError("El filtro por tipo de servicio llega con L9")
         consulta = select(ConductorOrm).order_by(ConductorOrm.id_conductor)
         if habilitado is True:
             consulta = consulta.where(ConductorOrm.estado_habilitacion == ESTADO_APROBADA)
         elif habilitado is False:
             consulta = consulta.where(ConductorOrm.estado_habilitacion != ESTADO_APROBADA)
-        if disponible is not None:
-            # El dominio deriva `disponible` de `estado`: exige tambien `conectado`.
-            esta_disponible = and_(
-                ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(True)
-            )
-            consulta = consulta.where(esta_disponible if disponible else not_(esta_disponible))
+        if estado is not None:
+            consulta = consulta.where(_condicion_de_estado(estado))
         if tipo_vehiculo is not None:
             consulta = consulta.where(
                 ConductorOrm.vehiculos.any(VehiculoOrm.tipo == tipo_vehiculo.value)

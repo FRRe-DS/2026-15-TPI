@@ -15,13 +15,13 @@ from app.aplicacion.puertos.repositorio_habilitaciones import (
 from app.aplicacion.puertos.repositorio_solicitudes import RepositorioSolicitudes
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
-from app.dominio.conductor import Conductor
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento
 from app.dominio.documento_vehiculo import DocumentoVehiculo
 from app.dominio.errores import DniDuplicado, PatenteDuplicada
 from app.dominio.habilitacion import EstadoHabilitacion, EventoHabilitacion
 from app.dominio.solicitud import Solicitud
-from app.dominio.vehiculo import TipoVehiculo, Vehiculo
+from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
 
 @dataclass
@@ -50,6 +50,10 @@ def _guardar(entidades: dict, entidad):
     return entidad
 
 
+def _tiene_servicio_habilitado(vehiculo: Vehiculo, tipo_servicio: TipoServicio) -> bool:
+    return any(s.tipo is tipo_servicio and s.habilitado for s in vehiculo.tipos_servicio)
+
+
 class RepositorioConductoresEnMemoria(RepositorioConductores):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
@@ -70,8 +74,9 @@ class RepositorioConductoresEnMemoria(RepositorioConductores):
         self,
         *,
         habilitado: bool | None = None,
-        disponible: bool | None = None,
+        estado: EstadoConductor | None = None,
         tipo_vehiculo: TipoVehiculo | None = None,
+        tipo_servicio: TipoServicio | None = None,
     ) -> list[Conductor]:
         conductores = list(self._estado.conductores.values())
         if habilitado is not None:
@@ -80,13 +85,20 @@ class RepositorioConductoresEnMemoria(RepositorioConductores):
                 for c in conductores
                 if (c.habilitacion is EstadoHabilitacion.APROBADA) == habilitado
             ]
-        if disponible is not None:
-            conductores = [c for c in conductores if c.disponible == disponible]
+        if estado is not None:
+            conductores = [c for c in conductores if c.estado is estado]
         if tipo_vehiculo is not None:
             con_ese_tipo = {
                 v.id_conductor for v in self._estado.vehiculos.values() if v.tipo is tipo_vehiculo
             }
             conductores = [c for c in conductores if c.id in con_ese_tipo]
+        if tipo_servicio is not None:
+            con_servicio_habilitado = {
+                v.id_conductor
+                for v in self._estado.vehiculos.values()
+                if _tiene_servicio_habilitado(v, tipo_servicio)
+            }
+            conductores = [c for c in conductores if c.id in con_servicio_habilitado]
         return conductores
 
 
