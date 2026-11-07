@@ -109,11 +109,11 @@ Cierre: C1
 
 ### PR `feat/s1-puertos-fakes-i2` (L4, T318–T322): Puertos nuevos y repositorios en memoria
 
-- [ ] T318 [S1] Test (Red) `backend/tests/unitarios/fakes/test_fakes.py`: `RepositorioSolicitudesEnMemoria` asigna id al guardar, obtiene y lista por conductor; `RepositorioDocumentosVehiculoEnMemoria` asigna id, lista por vehículo y por lote con una clave por cada id pedido; `UnidadDeTrabajoEnMemoria.bloquear_solicitud` devuelve la solicitud y `rollback` descarta los cambios nuevos
-- [ ] T319 [P] [S1] Impl (Green) puertos nuevos en `backend/app/aplicacion/puertos/repositorio_solicitudes.py` y `repositorio_documentos_vehiculo.py`, según [contracts/casos-de-uso.md](./contracts/casos-de-uso.md)
-- [ ] T320 [S1] Impl (Green) `backend/app/aplicacion/puertos/unidad_de_trabajo.py`: atributos `solicitudes` y `documentos_vehiculo`, y `bloquear_solicitud(id_solicitud)`
-- [ ] T321 [S1] Impl (Green) `backend/tests/unitarios/fakes/repositorios_en_memoria.py`: los dos repositorios en memoria nuevos y `bloquear_solicitud`, hasta que pase T318
-- [ ] T322 [S1] Impl (Green) `backend/app/infraestructura/repositorios/sql_unidad_de_trabajo.py`: la unidad de trabajo SQL declara los repositorios nuevos como pendientes (lanzan `NotImplementedError` al usarse), para que la aplicación siga arrancando y la suite siga en verde hasta L9 y L10
+- [X] T318 [S1] Test (Red) `backend/tests/unitarios/fakes/test_fakes.py`: `RepositorioSolicitudesEnMemoria` asigna id al guardar, obtiene y lista por conductor; `RepositorioDocumentosVehiculoEnMemoria` asigna id, lista por vehículo y por lote con una clave por cada id pedido; `UnidadDeTrabajoEnMemoria.bloquear_solicitud` devuelve la solicitud y `rollback` descarta los cambios nuevos
+- [X] T319 [P] [S1] Impl (Green) puertos nuevos en `backend/app/aplicacion/puertos/repositorio_solicitudes.py` y `repositorio_documentos_vehiculo.py`, según [contracts/casos-de-uso.md](./contracts/casos-de-uso.md)
+- [X] T320 [S1] Impl (Green) `backend/app/aplicacion/puertos/unidad_de_trabajo.py`: atributos `solicitudes` y `documentos_vehiculo`, y `bloquear_solicitud(id_solicitud)`
+- [X] T321 [S1] Impl (Green) `backend/tests/unitarios/fakes/repositorios_en_memoria.py`: los dos repositorios en memoria nuevos y `bloquear_solicitud`, hasta que pase T318
+- [X] T322 [S1] Impl (Green) `backend/app/infraestructura/repositorios/sql_unidad_de_trabajo.py`: la unidad de trabajo SQL declara los repositorios nuevos como pendientes (lanzan `NotImplementedError` al usarse), para que la aplicación siga arrancando y la suite siga en verde hasta L9 y L10
 
 ### PR `feat/s1-casos-estado-ubicacion` (L5, T323–T329): Casos de uso de estado y ubicación
 
