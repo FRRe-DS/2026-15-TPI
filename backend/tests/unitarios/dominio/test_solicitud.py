@@ -13,7 +13,7 @@ no la `hora_rta` que envia el cliente, que se guarda tal cual.
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.dominio.errores import SolicitudVencida, SolicitudYaRespondida
+from app.dominio.errores import DatosInvalidos, SolicitudVencida, SolicitudYaRespondida
 from app.dominio.solicitud import EstadoSolicitud, Solicitud
 
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
@@ -80,14 +80,6 @@ def test_responder_una_pendiente_vigente_guarda_la_respuesta_tal_cual(respuesta)
     assert solicitud.hora_rta == hora_rta
 
 
-def test_responder_usa_ahora_y_no_la_hora_rta_para_decidir_el_vencimiento():
-    solicitud = crear()
-
-    solicitud.responder(EstadoSolicitud.ACEPTADO, ANTES_DEL_VENCIMIENTO, AHORA)
-
-    assert solicitud.estado is EstadoSolicitud.ACEPTADO
-
-
 def test_una_pendiente_vencida_lanza_y_no_cambia_nada():
     solicitud = crear()
 
@@ -133,5 +125,17 @@ def test_una_solicitud_guardada_como_vencida_lanza_vencida():
         solicitud.responder(EstadoSolicitud.ACEPTADO, AHORA, AHORA)
 
     assert solicitud.estado is EstadoSolicitud.VENCIDA
+    assert solicitud.respuesta is None
+    assert solicitud.hora_rta is None
+
+
+@pytest.mark.parametrize("respuesta", [EstadoSolicitud.PENDIENTE, EstadoSolicitud.VENCIDA])
+def test_responder_solo_admite_aceptado_o_rechazado(respuesta):
+    solicitud = crear()
+
+    with pytest.raises(DatosInvalidos):
+        solicitud.responder(respuesta, ANTES_DEL_VENCIMIENTO, AHORA)
+
+    assert solicitud.estado is EstadoSolicitud.PENDIENTE
     assert solicitud.respuesta is None
     assert solicitud.hora_rta is None

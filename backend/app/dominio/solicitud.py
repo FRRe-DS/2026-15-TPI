@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from app.dominio.errores import SolicitudVencida, SolicitudYaRespondida
+from app.dominio.errores import DatosInvalidos, SolicitudVencida, SolicitudYaRespondida
 
 
 class EstadoSolicitud(Enum):
@@ -17,6 +17,9 @@ class EstadoSolicitud(Enum):
     ACEPTADO = "ACEPTADO"
     RECHAZADO = "RECHAZADO"
     VENCIDA = "VENCIDA"
+
+
+RESPUESTAS_VALIDAS = frozenset({EstadoSolicitud.ACEPTADO, EstadoSolicitud.RECHAZADO})
 
 
 @dataclass
@@ -45,6 +48,8 @@ class Solicitud:
         `ahora` es la hora del servidor y decide el vencimiento; `hora_rta` es la hora que
         envio el cliente y se guarda tal cual.
         """
+        if respuesta not in RESPUESTAS_VALIDAS:
+            raise DatosInvalidos("La respuesta debe ser ACEPTADO o RECHAZADO")
         estado_actual = self.estado_efectivo(ahora)
         if estado_actual is EstadoSolicitud.VENCIDA:
             raise SolicitudVencida("La solicitud ya venció")
