@@ -19,7 +19,7 @@ from app.dominio.disponibilidad import (
     marcar_ocupado,
     puede_quedar_disponible,
 )
-from app.dominio.errores import ConductorNoHabilitado
+from app.dominio.errores import ConductorNoHabilitado, DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
@@ -360,3 +360,96 @@ def test_marcar_ocupado_lanza_si_no_cumple_la_regla_y_no_cambia_nada(
     assert conductor.estado is EstadoConductor.CONECTADO
     assert conductor.id_vehiculo_activo == (5 if con_vehiculo else None)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
+
+
+# --- pedir OCUPADO y coherencia del vehiculo activo ---
+
+
+@pytest.mark.parametrize("estado_inicial", list(EstadoConductor))
+def test_pedir_ocupado_lanza_datos_invalidos_y_no_cambia_nada(estado_inicial):
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+
+    with pytest.raises(DatosInvalidos):
+        aplicar_cambio_estado(
+            conductor, crear_vehiculo(), estado=EstadoConductor.OCUPADO, ahora=AHORA
+        )
+
+    assert conductor.estado is estado_inicial
+    assert conductor.fecha_ultimo_cambio_estado == ANTES
+
+
+def test_quitar_el_vehiculo_pasando_el_vehiculo_anterior_lanza_y_no_cambia_nada():
+    conductor = crear_conductor(estado=EstadoConductor.DISPONIBLE, id_vehiculo_activo=5)
+
+    with pytest.raises(DatosInvalidos):
+        aplicar_cambio_estado(conductor, crear_vehiculo(), id_vehiculo_activo=None, ahora=AHORA)
+
+    assert conductor.estado is EstadoConductor.DISPONIBLE
+    assert conductor.id_vehiculo_activo == 5
+    assert conductor.fecha_ultimo_cambio_estado == ANTES
+
+
+def test_cambiar_de_vehiculo_pasando_otro_vehiculo_lanza_y_no_cambia_nada():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+
+    with pytest.raises(DatosInvalidos):
+        aplicar_cambio_estado(
+            conductor,
+            crear_vehiculo(id_vehiculo=7),
+            estado=EstadoConductor.DISPONIBLE,
+            id_vehiculo_activo=5,
+            ahora=AHORA,
+        )
+
+    assert conductor.estado is EstadoConductor.CONECTADO
+    assert conductor.id_vehiculo_activo == 5
+    assert conductor.fecha_ultimo_cambio_estado == ANTES
+
+
+def test_un_vehiculo_de_otro_conductor_lanza_en_aplicar_cambio_estado():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    ajeno = crear_vehiculo()
+    ajeno.id_conductor = 99
+
+    with pytest.raises(DatosInvalidos):
+        aplicar_cambio_estado(conductor, ajeno, estado=EstadoConductor.DISPONIBLE, ahora=AHORA)
+
+    assert conductor.estado is EstadoConductor.CONECTADO
+
+
+def test_marcar_ocupado_con_el_vehiculo_de_otro_conductor_lanza_y_no_cambia_nada():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    ajeno = crear_vehiculo()
+    ajeno.id_conductor = 99
+
+    with pytest.raises(DatosInvalidos):
+        marcar_ocupado(conductor, ajeno, AHORA)
+
+    assert conductor.estado is EstadoConductor.CONECTADO
+    assert conductor.fecha_ultimo_cambio_estado == ANTES
+
+
+def test_marcar_ocupado_con_un_vehiculo_distinto_del_activo_lanza():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+
+    with pytest.raises(DatosInvalidos):
+        marcar_ocupado(conductor, crear_vehiculo(id_vehiculo=7), AHORA)
+
+    assert conductor.estado is EstadoConductor.CONECTADO
+
+
+def test_un_estado_que_no_es_del_dominio_lanza_datos_invalidos():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+
+    with pytest.raises(DatosInvalidos):
+        aplicar_cambio_estado(conductor, crear_vehiculo(), estado="PAUSADO", ahora=AHORA)
+
+    assert conductor.estado is EstadoConductor.CONECTADO
+
+
+def test_un_estado_como_texto_valido_se_acepta_como_el_del_dominio():
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+
+    aplicar_cambio_estado(conductor, crear_vehiculo(), estado="DISPONIBLE", ahora=AHORA)
+
+    assert conductor.estado is EstadoConductor.DISPONIBLE
