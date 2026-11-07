@@ -59,7 +59,7 @@ class EstadoDelConductor:
     id_conductor: int
     estado: EstadoConductor
     id_vehiculo_activo: int | None
-    actualizado: datetime | None
+    actualizado: datetime
 
     @classmethod
     def desde_conductor(cls, conductor: Conductor) -> "EstadoDelConductor":
