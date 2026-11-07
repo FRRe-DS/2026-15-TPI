@@ -6,15 +6,21 @@ from typing import Self
 
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
+from app.aplicacion.puertos.repositorio_documentos_vehiculo import (
+    RepositorioDocumentosVehiculo,
+)
 from app.aplicacion.puertos.repositorio_habilitaciones import (
     RepositorioHabilitaciones,
 )
+from app.aplicacion.puertos.repositorio_solicitudes import RepositorioSolicitudes
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.conductor import Conductor
 from app.dominio.documento import Documento
+from app.dominio.documento_vehiculo import DocumentoVehiculo
 from app.dominio.errores import DniDuplicado, PatenteDuplicada
 from app.dominio.habilitacion import EstadoHabilitacion, EventoHabilitacion
+from app.dominio.solicitud import Solicitud
 from app.dominio.vehiculo import TipoVehiculo, Vehiculo
 
 
@@ -25,6 +31,8 @@ class _Estado:
     conductores: dict[int, Conductor] = field(default_factory=dict)
     vehiculos: dict[int, Vehiculo] = field(default_factory=dict)
     documentos: dict[int, tuple[int, Documento]] = field(default_factory=dict)
+    solicitudes: dict[int, Solicitud] = field(default_factory=dict)
+    documentos_vehiculo: dict[int, tuple[int, DocumentoVehiculo]] = field(default_factory=dict)
     eventos_conductor: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
     eventos_vehiculo: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
     ultimo_id_evento_conductor: int = 0
@@ -172,6 +180,47 @@ class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
         return list(self._estado.eventos_vehiculo.get(id_vehiculo, []))
 
 
+class RepositorioSolicitudesEnMemoria(RepositorioSolicitudes):
+    def __init__(self, estado: _Estado) -> None:
+        self._estado = estado
+
+    def guardar(self, solicitud: Solicitud) -> Solicitud:
+        return _guardar(self._estado.solicitudes, solicitud)
+
+    def obtener(self, id_solicitud: int) -> Solicitud | None:
+        return self._estado.solicitudes.get(id_solicitud)
+
+    def listar_por_conductor(self, id_conductor: int) -> list[Solicitud]:
+        return [s for s in self._estado.solicitudes.values() if s.id_conductor == id_conductor]
+
+
+class RepositorioDocumentosVehiculoEnMemoria(RepositorioDocumentosVehiculo):
+    def __init__(self, estado: _Estado) -> None:
+        self._estado = estado
+
+    def guardar(self, id_vehiculo: int, documento: DocumentoVehiculo) -> DocumentoVehiculo:
+        if documento.id is None:
+            documento.id = max(self._estado.documentos_vehiculo, default=0) + 1
+        self._estado.documentos_vehiculo[documento.id] = (id_vehiculo, documento)
+        return documento
+
+    def listar_por_vehiculo(self, id_vehiculo: int) -> list[DocumentoVehiculo]:
+        return [
+            documento
+            for dueno, documento in self._estado.documentos_vehiculo.values()
+            if dueno == id_vehiculo
+        ]
+
+    def listar_por_vehiculos(
+        self, ids_vehiculo: Sequence[int]
+    ) -> dict[int, list[DocumentoVehiculo]]:
+        por_vehiculo: dict[int, list[DocumentoVehiculo]] = {id_: [] for id_ in ids_vehiculo}
+        for dueno, documento in self._estado.documentos_vehiculo.values():
+            if dueno in por_vehiculo:
+                por_vehiculo[dueno].append(documento)
+        return por_vehiculo
+
+
 class UnidadDeTrabajoEnMemoria(UnidadDeTrabajo):
     def __init__(self) -> None:
         self._estado = _Estado()
@@ -180,6 +229,8 @@ class UnidadDeTrabajoEnMemoria(UnidadDeTrabajo):
         self.vehiculos = RepositorioVehiculosEnMemoria(self._estado)
         self.documentos = RepositorioDocumentosEnMemoria(self._estado)
         self.habilitaciones = RepositorioHabilitacionesEnMemoria(self._estado)
+        self.solicitudes = RepositorioSolicitudesEnMemoria(self._estado)
+        self.documentos_vehiculo = RepositorioDocumentosVehiculoEnMemoria(self._estado)
 
     def __enter__(self) -> Self:
         return self
@@ -203,3 +254,6 @@ class UnidadDeTrabajoEnMemoria(UnidadDeTrabajo):
 
     def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
         return self.vehiculos.obtener(id_conductor, id_vehiculo)
+
+    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+        return self.solicitudes.obtener(id_solicitud)

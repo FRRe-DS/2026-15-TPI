@@ -4,11 +4,16 @@ from typing import Self
 
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
+from app.aplicacion.puertos.repositorio_documentos_vehiculo import (
+    RepositorioDocumentosVehiculo,
+)
 from app.aplicacion.puertos.repositorio_habilitaciones import (
     RepositorioHabilitaciones,
 )
+from app.aplicacion.puertos.repositorio_solicitudes import RepositorioSolicitudes
 from app.aplicacion.puertos.repositorio_vehiculos import RepositorioVehiculos
 from app.dominio.conductor import Conductor
+from app.dominio.solicitud import Solicitud
 from app.dominio.vehiculo import Vehiculo
 
 
@@ -17,6 +22,8 @@ class UnidadDeTrabajo(ABC):
     vehiculos: RepositorioVehiculos
     documentos: RepositorioDocumentos
     habilitaciones: RepositorioHabilitaciones
+    solicitudes: RepositorioSolicitudes
+    documentos_vehiculo: RepositorioDocumentosVehiculo
 
     @abstractmethod
     def __enter__(self) -> Self:
@@ -46,3 +53,7 @@ class UnidadDeTrabajo(ABC):
     @abstractmethod
     def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
         """Obtiene el vehículo del conductor con bloqueo de fila (SELECT ... FOR UPDATE)."""
+
+    @abstractmethod
+    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+        """Obtiene la solicitud con bloqueo de fila (SELECT ... FOR UPDATE)."""
