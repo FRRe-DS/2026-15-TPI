@@ -9,8 +9,9 @@ Se comporta como el fake `RepositorioConductoresEnMemoria` (ver `tests/unitarios
   para que la sesion siga siendo usable despues del error. Cualquier otro
   `IntegrityError` se propaga sin traducir.
 - `listar` ordena por id y filtra por `habilitado` (True solo APROBADA), `estado` y
-  `tipo_vehiculo` (al menos un vehiculo de ese tipo, sin duplicar al conductor), con AND.
-  `tipo_servicio` lanza `NotImplementedError` hasta que la base tenga la tabla de servicios.
+  `tipo_vehiculo` (al menos un vehiculo de ese tipo, sin duplicar al conductor) y
+  `tipo_servicio` (al menos un vehiculo con ese servicio habilitado en
+  `vehiculo_tipo_servicio`, no solo declarado), con AND.
 - `test_guardar_un_conductor_con_id_inexistente_lanza_no_encontrado` es un test de
   CARACTERIZACION: fija una decision tomada en la implementacion (los ids los genera la
   base, un id que no existe no es un alta) y pasa de entrada, sin fase Red.
@@ -23,6 +24,7 @@ from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
+from app.infraestructura.db.modelos import VehiculoTipoServicio as VehiculoTipoServicioOrm
 from app.infraestructura.repositorios.sql_conductores import SqlRepositorioConductores
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
@@ -31,6 +33,8 @@ PENDIENTE = EstadoHabilitacion.PENDIENTE
 APROBADA = EstadoHabilitacion.APROBADA
 AUTO = TipoVehiculo.AUTO
 MOTO = TipoVehiculo.MOTO
+PASAJEROS = TipoServicio.PASAJEROS
+ENVIOS = TipoServicio.ENVIOS
 
 
 @pytest.fixture
@@ -51,7 +55,8 @@ def nuevo_conductor(dni="30123456", **estado):
     return conductor
 
 
-def sembrar_vehiculo(sesion, id_conductor, patente, tipo):
+def sembrar_vehiculo(sesion, id_conductor, patente, tipo, servicios=()):
+    """`servicios` es una secuencia de `(TipoServicio, habilitado)`."""
     sesion.add(
         VehiculoOrm(
             id_conductor=id_conductor,
@@ -60,6 +65,10 @@ def sembrar_vehiculo(sesion, id_conductor, patente, tipo):
             modelo="Etios",
             anio=2019,
             tipo=tipo.value,
+            tipos_servicio=[
+                VehiculoTipoServicioOrm(tipo_servicio=servicio.value, habilitado=habilitado)
+                for servicio, habilitado in servicios
+            ],
         )
     )
     sesion.flush()
@@ -291,9 +300,76 @@ def test_listar_por_ocupado_no_devuelve_nada_hasta_que_la_base_distinga_el_estad
     assert dnis(repositorio.listar(estado=EstadoConductor.CONECTADO)) == ["30000001"]
 
 
-def test_listar_por_tipo_de_servicio_lanza_not_implemented_hasta_la_migracion(repositorio):
-    with pytest.raises(NotImplementedError):
-        repositorio.listar(tipo_servicio=TipoServicio.PASAJEROS)
+def test_listar_filtra_por_tipo_de_servicio_con_al_menos_un_vehiculo_con_ese_servicio_habilitado(
+    repositorio, sesion_bd
+):
+    con_pasajeros = repositorio.guardar(nuevo_conductor("30000001"))
+    con_envios = repositorio.guardar(nuevo_conductor("30000002"))
+    con_ambos = repositorio.guardar(nuevo_conductor("30000003"))
+    repositorio.guardar(nuevo_conductor("30000004"))  # sin vehiculos
+    sembrar_vehiculo(sesion_bd, con_pasajeros.id, "AAA111", AUTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, con_envios.id, "BBB222", AUTO, [(ENVIOS, True)])
+    sembrar_vehiculo(sesion_bd, con_ambos.id, "CCC333", AUTO, [(PASAJEROS, True), (ENVIOS, True)])
+
+    assert dnis(repositorio.listar(tipo_servicio=PASAJEROS)) == ["30000001", "30000003"]
+    assert dnis(repositorio.listar(tipo_servicio=ENVIOS)) == ["30000002", "30000003"]
+
+
+def test_listar_por_tipo_de_servicio_sin_coincidencias_devuelve_lista_vacia(repositorio, sesion_bd):
+    solo_envios = repositorio.guardar(nuevo_conductor("30000001"))
+    repositorio.guardar(nuevo_conductor("30000002"))  # sin vehiculos
+    sembrar_vehiculo(sesion_bd, solo_envios.id, "AAA111", AUTO, [(ENVIOS, True)])
+
+    assert repositorio.listar(tipo_servicio=PASAJEROS) == []
+
+
+def test_listar_por_tipo_de_servicio_excluye_al_conductor_cuyo_servicio_esta_deshabilitado(
+    repositorio, sesion_bd
+):
+    deshabilitado = repositorio.guardar(nuevo_conductor("30000001"))
+    habilitado = repositorio.guardar(nuevo_conductor("30000002"))
+    sembrar_vehiculo(sesion_bd, deshabilitado.id, "AAA111", AUTO, [(PASAJEROS, False)])
+    sembrar_vehiculo(sesion_bd, habilitado.id, "BBB222", AUTO, [(PASAJEROS, True)])
+
+    assert dnis(repositorio.listar(tipo_servicio=PASAJEROS)) == ["30000002"]
+
+
+def test_listar_por_tipo_de_servicio_no_duplica_al_conductor_con_varios_vehiculos_habilitados(
+    repositorio, sesion_bd
+):
+    con_dos_vehiculos = repositorio.guardar(nuevo_conductor("30000001"))
+    con_uno_deshabilitado = repositorio.guardar(nuevo_conductor("30000002"))
+    sembrar_vehiculo(sesion_bd, con_dos_vehiculos.id, "AAA111", AUTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, con_dos_vehiculos.id, "BBB222", MOTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, con_uno_deshabilitado.id, "CCC333", AUTO, [(PASAJEROS, False)])
+    sembrar_vehiculo(sesion_bd, con_uno_deshabilitado.id, "DDD444", MOTO, [(PASAJEROS, True)])
+
+    assert dnis(repositorio.listar(tipo_servicio=PASAJEROS)) == ["30000001", "30000002"]
+
+
+def test_listar_por_tipo_de_servicio_se_combina_con_tipo_de_vehiculo_y_estado(
+    repositorio, sesion_bd
+):
+    cumple_todo = repositorio.guardar(
+        nuevo_conductor("30000001", estado=EstadoConductor.DISPONIBLE)
+    )
+    otro_estado = repositorio.guardar(nuevo_conductor("30000002", estado=EstadoConductor.CONECTADO))
+    otro_tipo_de_vehiculo = repositorio.guardar(
+        nuevo_conductor("30000003", estado=EstadoConductor.DISPONIBLE)
+    )
+    otro_servicio = repositorio.guardar(
+        nuevo_conductor("30000004", estado=EstadoConductor.DISPONIBLE)
+    )
+    sembrar_vehiculo(sesion_bd, cumple_todo.id, "AAA111", AUTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, otro_estado.id, "BBB222", AUTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, otro_tipo_de_vehiculo.id, "CCC333", MOTO, [(PASAJEROS, True)])
+    sembrar_vehiculo(sesion_bd, otro_servicio.id, "DDD444", AUTO, [(ENVIOS, True)])
+
+    resultado = repositorio.listar(
+        estado=EstadoConductor.DISPONIBLE, tipo_vehiculo=AUTO, tipo_servicio=PASAJEROS
+    )
+
+    assert dnis(resultado) == ["30000001"]
 
 
 def test_listar_filtra_por_tipo_de_vehiculo_sin_duplicar_conductores(repositorio, sesion_bd):

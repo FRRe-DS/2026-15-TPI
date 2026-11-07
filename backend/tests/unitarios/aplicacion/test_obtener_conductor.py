@@ -6,6 +6,9 @@ Firmas bajo prueba:
 
 Devuelve el conductor con sus documentos (estado VIGENTE/VENCIDO calculado con
 `reloj.hoy()`) y sus vehiculos, solo los suyos. Lanza NoEncontrado si el id no existe.
+
+Los tests de los campos de Iteracion 2 del conductor (T345) son de CARACTERIZACION: L1 y L7
+ya los dejaron soportados, asi que pasan de entrada, sin fase Red, y T346 no requirio cambios.
 """
 
 from datetime import UTC, date, datetime

@@ -13,6 +13,9 @@ exige al menos un vehiculo con ese tipo de servicio habilitado; los filtros se c
 con AND. El caso de uso no recibe `latitud` ni `longitud`. Cada ConductorDetalle trae el
 conductor con sus campos de Iteracion 2 (estado, vehiculo activo y puntajes), los
 documentos como DocumentoConEstado (estado calculado con `reloj.hoy()`) y sus vehiculos.
+
+Los tests de los campos de Iteracion 2 del conductor (T345) son de CARACTERIZACION: L1 y L7
+ya los dejaron soportados, asi que pasan de entrada, sin fase Red, y T346 no requirio cambios.
 """
 
 import inspect
