@@ -6,7 +6,7 @@ Firmas bajo prueba:
     VehiculoDetalle(vehiculo: Vehiculo, documentos: list[DocumentoVehiculoConEstado])
     DocumentoVehiculoConEstado(documento: DocumentoVehiculo, estado: EstadoDocumento)
 
-Devuelve el vehiculo con todos sus datos y sus documentos en orden de alta, cada uno con su
+Devuelve el vehiculo con todos sus datos y sus documentos ordenados por `id`, cada uno con su
 estado `VIGENTE` o `VENCIDO` calculado con `reloj.hoy()` (lista vacia si no tiene). Lanza
 NoEncontrado si el conductor no existe, si el vehiculo no existe o si el vehiculo es de otro
 conductor.

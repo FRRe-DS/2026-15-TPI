@@ -6,8 +6,9 @@ Firmas bajo prueba:
     ListarTiposServicioVehiculo.ejecutar(*, id_conductor, id_vehiculo)
         -> list[ServicioDelVehiculo]
 
-Devuelve cada tipo de servicio del vehiculo con su `habilitado`, en el orden en que se
-registraron. Lanza NoEncontrado si el vehiculo no existe o es de otro conductor.
+Devuelve cada tipo de servicio del vehiculo con su `habilitado`, sin garantizar un orden: el
+repositorio SQL los ordena por nombre y el fake en memoria por registro, asi que los tests los
+comparan como conjunto. Lanza NoEncontrado si el vehiculo no existe o es de otro conductor.
 """
 
 import pytest
@@ -67,10 +68,10 @@ def test_devuelve_cada_tipo_de_servicio_con_su_habilitado(listar_tipos_servicio,
 
     resultado = listar_tipos_servicio.ejecutar(id_conductor=conductor.id, id_vehiculo=vehiculo.id)
 
-    assert [(servicio.tipo, servicio.habilitado) for servicio in resultado] == [
+    assert {(servicio.tipo, servicio.habilitado) for servicio in resultado} == {
         (TipoServicio.PASAJEROS, False),
         (TipoServicio.ENVIOS, True),
-    ]
+    }
 
 
 def test_un_vehiculo_sin_tipos_habilitados_los_devuelve_todos_en_falso(listar_tipos_servicio, uow):
