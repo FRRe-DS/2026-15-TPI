@@ -16,6 +16,11 @@ from app.api.esquemas.conductor import (
     conductor_desde_detalle,
 )
 from app.api.esquemas.vehiculo import TipoServicio, TipoVehiculo
+from app.api.seguridad import (
+    requerir_conductor_propio_operador_o_servicio,
+    requerir_operador_o_conductor,
+    requerir_operador_o_servicio,
+)
 from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
@@ -30,6 +35,7 @@ router = APIRouter(tags=["Conductores"])
     response_model=Conductor,
     status_code=status.HTTP_201_CREATED,
     operation_id="crearConductor",
+    dependencies=[Depends(requerir_operador_o_conductor)],
 )
 def crear_conductor(
     datos: ConductorCreate,
@@ -46,6 +52,7 @@ def crear_conductor(
     "/conductores",
     response_model=list[ConductorConUbicacion],
     operation_id="listarConductores",
+    dependencies=[Depends(requerir_operador_o_servicio)],
 )
 def listar_conductores(
     caso: Annotated[ListarConductores, Depends(obtener_caso_listar_conductores)],
@@ -85,6 +92,7 @@ def listar_conductores(
     "/conductores/{id_conductor}",
     response_model=ConductorConUbicacion,
     operation_id="obtenerConductor",
+    dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_conductor(
     id_conductor: int,
