@@ -170,7 +170,8 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 @pytest.fixture
 def headers_conductor(crear_token) -> dict[str, str]:
-    return {"Authorization": f"Bearer {crear_token(roles=['conductor'])}"}
+    token = crear_token(roles=["conductor"], id_conductor=1)
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture

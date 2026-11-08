@@ -47,7 +47,7 @@ def test_sin_token_responde_401(
 
 def test_conductor_no_puede_accionar_habilitacion_responde_403(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_conductor_de: Callable[[int], dict[str, str]],
     crear_conductor: Callable[..., dict[str, Any]],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
@@ -56,7 +56,7 @@ def test_conductor_no_puede_accionar_habilitacion_responde_403(
     respuesta = cliente.post(
         f"/api/v1/conductores/{conductor['id']}/habilitacion",
         json={"accion": "APROBAR", "motivo": "Intento sin permisos"},
-        headers=headers_conductor,
+        headers=headers_conductor_de(conductor["id"]),
     )
 
     _verificar_error(respuesta, 403, "SIN_PERMISOS", validar_contrato)

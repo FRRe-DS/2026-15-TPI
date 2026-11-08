@@ -80,7 +80,13 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 @pytest.fixture
 def headers_conductor(crear_token) -> dict[str, str]:
-    return {"Authorization": f"Bearer {crear_token(roles=['conductor'])}"}
+    """Headers de quien opera sobre cualquier conductor (token de operador).
+
+    Con la matriz de acceso de la Iteración 2 un token de conductor solo opera sobre su
+    propio `id_conductor`, y estas pruebas operan sobre conductores recién creados, cuyo id
+    se conoce recién después del alta. El nombre se conserva para no tocar las pruebas.
+    """
+    return {"Authorization": f"Bearer {crear_token(roles=['operador'], id_operador=7)}"}
 
 
 @pytest.fixture
