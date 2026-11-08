@@ -42,6 +42,14 @@ ESPERADOS: dict[tuple[str, str], str] = {
     ("/api/v1/conductores/{id_conductor}/ubicacion", "get"): "obtenerUbicacionConductor",
     ("/api/v1/conductores/{id_conductor}/solicitudes", "get"): "listarSolicitudesConductor",
     ("/api/v1/solicitudes/{id_solicitud}", "post"): "responderSolicitud",
+    (
+        "/api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio",
+        "get",
+    ): "listarTiposServicioVehiculo",
+    (
+        "/api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion",
+        "post",
+    ): "crearDocumentacionVehiculo",
 }
 
 
