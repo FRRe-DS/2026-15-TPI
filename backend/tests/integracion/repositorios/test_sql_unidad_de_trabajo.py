@@ -28,12 +28,17 @@ from app.dominio.habilitacion import (
     EstadoHabilitacion,
     EventoHabilitacion,
 )
+from app.dominio.solicitud import Solicitud
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 from app.infraestructura.db.modelos import Conductor as ConductorOrm
 from app.infraestructura.db.modelos import Vehiculo as VehiculoOrm
 from app.infraestructura.repositorios.sql_conductores import SqlRepositorioConductores
 from app.infraestructura.repositorios.sql_documentos import SqlRepositorioDocumentos
+from app.infraestructura.repositorios.sql_documentos_vehiculo import (
+    SqlRepositorioDocumentosVehiculo,
+)
 from app.infraestructura.repositorios.sql_habilitaciones import SqlRepositorioHabilitaciones
+from app.infraestructura.repositorios.sql_solicitudes import SqlRepositorioSolicitudes
 from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 from app.infraestructura.repositorios.sql_vehiculos import SqlRepositorioVehiculos
 from sqlalchemy import event, text
@@ -156,6 +161,8 @@ def test_dentro_del_with_los_atributos_son_los_repositorios_sql(uow):
         assert isinstance(uow.vehiculos, SqlRepositorioVehiculos)
         assert isinstance(uow.documentos, SqlRepositorioDocumentos)
         assert isinstance(uow.habilitaciones, SqlRepositorioHabilitaciones)
+        assert isinstance(uow.solicitudes, SqlRepositorioSolicitudes)
+        assert isinstance(uow.documentos_vehiculo, SqlRepositorioDocumentosVehiculo)
 
 
 def test_los_repositorios_comparten_la_sesion_y_commit_persiste_todo(uow, fabrica_sesiones):
@@ -259,33 +266,31 @@ def test_el_conductor_y_su_evento_de_alta_se_guardan_en_la_misma_transaccion(uow
     assert contar(fabrica_sesiones, "habilitacion_evento_conductor") == 0
 
 
-# --- Marcador de documentos del vehiculo (hasta que exista su repositorio SQL) ---
+# --- Repositorios nuevos: wiring en la unidad de trabajo ---
 
 
-def documento_de_vehiculo():
-    return DocumentoVehiculo.crear(
-        tipo=TipoDocumentoVehiculo.SEGURO,
-        numero="POL-123",
-        entidad_emisora=None,
-        fecha_emision=date(2026, 1, 1),
-        fecha_vencimiento=date(2027, 1, 1),
-        url_archivo="https://example.com/seguro.pdf",
-    )
-
-
-def test_el_marcador_de_documentos_del_vehiculo_lista_vacio_para_no_romper_el_detalle(uow):
+def test_los_documentos_del_vehiculo_y_las_solicitudes_usan_la_misma_sesion_y_confirmacion(
+    uow, fabrica_sesiones
+):
     with uow:
-        assert uow.documentos_vehiculo.listar_por_vehiculo(1) == []
+        conductor = uow.conductores.guardar(nuevo_conductor())
+        vehiculo = uow.vehiculos.guardar(nuevo_vehiculo(conductor.id))
+        uow.documentos_vehiculo.guardar(
+            vehiculo.id,
+            DocumentoVehiculo.crear(
+                tipo=TipoDocumentoVehiculo.SEGURO,
+                numero="POL-123",
+                entidad_emisora=None,
+                fecha_emision=date(2026, 1, 1),
+                fecha_vencimiento=date(2027, 1, 1),
+                url_archivo="https://example.com/seguro.pdf",
+            ),
+        )
+        uow.solicitudes.guardar(Solicitud(id_conductor=conductor.id, vence_en=FECHA))
+        uow.commit()
 
-
-def test_el_marcador_de_documentos_del_vehiculo_no_guarda_y_lanza_not_implemented(uow):
-    with uow, pytest.raises(NotImplementedError):
-        uow.documentos_vehiculo.guardar(1, documento_de_vehiculo())
-
-
-def test_el_marcador_de_documentos_del_vehiculo_no_lista_por_lote_y_lanza_not_implemented(uow):
-    with uow, pytest.raises(NotImplementedError):
-        uow.documentos_vehiculo.listar_por_vehiculos([1, 2])
+    assert contar(fabrica_sesiones, "vehiculo_documento") == 1
+    assert contar(fabrica_sesiones, "solicitud") == 1
 
 
 # --- Bloqueo de fila: valor devuelto ---
@@ -313,6 +318,50 @@ def test_bloquear_vehiculo_devuelve_el_vehiculo_de_dominio_solo_si_es_del_conduc
     assert (vehiculo.id, vehiculo.id_conductor, vehiculo.patente) == (1, 1, "AAA111")
     assert de_otro_conductor is None
     assert inexistente is None
+
+
+def test_bloquear_conductor_devuelve_lo_confirmado_aunque_la_sesion_lo_tenga_cargado(
+    uow, datos_sembrados, fabrica_sesiones
+):
+    """Si falta `populate_existing`, devuelve la copia vieja de la sesion y este test falla."""
+    with uow:
+        fila = uow._sesion.get(ConductorOrm, 1)
+        assert fila is not None
+        assert fila.estado_habilitacion == "PENDIENTE"
+
+        with fabrica_sesiones() as otra_sesion:
+            otra_sesion.execute(
+                text("UPDATE conductor SET estado_habilitacion = 'APROBADA' WHERE id_conductor = 1")
+            )
+            otra_sesion.commit()
+
+        bloqueado = uow.bloquear_conductor(1)
+
+        assert fila.estado_habilitacion == "APROBADA"
+
+    assert bloqueado.habilitacion is EstadoHabilitacion.APROBADA
+
+
+def test_bloquear_vehiculo_devuelve_lo_confirmado_aunque_la_sesion_lo_tenga_cargado(
+    uow, datos_sembrados, fabrica_sesiones
+):
+    """Si falta `populate_existing`, devuelve la copia vieja de la sesion y este test falla."""
+    with uow:
+        fila = uow._sesion.get(VehiculoOrm, 1)
+        assert fila is not None
+        assert fila.estado_habilitacion == "PENDIENTE"
+
+        with fabrica_sesiones() as otra_sesion:
+            otra_sesion.execute(
+                text("UPDATE vehiculo SET estado_habilitacion = 'APROBADA' WHERE id_vehiculo = 1")
+            )
+            otra_sesion.commit()
+
+        bloqueado = uow.bloquear_vehiculo(1, 1)
+
+        assert fila.estado_habilitacion == "APROBADA"
+
+    assert bloqueado.habilitacion is EstadoHabilitacion.APROBADA
 
 
 @BLOQUEABLES

@@ -187,6 +187,30 @@ def test_guardar_un_vehiculo_con_id_lo_actualiza_sin_duplicar_filas(
         assert len(repositorio_otra.listar_por_conductor(id_conductor)) == 1
 
 
+def test_guardar_persiste_el_cambio_de_habilitado_de_los_tipos_de_servicio(
+    repositorio, sesion_bd, fabrica_sesiones
+):
+    id_conductor = sembrar_conductor(sesion_bd)
+    vehiculo = nuevo_vehiculo(id_conductor, "AB123CD", tipos_servicio=(PASAJEROS, ENVIOS))
+    vehiculo.tipos_servicio[0].habilitado = True  # PASAJEROS habilitado, ENVIOS no
+    repositorio.guardar(vehiculo)
+    sesion_bd.commit()
+
+    # Se invierte el flag de cada tipo: PASAJEROS queda deshabilitado y ENVIOS habilitado.
+    for servicio in vehiculo.tipos_servicio:
+        servicio.habilitado = not servicio.habilitado
+    repositorio.guardar(vehiculo)
+    sesion_bd.commit()
+
+    with fabrica_sesiones() as otra_sesion:
+        repositorio_otra = SqlRepositorioVehiculos(otra_sesion)
+        leido = repositorio_otra.obtener(id_conductor, vehiculo.id)
+        [en_lote] = repositorio_otra.listar_por_conductores([id_conductor])[id_conductor]
+
+    assert pares(leido) == {(PASAJEROS, False), (ENVIOS, True)}
+    assert pares(en_lote) == {(PASAJEROS, False), (ENVIOS, True)}
+
+
 # --- PatenteDuplicada ---
 
 
