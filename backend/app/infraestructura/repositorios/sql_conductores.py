@@ -1,6 +1,4 @@
-from typing import assert_never
-
-from sqlalchemy import ColumnElement, and_, false, select
+from sqlalchemy import ColumnElement, and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,42 +17,8 @@ RESTRICCION_DNI_UNICO = "uq_conductor_dni"
 ESTADO_APROBADA = EstadoHabilitacion.APROBADA.value
 
 
-# TRANSITORIO hasta L9 (migracion 0002): la base no tiene `estado`, `id_vehiculo_activo`,
-# `fecha_ultimo_cambio_estado` ni los totales de puntaje. `OCUPADO` se guarda como `CONECTADO`
-# y esos campos no se persisten.
-def _estado_desde_booleanos(conectado: bool, disponible: bool) -> EstadoConductor:
-    """Adaptacion transitoria: la base todavia no tiene la columna `estado`."""
-    if not conectado:
-        return EstadoConductor.DESCONECTADO
-    if disponible:
-        return EstadoConductor.DISPONIBLE
-    return EstadoConductor.CONECTADO
-
-
-def _booleanos_desde_estado(estado: EstadoConductor) -> tuple[bool, bool]:
-    """Adaptacion transitoria: `OCUPADO` no se distingue de `CONECTADO` en la base."""
-    if estado is EstadoConductor.DESCONECTADO:
-        return False, False
-    if estado is EstadoConductor.DISPONIBLE:
-        return True, True
-    return True, False
-
-
 def _condicion_de_estado(estado: EstadoConductor) -> ColumnElement[bool]:
-    """Traduce `estado` a las columnas actuales, de modo que coincida con lo que lee `a_dominio`.
-
-    TRANSITORIO hasta L9: `OCUPADO` no existe en la base (se guarda y se lee como `CONECTADO`),
-    asi que filtrar por `OCUPADO` no devuelve ningun conductor.
-    """
-    if estado is EstadoConductor.DESCONECTADO:
-        return ConductorOrm.conectado.is_(False)
-    if estado is EstadoConductor.DISPONIBLE:
-        return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(True))
-    if estado is EstadoConductor.CONECTADO:
-        return and_(ConductorOrm.conectado.is_(True), ConductorOrm.disponible.is_(False))
-    if estado is EstadoConductor.OCUPADO:
-        return false()
-    assert_never(estado)
+    return ConductorOrm.estado == estado.value
 
 
 def _tiene_servicio_habilitado(tipo_servicio: TipoServicio) -> ColumnElement[bool]:
@@ -74,7 +38,11 @@ def a_dominio(fila: ConductorOrm) -> Conductor:
         telefono=fila.telefono,
         email=fila.email,
         habilitacion=EstadoHabilitacion(fila.estado_habilitacion),
-        estado=_estado_desde_booleanos(fila.conectado, fila.disponible),
+        estado=EstadoConductor(fila.estado),
+        id_vehiculo_activo=fila.id_vehiculo_activo,
+        fecha_ultimo_cambio_estado=fila.fecha_ultimo_cambio_estado,
+        suma_puntajes=fila.suma_puntajes,
+        cantidad_calificaciones=fila.cantidad_calificaciones,
         id=fila.id_conductor,
         latitud=fila.latitud,
         longitud=fila.longitud,
@@ -90,7 +58,11 @@ def _copiar_a_fila(conductor: Conductor, fila: ConductorOrm) -> None:
     fila.telefono = conductor.telefono
     fila.email = conductor.email
     fila.estado_habilitacion = conductor.habilitacion.value
-    fila.conectado, fila.disponible = _booleanos_desde_estado(conductor.estado)
+    fila.estado = conductor.estado.value
+    fila.id_vehiculo_activo = conductor.id_vehiculo_activo
+    fila.fecha_ultimo_cambio_estado = conductor.fecha_ultimo_cambio_estado
+    fila.suma_puntajes = conductor.suma_puntajes
+    fila.cantidad_calificaciones = conductor.cantidad_calificaciones
 
 
 class SqlRepositorioConductores(RepositorioConductores):

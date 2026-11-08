@@ -30,16 +30,24 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 ESTADOS_HABILITACION = ("PENDIENTE", "OBSERVADA", "APROBADA", "SUSPENDIDA", "RECHAZADA")
+ESTADOS_CONDUCTOR = ("DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO")
+ESTADOS_SOLICITUD = ("PENDIENTE", "ACEPTADO", "RECHAZADO", "VENCIDA")
+RESPUESTAS_SOLICITUD = ("ACEPTADO", "RECHAZADO")
 TIPOS_VEHICULO = ("AUTO", "MOTO")
 TIPOS_SERVICIO = ("PASAJEROS", "ENVIOS")
 ACCIONES_HABILITACION = ("ALTA", "APROBAR", "OBSERVAR", "SUSPENDER", "RECHAZAR")
-TIPOS_DOCUMENTO = ("LICENCIA",)
+TIPOS_DOCUMENTO_CONDUCTOR = ("LICENCIA",)
+TIPOS_DOCUMENTO_VEHICULO = ("SEGURO", "CEDULA_VERDE", "VTV")
 
 _ESTADOS_SQL = ", ".join(f"'{estado}'" for estado in ESTADOS_HABILITACION)
+_ESTADOS_CONDUCTOR_SQL = ", ".join(f"'{estado}'" for estado in ESTADOS_CONDUCTOR)
+_ESTADOS_SOLICITUD_SQL = ", ".join(f"'{estado}'" for estado in ESTADOS_SOLICITUD)
+_RESPUESTAS_SOLICITUD_SQL = ", ".join(f"'{respuesta}'" for respuesta in RESPUESTAS_SOLICITUD)
+_TIPOS_DOCUMENTO_CONDUCTOR_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_DOCUMENTO_CONDUCTOR)
+_TIPOS_DOCUMENTO_VEHICULO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_DOCUMENTO_VEHICULO)
 _TIPOS_VEHICULO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_VEHICULO)
 _TIPOS_SERVICIO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_SERVICIO)
 _ACCIONES_SQL = ", ".join(f"'{accion}'" for accion in ACCIONES_HABILITACION)
-_TIPOS_DOCUMENTO_SQL = ", ".join(f"'{tipo}'" for tipo in TIPOS_DOCUMENTO)
 
 NAMING_CONVENTION = {
     "ix": "ix_%(table_name)s_%(column_0_name)s",
@@ -75,8 +83,15 @@ class Conductor(Base):
         CheckConstraint(
             "longitud IS NULL OR (longitud >= -180 AND longitud <= 180)", name="longitud_rango"
         ),
+        CheckConstraint(f"estado IN ({_ESTADOS_CONDUCTOR_SQL})", name="estado"),
+        CheckConstraint("suma_puntajes >= 0", name="suma_puntajes_no_negativa"),
+        CheckConstraint("cantidad_calificaciones >= 0", name="cantidad_calificaciones_no_negativa"),
+        CheckConstraint(
+            "cantidad_calificaciones > 0 OR suma_puntajes = 0", name="puntajes_coherentes"
+        ),
         Index("ix_conductor_estado_habilitacion", "estado_habilitacion"),
-        Index("ix_conductor_disponible", "disponible"),
+        Index("ix_conductor_estado", "estado"),
+        Index("ix_conductor_id_vehiculo_activo", "id_vehiculo_activo"),
     )
 
     id_conductor: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -88,11 +103,26 @@ class Conductor(Base):
     estado_habilitacion: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=text("'PENDIENTE'"), default="PENDIENTE"
     )
-    conectado: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=false(), default=False
+    estado: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'DESCONECTADO'"), default="DESCONECTADO"
     )
-    disponible: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=false(), default=False
+    id_vehiculo_activo: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "vehiculo.id_vehiculo",
+            ondelete="SET NULL",
+            name="fk_conductor_vehiculo_activo",
+        ),
+        nullable=True,
+    )
+    fecha_ultimo_cambio_estado: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    suma_puntajes: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0"), default=0
+    )
+    cantidad_calificaciones: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("0"), default=0
     )
     latitud: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitud: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -116,6 +146,12 @@ class Conductor(Base):
         back_populates="conductor",
         cascade="all, delete-orphan",
         order_by="Vehiculo.id_vehiculo",
+        foreign_keys="Vehiculo.id_conductor",
+    )
+    solicitudes: Mapped[list[Solicitud]] = relationship(
+        back_populates="conductor",
+        order_by="Solicitud.id_solicitud",
+        passive_deletes=True,
     )
     eventos_habilitacion: Mapped[list[HabilitacionEventoConductor]] = relationship(
         back_populates="conductor",
@@ -164,11 +200,18 @@ class Vehiculo(Base):
         onupdate=func.now(),
     )
 
-    conductor: Mapped[Conductor] = relationship(back_populates="vehiculos")
+    conductor: Mapped[Conductor] = relationship(
+        back_populates="vehiculos", foreign_keys=[id_conductor]
+    )
     tipos_servicio: Mapped[list[VehiculoTipoServicio]] = relationship(
         back_populates="vehiculo",
         cascade="all, delete-orphan",
         order_by="VehiculoTipoServicio.tipo_servicio",
+    )
+    documentos: Mapped[list[VehiculoDocumento]] = relationship(
+        back_populates="vehiculo",
+        order_by="VehiculoDocumento.fecha_registro, VehiculoDocumento.id_documento",
+        passive_deletes=True,
     )
     eventos_habilitacion: Mapped[list[HabilitacionEventoVehiculo]] = relationship(
         back_populates="vehiculo",
@@ -208,7 +251,7 @@ class VehiculoTipoServicio(Base):
 class DocumentoConductor(Base):
     __tablename__ = "documento_conductor"
     __table_args__ = (
-        CheckConstraint(f"tipo IN ({_TIPOS_DOCUMENTO_SQL})", name="tipo"),
+        CheckConstraint(f"tipo IN ({_TIPOS_DOCUMENTO_CONDUCTOR_SQL})", name="tipo"),
         CheckConstraint("fecha_vencimiento > fecha_emision", name="fechas_coherentes"),
         CheckConstraint("length(trim(numero)) > 0", name="numero_obligatorio"),
         Index("ix_documento_conductor_id_conductor", "id_conductor"),
@@ -237,6 +280,86 @@ class DocumentoConductor(Base):
     )
 
     conductor: Mapped[Conductor] = relationship(back_populates="documentos")
+
+
+class Solicitud(Base):
+    __tablename__ = "solicitud"
+    __table_args__ = (
+        CheckConstraint(f"estado IN ({_ESTADOS_SOLICITUD_SQL})", name="estado"),
+        CheckConstraint(
+            f"respuesta IS NULL OR respuesta IN ({_RESPUESTAS_SOLICITUD_SQL})",
+            name="respuesta",
+        ),
+        CheckConstraint(
+            "(respuesta IS NULL AND hora_rta IS NULL) OR "
+            "(respuesta IS NOT NULL AND hora_rta IS NOT NULL)",
+            name="respuesta_y_hora_juntas",
+        ),
+        CheckConstraint(
+            "respuesta IS NULL OR estado = respuesta",
+            name="estado_coincide_con_respuesta",
+        ),
+        CheckConstraint(
+            f"(estado IN ({_RESPUESTAS_SOLICITUD_SQL})) = (respuesta IS NOT NULL)",
+            name="respuesta_obligatoria",
+        ),
+        Index("ix_solicitud_id_conductor_estado", "id_conductor", "estado"),
+    )
+
+    id_solicitud: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    id_conductor: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "conductor.id_conductor",
+            ondelete="RESTRICT",
+            name="fk_solicitud_conductor",
+        ),
+        nullable=False,
+    )
+    id_viaje: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    estado: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'PENDIENTE'"), default="PENDIENTE"
+    )
+    vence_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    respuesta: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    hora_rta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    fecha_alta: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    conductor: Mapped[Conductor] = relationship(back_populates="solicitudes")
+
+
+class VehiculoDocumento(Base):
+    __tablename__ = "vehiculo_documento"
+    __table_args__ = (
+        CheckConstraint(f"tipo IN ({_TIPOS_DOCUMENTO_VEHICULO_SQL})", name="tipo"),
+        CheckConstraint("fecha_vencimiento > fecha_emision", name="fechas_coherentes"),
+        CheckConstraint("length(trim(numero)) > 0", name="numero_obligatorio"),
+        Index("ix_vehiculo_documento_id_vehiculo", "id_vehiculo"),
+    )
+
+    id_documento: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    id_vehiculo: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(
+            "vehiculo.id_vehiculo",
+            ondelete="RESTRICT",
+            name="fk_vehiculo_documento_vehiculo",
+        ),
+        nullable=False,
+    )
+    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    numero: Mapped[str] = mapped_column(String(50), nullable=False)
+    entidad_emisora: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    fecha_emision: Mapped[date] = mapped_column(Date, nullable=False)
+    fecha_vencimiento: Mapped[date] = mapped_column(Date, nullable=False)
+    url_archivo: Mapped[str] = mapped_column(String(500), nullable=False)
+    fecha_registro: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    vehiculo: Mapped[Vehiculo] = relationship(back_populates="documentos")
 
 
 class HabilitacionEventoConductor(Base):

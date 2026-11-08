@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -29,10 +30,124 @@ def test_los_eventos_alta_tienen_motivo_no_vacio(seed_module: Any) -> None:
     assert all(isinstance(evento["motivo"], str) and evento["motivo"].strip() for evento in altas)
 
 
-def test_el_seed_declara_un_conductor_conectado_y_disponible(seed_module: Any) -> None:
-    assert any(
-        conductor["conectado"] and conductor["disponible"] for conductor in seed_module.CONDUCTORES
-    )
+def test_el_historial_de_habilitacion_encadena_estados(seed_module: Any) -> None:
+    conductores = {conductor["dni"]: conductor for conductor in seed_module.CONDUCTORES}
+    por_conductor: dict[str, list[dict[str, Any]]] = {}
+    for evento in seed_module.EVENTOS_CONDUCTOR:
+        por_conductor.setdefault(evento["dni_conductor"], []).append(evento)
+
+    for dni, eventos in por_conductor.items():
+        anterior = None
+        for evento in eventos:
+            assert evento["estado_anterior"] == anterior
+            anterior = evento["estado_nuevo"]
+        assert anterior == conductores[dni]["estado_habilitacion"]
+
+    vehiculos = {vehiculo["patente"]: vehiculo for vehiculo in seed_module.VEHICULOS}
+    por_vehiculo: dict[str, list[dict[str, Any]]] = {}
+    for evento in seed_module.EVENTOS_VEHICULO:
+        por_vehiculo.setdefault(evento["patente"], []).append(evento)
+
+    for patente, eventos in por_vehiculo.items():
+        anterior = None
+        for evento in eventos:
+            assert evento["estado_anterior"] == anterior
+            anterior = evento["estado_nuevo"]
+        assert anterior == vehiculos[patente]["estado_habilitacion"]
+
+
+def test_el_seed_declara_un_conductor_disponible(seed_module: Any) -> None:
+    assert any(conductor["estado"] == "DISPONIBLE" for conductor in seed_module.CONDUCTORES)
+
+
+def test_el_seed_cubre_los_cuatro_estados_operativos(seed_module: Any) -> None:
+    estados = {conductor["estado"] for conductor in seed_module.CONDUCTORES}
+
+    assert estados == {"DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO"}
+
+
+def test_el_seed_incluye_conductores_sin_ubicacion_y_sin_vehiculo_activo(
+    seed_module: Any,
+) -> None:
+    sin_ubicacion = [
+        conductor
+        for conductor in seed_module.CONDUCTORES
+        if conductor["latitud"] is None
+        and conductor["longitud"] is None
+        and conductor["fecha_act_ubic"] is None
+    ]
+    sin_vehiculo = [
+        conductor
+        for conductor in seed_module.CONDUCTORES
+        if conductor["dni"] not in seed_module.VEHICULO_ACTIVO
+    ]
+
+    assert sin_ubicacion
+    assert sin_vehiculo
+
+
+def test_el_seed_incluye_conductores_con_y_sin_calificaciones(seed_module: Any) -> None:
+    con_calificaciones = [
+        conductor
+        for conductor in seed_module.CONDUCTORES
+        if conductor["cantidad_calificaciones"] > 0
+    ]
+    sin_calificaciones = [
+        conductor
+        for conductor in seed_module.CONDUCTORES
+        if conductor["cantidad_calificaciones"] == 0
+    ]
+
+    assert con_calificaciones
+    assert sin_calificaciones
+    assert all(conductor["suma_puntajes"] > 0 for conductor in con_calificaciones)
+    assert all(conductor["suma_puntajes"] == 0 for conductor in sin_calificaciones)
+
+
+def test_el_seed_cubre_solicitudes_en_los_cuatro_estados(seed_module: Any) -> None:
+    estados = {solicitud["estado"] for solicitud in seed_module.SOLICITUDES}
+
+    assert estados == {"PENDIENTE", "ACEPTADO", "RECHAZADO", "VENCIDA"}
+
+
+def test_el_seed_tiene_solicitudes_pendientes_vigente_y_vencida(seed_module: Any) -> None:
+    pendientes = [
+        solicitud for solicitud in seed_module.SOLICITUDES if solicitud["estado"] == "PENDIENTE"
+    ]
+    ahora = datetime.now(UTC)
+
+    assert any(solicitud["vence_en"] > ahora for solicitud in pendientes)
+    assert any(solicitud["vence_en"] < ahora for solicitud in pendientes)
+
+
+def test_el_seed_tiene_un_conectado_con_vehiculo_aprobado(seed_module: Any) -> None:
+    conectados = [
+        conductor for conductor in seed_module.CONDUCTORES if conductor["estado"] == "CONECTADO"
+    ]
+    vehiculos = {vehiculo["patente"]: vehiculo for vehiculo in seed_module.VEHICULOS}
+    ahora = datetime.now(UTC)
+
+    assert conectados
+    for conductor in conectados:
+        patente = seed_module.VEHICULO_ACTIVO.get(conductor["dni"])
+        assert patente is not None
+        assert vehiculos[patente]["estado_habilitacion"] == "APROBADA"
+        assert any(
+            solicitud["dni_conductor"] == conductor["dni"]
+            and solicitud["estado"] == "PENDIENTE"
+            and solicitud["vence_en"] > ahora
+            for solicitud in seed_module.SOLICITUDES
+        )
+
+
+def test_el_seed_tiene_documentos_de_vehiculo_vigentes_y_vencidos(
+    seed_module: Any,
+) -> None:
+    hoy = seed_module.FECHA_BASE.date()
+    vencimientos = [documento["fecha_vencimiento"] for documento in seed_module.DOCUMENTOS_VEHICULO]
+
+    assert any(vencimiento < hoy for vencimiento in vencimientos)
+    assert any(vencimiento >= hoy for vencimiento in vencimientos)
 
 
 def test_el_seed_declara_alta_para_cada_conductor_y_vehiculo(seed_module: Any) -> None:
@@ -53,6 +168,10 @@ def test_el_seed_es_determinista_en_sus_claves_naturales(seed_module: Any) -> No
     assert len({c["dni"] for c in seed_module.CONDUCTORES}) == len(seed_module.CONDUCTORES)
     assert len({v["patente"] for v in seed_module.VEHICULOS}) == len(seed_module.VEHICULOS)
     assert len({d["numero"] for d in seed_module.DOCUMENTOS}) == len(seed_module.DOCUMENTOS)
+    assert len({s["id_viaje"] for s in seed_module.SOLICITUDES}) == len(seed_module.SOLICITUDES)
+    assert len({(d["patente"], d["tipo"]) for d in seed_module.DOCUMENTOS_VEHICULO}) == len(
+        seed_module.DOCUMENTOS_VEHICULO
+    )
 
 
 @pytest.mark.integration
@@ -77,6 +196,12 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
             assert (
                 conexion.execute(text("SELECT count(*) FROM vehiculo_tipo_servicio")).scalar_one()
                 >= 1
+            )
+            assert conexion.execute(
+                text("SELECT count(*) FROM vehiculo_documento")
+            ).scalar_one() == len(seed_module.DOCUMENTOS_VEHICULO)
+            assert conexion.execute(text("SELECT count(*) FROM solicitud")).scalar_one() == len(
+                seed_module.SOLICITUDES
             )
 
             licencias = {
@@ -119,16 +244,107 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
             ).scalar_one()
             assert altas_sin_motivo == 0
 
-            conectado_disponible = conexion.execute(
+            disponibles = conexion.execute(
                 text(
                     """
                     SELECT count(*)
                     FROM conductor
-                    WHERE conectado IS TRUE AND disponible IS TRUE
+                    WHERE estado = 'DISPONIBLE'
                     """
                 )
             ).scalar_one()
-            assert conectado_disponible >= 1
+            assert disponibles >= 1
+
+            estados_invalidos = conexion.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM conductor
+                    WHERE estado NOT IN ('DESCONECTADO', 'CONECTADO', 'DISPONIBLE', 'OCUPADO')
+                    """
+                )
+            ).scalar_one()
+            assert estados_invalidos == 0
+
+            estados_conductor = set(
+                conexion.execute(text("SELECT DISTINCT estado FROM conductor")).scalars()
+            )
+            assert estados_conductor == {"DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO"}
+
+            sin_ubicacion = conexion.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM conductor
+                    WHERE latitud IS NULL AND longitud IS NULL AND fecha_act_ubic IS NULL
+                    """
+                )
+            ).scalar_one()
+            sin_vehiculo_activo = conexion.execute(
+                text("SELECT count(*) FROM conductor WHERE id_vehiculo_activo IS NULL")
+            ).scalar_one()
+            assert sin_ubicacion >= 1
+            assert sin_vehiculo_activo >= 1
+
+            con_calificaciones = conexion.execute(
+                text("SELECT count(*) FROM conductor WHERE cantidad_calificaciones > 0")
+            ).scalar_one()
+            sin_calificaciones = conexion.execute(
+                text("SELECT count(*) FROM conductor WHERE cantidad_calificaciones = 0")
+            ).scalar_one()
+            assert con_calificaciones >= 1
+            assert sin_calificaciones >= 1
+
+            estados_solicitud = set(
+                conexion.execute(text("SELECT DISTINCT estado FROM solicitud")).scalars()
+            )
+            assert estados_solicitud == {"PENDIENTE", "ACEPTADO", "RECHAZADO", "VENCIDA"}
+
+            pendientes_vigentes, pendientes_vencidas = conexion.execute(
+                text(
+                    """
+                    SELECT
+                        count(*) FILTER (WHERE vence_en > :ahora),
+                        count(*) FILTER (WHERE vence_en < :ahora)
+                    FROM solicitud
+                    WHERE estado = 'PENDIENTE'
+                    """
+                ),
+                {"ahora": datetime.now(UTC)},
+            ).one()
+            assert pendientes_vigentes >= 1
+            assert pendientes_vencidas >= 1
+
+            conectado_habilitado = conexion.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM conductor c
+                    JOIN vehiculo v ON v.id_vehiculo = c.id_vehiculo_activo
+                    JOIN solicitud s ON s.id_conductor = c.id_conductor
+                    WHERE c.estado = 'CONECTADO'
+                      AND v.estado_habilitacion = 'APROBADA'
+                      AND s.estado = 'PENDIENTE'
+                      AND s.vence_en > :ahora
+                    """
+                ),
+                {"ahora": datetime.now(UTC)},
+            ).scalar_one()
+            assert conectado_habilitado >= 1
+
+            vencimientos_vehiculo = {
+                fila[0]
+                for fila in conexion.execute(
+                    text(
+                        """
+                        SELECT fecha_vencimiento < :hoy
+                        FROM vehiculo_documento
+                        """
+                    ),
+                    {"hoy": seed_module.FECHA_BASE.date()},
+                )
+            }
+            assert {False, True} <= vencimientos_vehiculo
 
             conductores_sin_alta = conexion.execute(
                 text(

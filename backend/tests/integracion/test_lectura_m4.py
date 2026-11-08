@@ -57,8 +57,7 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         telefono="3794000000",
         email="ana@example.com",
         estado_habilitacion="APROBADA",
-        conectado=True,
-        disponible=True,
+        estado="DISPONIBLE",
         **ubicacion,
     )
     no_disponible = Conductor(
@@ -68,8 +67,7 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         telefono="3794000001",
         email="bruno@example.com",
         estado_habilitacion="PENDIENTE",
-        conectado=False,
-        disponible=False,
+        estado="DESCONECTADO",
     )
     sesion_bd.add_all([conductor, no_disponible])
     sesion_bd.commit()
