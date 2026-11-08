@@ -134,7 +134,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Completá `.env.local` con `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api` y los valores de `KEYCLOAK_M3_CLIENT_SECRET` y `M3_CONDUCTOR_PASSWORD` de `.env` en `KEYCLOAK_CLIENT_SECRET` y `TEST_PASSWORD` (`TEST_USER=conductor.m3`). No agregues `NEXT_PUBLIC_` a estas variables.
+Completá `.env.local` con `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api` y los valores de `KEYCLOAK_M3_CLIENT_SECRET` y `M3_OPERADOR_PASSWORD` de `.env` en `KEYCLOAK_CLIENT_SECRET` y `TEST_PASSWORD` (`TEST_USER=operador.m3`). No agregues `NEXT_PUBLIC_` a estas variables.
 
 ## 6. Probar la API con un token real (opcional)
 
