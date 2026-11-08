@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -27,6 +28,32 @@ def test_los_eventos_alta_tienen_motivo_no_vacio(seed_module: Any) -> None:
 
     assert altas
     assert all(isinstance(evento["motivo"], str) and evento["motivo"].strip() for evento in altas)
+
+
+def test_el_historial_de_habilitacion_encadena_estados(seed_module: Any) -> None:
+    conductores = {conductor["dni"]: conductor for conductor in seed_module.CONDUCTORES}
+    por_conductor: dict[str, list[dict[str, Any]]] = {}
+    for evento in seed_module.EVENTOS_CONDUCTOR:
+        por_conductor.setdefault(evento["dni_conductor"], []).append(evento)
+
+    for dni, eventos in por_conductor.items():
+        anterior = None
+        for evento in eventos:
+            assert evento["estado_anterior"] == anterior
+            anterior = evento["estado_nuevo"]
+        assert anterior == conductores[dni]["estado_habilitacion"]
+
+    vehiculos = {vehiculo["patente"]: vehiculo for vehiculo in seed_module.VEHICULOS}
+    por_vehiculo: dict[str, list[dict[str, Any]]] = {}
+    for evento in seed_module.EVENTOS_VEHICULO:
+        por_vehiculo.setdefault(evento["patente"], []).append(evento)
+
+    for patente, eventos in por_vehiculo.items():
+        anterior = None
+        for evento in eventos:
+            assert evento["estado_anterior"] == anterior
+            anterior = evento["estado_nuevo"]
+        assert anterior == vehiculos[patente]["estado_habilitacion"]
 
 
 def test_el_seed_declara_un_conductor_disponible(seed_module: Any) -> None:
@@ -87,7 +114,7 @@ def test_el_seed_tiene_solicitudes_pendientes_vigente_y_vencida(seed_module: Any
     pendientes = [
         solicitud for solicitud in seed_module.SOLICITUDES if solicitud["estado"] == "PENDIENTE"
     ]
-    ahora = seed_module.FECHA_BASE
+    ahora = datetime.now(UTC)
 
     assert any(solicitud["vence_en"] > ahora for solicitud in pendientes)
     assert any(solicitud["vence_en"] < ahora for solicitud in pendientes)
@@ -98,7 +125,7 @@ def test_el_seed_tiene_un_conectado_con_vehiculo_aprobado(seed_module: Any) -> N
         conductor for conductor in seed_module.CONDUCTORES if conductor["estado"] == "CONECTADO"
     ]
     vehiculos = {vehiculo["patente"]: vehiculo for vehiculo in seed_module.VEHICULOS}
-    ahora = seed_module.FECHA_BASE
+    ahora = datetime.now(UTC)
 
     assert conectados
     for conductor in conectados:
@@ -283,7 +310,7 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
                     WHERE estado = 'PENDIENTE'
                     """
                 ),
-                {"ahora": seed_module.FECHA_BASE},
+                {"ahora": datetime.now(UTC)},
             ).one()
             assert pendientes_vigentes >= 1
             assert pendientes_vencidas >= 1
@@ -301,7 +328,7 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
                       AND s.vence_en > :ahora
                     """
                 ),
-                {"ahora": seed_module.FECHA_BASE},
+                {"ahora": datetime.now(UTC)},
             ).scalar_one()
             assert conectado_habilitado >= 1
 

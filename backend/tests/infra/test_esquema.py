@@ -321,6 +321,7 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
         "ck_solicitud_respuesta",
         "ck_solicitud_respuesta_y_hora_juntas",
         "ck_solicitud_estado_coincide_con_respuesta",
+        "ck_solicitud_respuesta_obligatoria",
         "ck_habilitacion_evento_conductor_accion",
         "ck_habilitacion_evento_vehiculo_accion",
     ):
@@ -459,6 +460,34 @@ def test_la_base_rechaza_solicitud_con_respuesta_sin_hora(motor: Engine) -> None
                         (id_conductor, id_viaje, estado, vence_en, respuesta)
                     VALUES
                         (:id_conductor, 1, 'ACEPTADO', now(), 'ACEPTADO')
+                    """
+                ),
+                {"id_conductor": id_conductor},
+            )
+
+
+@pytest.mark.integration
+def test_la_base_rechaza_solicitud_aceptada_sin_respuesta(motor: Engine) -> None:
+    with motor.begin() as conexion:
+        id_conductor = conexion.execute(
+            text(
+                """
+                INSERT INTO conductor (dni, nombre, apellido, telefono, email)
+                VALUES ('20000007', 'Soli', 'Sin', '3624000092', 'sinrespuesta@m3.local')
+                RETURNING id_conductor
+                """
+            )
+        ).scalar_one()
+
+    with pytest.raises(IntegrityError):
+        with motor.begin() as conexion:
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO solicitud
+                        (id_conductor, id_viaje, estado, vence_en)
+                    VALUES
+                        (:id_conductor, 2, 'ACEPTADO', now())
                     """
                 ),
                 {"id_conductor": id_conductor},

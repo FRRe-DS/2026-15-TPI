@@ -156,6 +156,10 @@ def upgrade() -> None:
             "respuesta IS NULL OR estado = respuesta",
             name=op.f("ck_solicitud_estado_coincide_con_respuesta"),
         ),
+        sa.CheckConstraint(
+            f"(estado IN ({RESPUESTAS_SOLICITUD})) = (respuesta IS NOT NULL)",
+            name=op.f("ck_solicitud_respuesta_obligatoria"),
+        ),
     )
     op.create_index(
         "ix_solicitud_id_conductor_estado",

@@ -36,10 +36,12 @@ from app.infraestructura.db.modelos import (  # noqa: E402
 from app.infraestructura.db.sesion import crear_engine, crear_sessionmaker  # noqa: E402
 
 FECHA_BASE = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
-FECHA_EMISION = date(2024, 1, 1)
-FECHA_EMISION_VENCIDA = date(2016, 1, 1)
 FECHA_VIGENTE = date(2035, 12, 31)
 FECHA_VENCIDA = date(2020, 12, 31)
+FECHA_EMISION = date(2024, 1, 1)
+FECHA_EMISION_VENCIDA = date(2016, 1, 1)
+SOLICITUD_VIGENTE_HASTA = datetime(2035, 12, 31, 23, 59, tzinfo=UTC)
+SOLICITUD_VENCIDA_DESDE = datetime(2020, 12, 31, 23, 59, tzinfo=UTC)
 ID_OPERADOR_SEED = 101
 
 CONDUCTORES: tuple[dict[str, Any], ...] = (
@@ -224,7 +226,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "id_viaje": 1001,
         "dni_conductor": "30111222",
         "estado": "PENDIENTE",
-        "vence_en": FECHA_BASE + timedelta(days=2),
+        "vence_en": SOLICITUD_VIGENTE_HASTA,
         "respuesta": None,
         "hora_rta": None,
     },
@@ -232,7 +234,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "id_viaje": 1002,
         "dni_conductor": "30111222",
         "estado": "PENDIENTE",
-        "vence_en": FECHA_BASE - timedelta(days=2),
+        "vence_en": SOLICITUD_VENCIDA_DESDE,
         "respuesta": None,
         "hora_rta": None,
     },
@@ -290,9 +292,17 @@ EVENTOS_CONDUCTOR: tuple[dict[str, Any], ...] = (
     {
         "dni_conductor": "28444555",
         "estado_anterior": "PENDIENTE",
+        "estado_nuevo": "OBSERVADA",
+        "accion": "OBSERVAR",
+        "motivo": "Licencia de conducir vencida.",
+        "id_operador": ID_OPERADOR_SEED,
+    },
+    {
+        "dni_conductor": "28444555",
+        "estado_anterior": "OBSERVADA",
         "estado_nuevo": "APROBADA",
         "accion": "APROBAR",
-        "motivo": "Documentación verificada.",
+        "motivo": "Licencia renovada y documentación verificada.",
         "id_operador": ID_OPERADOR_SEED,
     },
     {
@@ -464,14 +474,12 @@ def _upsert_documento_vehiculo(
         select(VehiculoDocumento).where(
             VehiculoDocumento.id_vehiculo == base["id_vehiculo"],
             VehiculoDocumento.tipo == base["tipo"],
+            VehiculoDocumento.numero == base["numero"],
         )
     )
     if documento is None:
         documento = VehiculoDocumento(**base)
         session.add(documento)
-    else:
-        for campo, valor in base.items():
-            setattr(documento, campo, valor)
     session.flush()
     return documento
 
@@ -482,7 +490,12 @@ def _upsert_solicitud(
     base = dict(datos)
     dni = base.pop("dni_conductor")
     base["id_conductor"] = conductores[dni].id_conductor
-    solicitud = session.scalar(select(Solicitud).where(Solicitud.id_viaje == base["id_viaje"]))
+    solicitud = session.scalar(
+        select(Solicitud).where(
+            Solicitud.id_conductor == base["id_conductor"],
+            Solicitud.id_viaje == base["id_viaje"],
+        )
+    )
     if solicitud is None:
         solicitud = Solicitud(**base)
         session.add(solicitud)

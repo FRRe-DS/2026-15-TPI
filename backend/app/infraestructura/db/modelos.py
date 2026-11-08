@@ -148,9 +148,6 @@ class Conductor(Base):
         order_by="Vehiculo.id_vehiculo",
         foreign_keys="Vehiculo.id_conductor",
     )
-    vehiculo_activo: Mapped[Vehiculo | None] = relationship(
-        foreign_keys=[id_vehiculo_activo],
-    )
     solicitudes: Mapped[list[Solicitud]] = relationship(
         back_populates="conductor",
         order_by="Solicitud.id_solicitud",
@@ -301,6 +298,10 @@ class Solicitud(Base):
         CheckConstraint(
             "respuesta IS NULL OR estado = respuesta",
             name="estado_coincide_con_respuesta",
+        ),
+        CheckConstraint(
+            f"(estado IN ({_RESPUESTAS_SOLICITUD_SQL})) = (respuesta IS NOT NULL)",
+            name="respuesta_obligatoria",
         ),
         Index("ix_solicitud_id_conductor_estado", "id_conductor", "estado"),
     )

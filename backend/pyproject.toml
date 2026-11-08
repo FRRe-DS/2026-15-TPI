@@ -23,7 +23,6 @@ db = [           # Stack 3: datos y seguridad
     "sqlalchemy>=2.1,<2.2",
     "alembic>=1.20,<1.21",
     "psycopg[binary]>=3.3,<3.4",
-    "redis>=5.2,<6",
 ]
 test = [         # Stack 4: testing y CI; Testcontainers lo usa también S3 (T078)
     "testcontainers[postgres]>=4.15,<4.16",
@@ -52,13 +51,3 @@ src = ["app", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-
-[tool.uv.pip]
-source = [
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/alembic-1.4.3-py3-none-any.whl" },
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/sqlalchemy-2.0.37-py3-none-any.whl" },
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/psycopg-3.2.6-py3-none-any.whl" },
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/keycloak-admin-api-0.1.0-py3-none-any.whl" },
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/clickhouse-sqlalchemy-0.2.7-py3-none-any.whl" },
-    { url = "https://github.com/cosygram-proyectos/revistas/raw/main/redis-5.2.1-py3-none-any.whl" },
-]
