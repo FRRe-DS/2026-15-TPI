@@ -32,11 +32,17 @@ from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.aplicacion.casos_de_uso.listar_solicitudes_conductor import (
     ListarSolicitudesConductor,
 )
+from app.aplicacion.casos_de_uso.listar_tipos_servicio_vehiculo import (
+    ListarTiposServicioVehiculo,
+)
 from app.aplicacion.casos_de_uso.listar_vehiculos import ListarVehiculos
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_estado_conductor import ObtenerEstadoConductor
 from app.aplicacion.casos_de_uso.obtener_ubicacion_conductor import ObtenerUbicacionConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
+from app.aplicacion.casos_de_uso.registrar_documento_vehiculo import (
+    RegistrarDocumentoVehiculo,
+)
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
 from app.aplicacion.casos_de_uso.responder_solicitud import ResponderSolicitud
@@ -166,3 +172,15 @@ def obtener_caso_responder_solicitud(
     uow: UnidadDeTrabajoInyectada,
 ) -> ResponderSolicitud:
     return ResponderSolicitud(uow, RelojDelSistema())
+
+
+def obtener_caso_listar_tipos_servicio_vehiculo(
+    uow: UnidadDeTrabajoInyectada,
+) -> ListarTiposServicioVehiculo:
+    return ListarTiposServicioVehiculo(uow)
+
+
+def obtener_caso_registrar_documento_vehiculo(
+    uow: UnidadDeTrabajoInyectada,
+) -> RegistrarDocumentoVehiculo:
+    return RegistrarDocumentoVehiculo(uow, RelojDelSistema())
