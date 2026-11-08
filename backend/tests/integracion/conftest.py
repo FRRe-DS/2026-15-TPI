@@ -33,6 +33,8 @@ CLAVE_DE_PRUEBA = "test-clave-no-real"
 BASE_DE_PRUEBA = "m3_test"
 
 TABLAS_DE_M3 = (
+    "solicitud",
+    "vehiculo_documento",
     "conductor",
     "vehiculo",
     "vehiculo_tipo_servicio",

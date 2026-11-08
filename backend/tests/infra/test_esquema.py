@@ -15,6 +15,8 @@ TABLAS = {
     "vehiculo",
     "vehiculo_tipo_servicio",
     "documento_conductor",
+    "vehiculo_documento",
+    "solicitud",
     "habilitacion_evento_conductor",
     "habilitacion_evento_vehiculo",
 }
@@ -28,7 +30,7 @@ def _checks(tabla: str) -> str:
     )
 
 
-def test_existen_las_seis_tablas_en_el_metadata() -> None:
+def test_existen_las_ocho_tablas_en_el_metadata() -> None:
     assert TABLAS <= set(Base.metadata.tables)
 
 
@@ -52,6 +54,8 @@ def test_checks_de_estados_tipos_y_acciones_en_el_metadata() -> None:
     checks_conductor = _checks("conductor")
     checks_vehiculo = _checks("vehiculo")
     checks_servicio = _checks("vehiculo_tipo_servicio")
+    checks_documento_vehiculo = _checks("vehiculo_documento")
+    checks_solicitud = _checks("solicitud")
     checks_evento_conductor = _checks("habilitacion_evento_conductor")
     checks_evento_vehiculo = _checks("habilitacion_evento_vehiculo")
 
@@ -60,6 +64,18 @@ def test_checks_de_estados_tipos_y_acciones_en_el_metadata() -> None:
         assert estado in checks_vehiculo
         assert estado in checks_evento_conductor
         assert estado in checks_evento_vehiculo
+
+    for estado in ("DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO"):
+        assert estado in checks_conductor
+
+    for estado in ("PENDIENTE", "ACEPTADO", "RECHAZADO", "VENCIDA"):
+        assert estado in checks_solicitud
+
+    for respuesta in ("ACEPTADO", "RECHAZADO"):
+        assert respuesta in checks_solicitud
+
+    for tipo in ("SEGURO", "CEDULA_VERDE", "VTV"):
+        assert tipo in checks_documento_vehiculo
 
     assert "'AUTO'" in checks_vehiculo
     assert "'MOTO'" in checks_vehiculo
@@ -108,23 +124,69 @@ def test_conductor_tiene_ubicacion_opcional() -> None:
 def test_defaults_de_habilitacion_y_estado_operativo_en_el_metadata() -> None:
     conductor = Base.metadata.tables["conductor"]
     vehiculo = Base.metadata.tables["vehiculo"]
+    documento_vehiculo = Base.metadata.tables["vehiculo_documento"]
+    solicitud = Base.metadata.tables["solicitud"]
     tipo_servicio = Base.metadata.tables["vehiculo_tipo_servicio"]
 
     assert "PENDIENTE" in str(conductor.c.estado_habilitacion.server_default.arg)
     assert "PENDIENTE" in str(vehiculo.c.estado_habilitacion.server_default.arg)
-    assert str(conductor.c.conectado.server_default.arg).lower() == "false"
-    assert str(conductor.c.disponible.server_default.arg).lower() == "false"
+    assert "DESCONECTADO" in str(conductor.c.estado.server_default.arg)
+    assert str(conductor.c.suma_puntajes.server_default.arg) == "0"
+    assert str(conductor.c.cantidad_calificaciones.server_default.arg) == "0"
+    assert "PENDIENTE" in str(solicitud.c.estado.server_default.arg)
     assert str(tipo_servicio.c.habilitado.server_default.arg).lower() == "false"
+    assert "estado" not in documento_vehiculo.c
+
+
+def test_conductor_tiene_vehiculo_activo_y_totales_de_puntaje() -> None:
+    conductor = Base.metadata.tables["conductor"]
+
+    assert conductor.c.id_vehiculo_activo.nullable is True
+    assert conductor.c.fecha_ultimo_cambio_estado.nullable is True
+    assert conductor.c.suma_puntajes.nullable is False
+    assert conductor.c.cantidad_calificaciones.nullable is False
+
+
+def test_solicitud_y_documento_de_vehiculo_tienen_sus_columnas() -> None:
+    solicitud = Base.metadata.tables["solicitud"]
+    documento_vehiculo = Base.metadata.tables["vehiculo_documento"]
+
+    for columna in ("id_conductor", "id_viaje", "estado", "vence_en", "respuesta", "hora_rta"):
+        assert columna in solicitud.c
+    for columna in (
+        "id_vehiculo",
+        "tipo",
+        "numero",
+        "entidad_emisora",
+        "fecha_emision",
+        "fecha_vencimiento",
+        "url_archivo",
+        "fecha_registro",
+    ):
+        assert columna in documento_vehiculo.c
 
 
 def test_claves_foraneas_en_el_metadata() -> None:
     esperadas = {
+        ("conductor", "id_vehiculo_activo", "vehiculo", "id_vehiculo"),
         ("vehiculo", "id_conductor", "conductor", "id_conductor"),
         (
             "vehiculo_tipo_servicio",
             "id_vehiculo",
             "vehiculo",
             "id_vehiculo",
+        ),
+        (
+            "vehiculo_documento",
+            "id_vehiculo",
+            "vehiculo",
+            "id_vehiculo",
+        ),
+        (
+            "solicitud",
+            "id_conductor",
+            "conductor",
+            "id_conductor",
         ),
         (
             "documento_conductor",
@@ -230,6 +292,8 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
                             'conductor'::regclass,
                             'vehiculo'::regclass,
                             'vehiculo_tipo_servicio'::regclass,
+                            'vehiculo_documento'::regclass,
+                            'solicitud'::regclass,
                             'habilitacion_evento_conductor'::regclass,
                             'habilitacion_evento_vehiculo'::regclass
                         )
@@ -244,9 +308,19 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
     assert {"uq_conductor_dni", "uq_vehiculo_patente"} <= uniques
     for clave in (
         "ck_conductor_estado_habilitacion",
+        "ck_conductor_estado",
+        "ck_conductor_suma_puntajes_no_negativa",
+        "ck_conductor_cantidad_calificaciones_no_negativa",
+        "ck_conductor_puntajes_coherentes",
         "ck_vehiculo_tipo",
         "ck_vehiculo_estado_habilitacion",
         "ck_vehiculo_tipo_servicio_tipo_servicio",
+        "ck_vehiculo_documento_tipo",
+        "ck_vehiculo_documento_fechas_coherentes",
+        "ck_solicitud_estado",
+        "ck_solicitud_respuesta",
+        "ck_solicitud_respuesta_y_hora_juntas",
+        "ck_solicitud_estado_coincide_con_respuesta",
         "ck_habilitacion_evento_conductor_accion",
         "ck_habilitacion_evento_vehiculo_accion",
     ):
@@ -258,10 +332,20 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
         "APROBADA",
         "SUSPENDIDA",
         "RECHAZADA",
+        "DESCONECTADO",
+        "CONECTADO",
+        "DISPONIBLE",
+        "OCUPADO",
         "AUTO",
         "MOTO",
         "PASAJEROS",
         "ENVIOS",
+        "SEGURO",
+        "CEDULA_VERDE",
+        "VTV",
+        "ACEPTADO",
+        "RECHAZADO",
+        "VENCIDA",
         "ALTA",
         "APROBAR",
         "OBSERVAR",
@@ -272,7 +356,7 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
 
 
 @pytest.mark.integration
-def test_defaults_reales_pendiente_falso_y_falso(motor: Engine) -> None:
+def test_defaults_reales_pendiente_desconectado_y_totales_en_cero(motor: Engine) -> None:
     with motor.begin() as conexion:
         conexion.execute(
             text(
@@ -282,16 +366,17 @@ def test_defaults_reales_pendiente_falso_y_falso(motor: Engine) -> None:
                 """
             )
         )
-        estado, conectado, disponible = conexion.execute(
+        estado_habilitacion, estado, suma, cantidad = conexion.execute(
             text(
                 """
-                SELECT estado_habilitacion, conectado, disponible
+                SELECT estado_habilitacion, estado, suma_puntajes, cantidad_calificaciones
                 FROM conductor WHERE dni = '20000001'
                 """
             )
         ).one()
 
-    assert (estado, conectado, disponible) == ("PENDIENTE", False, False)
+    assert (estado_habilitacion, estado) == ("PENDIENTE", "DESCONECTADO")
+    assert (suma, cantidad) == (0, 0)
 
 
 @pytest.mark.integration
@@ -332,6 +417,51 @@ def test_la_base_rechaza_estado_de_habilitacion_invalido(motor: Engine) -> None:
                          'estado@m3.local', 'EN_REVISION')
                     """
                 )
+            )
+
+
+@pytest.mark.integration
+def test_la_base_rechaza_estado_operativo_invalido(motor: Engine) -> None:
+    with pytest.raises(IntegrityError):
+        with motor.begin() as conexion:
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO conductor
+                        (dni, nombre, apellido, telefono, email, estado)
+                    VALUES
+                        ('20000005', 'Estado', 'Invalido', '3624000094',
+                         'operativo@m3.local', 'EN_VIAJE')
+                    """
+                )
+            )
+
+
+@pytest.mark.integration
+def test_la_base_rechaza_solicitud_con_respuesta_sin_hora(motor: Engine) -> None:
+    with motor.begin() as conexion:
+        id_conductor = conexion.execute(
+            text(
+                """
+                INSERT INTO conductor (dni, nombre, apellido, telefono, email)
+                VALUES ('20000006', 'Soli', 'Citante', '3624000093', 'solicitud@m3.local')
+                RETURNING id_conductor
+                """
+            )
+        ).scalar_one()
+
+    with pytest.raises(IntegrityError):
+        with motor.begin() as conexion:
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO solicitud
+                        (id_conductor, id_viaje, estado, vence_en, respuesta)
+                    VALUES
+                        (:id_conductor, 1, 'ACEPTADO', now(), 'ACEPTADO')
+                    """
+                ),
+                {"id_conductor": id_conductor},
             )
 
 
