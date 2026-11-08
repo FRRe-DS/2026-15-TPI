@@ -270,7 +270,7 @@ PROVEEDORES = (
 )
 
 
-def _devolver(caso: CasoDeUsoFalso):
+def devolver_caso(caso: CasoDeUsoFalso):
     """Crea un proveedor sin parámetros que siempre devuelve el mismo caso."""
 
     def proveedor() -> CasoDeUsoFalso:
@@ -291,7 +291,7 @@ def client(
     for nombre, proveedor in PROVEEDORES:
         # Sin argumentos: FastAPI copia los valores por defecto de los
         # parámetros y devolvería una copia del caso de uso.
-        app.dependency_overrides[proveedor] = _devolver(casos[nombre])
+        app.dependency_overrides[proveedor] = devolver_caso(casos[nombre])
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

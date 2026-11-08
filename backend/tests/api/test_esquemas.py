@@ -3,6 +3,12 @@ from datetime import date
 import pytest
 from app.api.esquemas.conductor import ConductorCreate, EstadoOperativo, conductor_desde_detalle
 from app.api.esquemas.documento import DocumentoConductorCreate
+from app.api.esquemas.estado import EstadoConductor as EstadoConductorRespuesta
+from app.api.esquemas.estado import (
+    EstadoConductorRequest,
+    UbicacionConductor,
+)
+from app.api.esquemas.estado import EstadoOperativo as EstadoOperativoEstado
 from app.api.esquemas.habilitacion import (
     HabilitacionAccionRequest,
     HabilitacionEvento,
@@ -220,3 +226,92 @@ def test_esquema_de_documento_expone_formatos() -> None:
     assert propiedades["fecha_emision"]["format"] == "date"
     assert propiedades["fecha_vencimiento"]["format"] == "date"
     assert propiedades["url_archivo"]["format"] == "uri"
+
+
+def test_estado_operativo_tiene_los_cuatro_estados() -> None:
+    assert {estado.value for estado in EstadoOperativoEstado} == {
+        "DESCONECTADO",
+        "CONECTADO",
+        "DISPONIBLE",
+        "OCUPADO",
+    }
+
+
+def test_estado_conductor_no_incluye_la_ubicacion() -> None:
+    respuesta = EstadoConductorRespuesta(
+        id_conductor=1,
+        estado="DISPONIBLE",
+        actualizado="2026-11-02T01:30:00Z",
+    )
+
+    assert respuesta.id_vehiculo_activo is None
+    assert set(EstadoConductorRespuesta.model_fields) == {
+        "id_conductor",
+        "estado",
+        "id_vehiculo_activo",
+        "actualizado",
+    }
+
+
+def test_ubicacion_conductor_admite_los_tres_campos_nulos() -> None:
+    ubicacion = UbicacionConductor(id_conductor=1, latitud=None, longitud=None, fecha_act_ubic=None)
+
+    assert ubicacion.latitud is None
+    assert ubicacion.longitud is None
+    assert ubicacion.fecha_act_ubic is None
+
+
+def test_estado_request_exige_al_menos_un_campo() -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest()
+
+
+@pytest.mark.parametrize("estado", ["DESCONECTADO", "CONECTADO", "DISPONIBLE"])
+def test_estado_request_admite_los_estados_pedibles(estado: str) -> None:
+    assert EstadoConductorRequest(estado=estado).estado.value == estado
+
+
+def test_estado_request_rechaza_ocupado() -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(estado="OCUPADO")
+
+
+def test_estado_request_admite_solo_el_vehiculo_activo_incluso_nulo() -> None:
+    pedido = EstadoConductorRequest(id_vehiculo_activo=None)
+
+    assert "id_vehiculo_activo" in pedido.model_fields_set
+    assert pedido.id_vehiculo_activo is None
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [{"latitud": -27.4}, {"longitud": -58.9}],
+    ids=["solo-latitud", "solo-longitud"],
+)
+def test_estado_request_exige_latitud_y_longitud_juntas(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {"latitud": 91, "longitud": 0},
+        {"latitud": -91, "longitud": 0},
+        {"latitud": 0, "longitud": 181},
+        {"latitud": 0, "longitud": -181},
+    ],
+)
+def test_estado_request_rechaza_coordenadas_fuera_de_rango(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [{"estado": None}, {"latitud": None, "longitud": None}],
+    ids=["estado-nulo", "coordenadas-nulas"],
+)
+def test_estado_request_no_admite_nulos_en_estado_ni_en_coordenadas(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
