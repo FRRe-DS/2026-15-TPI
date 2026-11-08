@@ -13,6 +13,11 @@ from app.api.esquemas.habilitacion import (
     HabilitacionAccionRequest,
     HabilitacionEvento,
 )
+from app.api.esquemas.solicitud import (
+    EstadoSolicitud as EstadoSolicitudEsquema,
+)
+from app.api.esquemas.solicitud import RespuestaSolicitudRequest
+from app.api.esquemas.solicitud import Solicitud as SolicitudRespuesta
 from app.api.esquemas.vehiculo import VehiculoCreate
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.dominio.conductor import Conductor, EstadoConductor
@@ -315,3 +320,67 @@ def test_estado_request_rechaza_coordenadas_fuera_de_rango(datos: dict) -> None:
 def test_estado_request_no_admite_nulos_en_estado_ni_en_coordenadas(datos: dict) -> None:
     with pytest.raises(ValidationError):
         EstadoConductorRequest(**datos)
+
+
+def test_solicitud_tiene_los_campos_del_contrato() -> None:
+    solicitud = SolicitudRespuesta(
+        id=340,
+        id_conductor=15,
+        estado="PENDIENTE",
+        vence_en="2026-10-03T18:45:30Z",
+    )
+
+    assert solicitud.id_viaje is None
+    assert solicitud.respuesta is None
+    assert solicitud.hora_rta is None
+    assert set(SolicitudRespuesta.model_fields) == {
+        "id",
+        "id_conductor",
+        "id_viaje",
+        "estado",
+        "vence_en",
+        "respuesta",
+        "hora_rta",
+    }
+
+
+def test_estado_solicitud_tiene_los_cuatro_estados() -> None:
+    assert {estado.value for estado in EstadoSolicitudEsquema} == {
+        "PENDIENTE",
+        "ACEPTADO",
+        "RECHAZADO",
+        "VENCIDA",
+    }
+
+
+@pytest.mark.parametrize("respuesta", ["ACEPTADO", "RECHAZADO"])
+def test_respuesta_solicitud_admite_aceptado_y_rechazado(respuesta: str) -> None:
+    pedido = RespuestaSolicitudRequest(respuesta=respuesta, hora_rta="2026-10-03T18:44:10Z")
+
+    assert pedido.respuesta.value == respuesta
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {},
+        {"respuesta": "ACEPTADO"},
+        {"hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "PENDIENTE", "hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "VENCIDA", "hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "ACEPTADO", "hora_rta": "2026-10-03T18:44:10"},
+        {"respuesta": "ACEPTADO", "hora_rta": "2026-10-03"},
+    ],
+    ids=[
+        "vacio",
+        "sin-hora",
+        "sin-respuesta",
+        "pendiente",
+        "vencida",
+        "hora-sin-zona",
+        "solo-fecha",
+    ],
+)
+def test_respuesta_solicitud_exige_respuesta_valida_y_hora(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        RespuestaSolicitudRequest(**datos)
