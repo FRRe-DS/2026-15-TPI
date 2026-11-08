@@ -178,14 +178,14 @@ Cierre: C1
 
 ### PR `feat/s2-seguridad-rol-servicio` (V1, T359–T366): Rol servicio, claim del conductor y dependencias de acceso
 
-- [ ] T359 [S2] [US1] Test (Red) `backend/tests/api/conftest.py`: `crear_token` acepta varios roles e `id_conductor` e incluye por defecto un `sub` de texto no vacío (junto al `iss` existente), porque el rate limiting de Datos y seguridad (T517) clasifica por `(iss, sub)`; fixtures `headers_servicio` (solo rol `servicio`) y `headers_conductor_de(id)` (rol `conductor` con ese `id_conductor`); `test_fixtures_de_acceso` verifica el contenido de cada token
-- [ ] T360 [S2] [US1] Impl (Green) `backend/tests/api/conftest.py`: los ayudantes anteriores, sin cambiar las fixtures existentes, hasta que pase T359
-- [ ] T361 [S2] [US1] Test (Red) `backend/tests/api/test_seguridad_servicio.py`: un token con solo el rol `servicio` es aceptado; un token sin ningún rol reconocido responde `403`; se lee el claim `id_conductor` entero; un `id_conductor` booleano o no numérico se trata como ausente
-- [ ] T362 [S2] [US1] Impl (Green) `backend/app/api/seguridad.py`: agregar `servicio` a `ROLES_VALIDOS` y construir la `Identidad` desde el payload, hasta que pase T361
-- [ ] T363 [S2] [US1] Test (Red) `backend/tests/api/test_dependencias_acceso.py` (aplicación mínima de prueba): `requerir_operador_o_servicio`; `requerir_conductor_propio_u_operador(id)`; `requerir_conductor_propio_operador_o_servicio(id)`; el chequeo por id responde `403` `ACCESO_PROHIBIDO` antes de buscar el recurso; el rol `servicio` recibe `403` en las dependencias que no lo admiten; `requerir_operador` existente no cambia
-- [ ] T364 [S2] [US1] Impl (Green) `backend/app/api/seguridad.py`: las dependencias de acceso, una por patrón de la matriz y apoyadas en `aplicacion/politicas/acceso.py`, hasta que pase T363
-- [ ] T365 [S2] [US1] Test (Red) `backend/tests/api/test_errores.py`: `AccesoProhibido` → `403` `ACCESO_PROHIBIDO`; `RolNoAutorizado` → `403` `SIN_PERMISOS`; `SolicitudYaRespondida` → `409` `SOLICITUD_YA_RESPONDIDA`; `SolicitudVencida` → `410` `SOLICITUD_VENCIDA`; `ConductorNoHabilitado` → `422` `CONDUCTOR_NO_HABILITADO`
-- [ ] T366 [S2] [US1] Impl (Green) `backend/app/api/errores.py`: agregar los cinco errores a `MAPEO_ERRORES_DOMINIO`, hasta que pase T365
+- [X] T359 [S2] [US1] Test (Red) `backend/tests/api/conftest.py`: `crear_token` acepta varios roles e `id_conductor` e incluye por defecto un `sub` de texto no vacío (junto al `iss` existente), porque el rate limiting de Datos y seguridad (T517) clasifica por `(iss, sub)`; fixtures `headers_servicio` (solo rol `servicio`) y `headers_conductor_de(id)` (rol `conductor` con ese `id_conductor`); `test_fixtures_de_acceso` verifica el contenido de cada token
+- [X] T360 [S2] [US1] Impl (Green) `backend/tests/api/conftest.py`: los ayudantes anteriores, sin cambiar las fixtures existentes, hasta que pase T359
+- [X] T361 [S2] [US1] Test (Red) `backend/tests/api/test_seguridad_servicio.py`: un token con solo el rol `servicio` es aceptado; un token sin ningún rol reconocido responde `403`; se lee el claim `id_conductor` entero; un `id_conductor` booleano o no numérico se trata como ausente
+- [X] T362 [S2] [US1] Impl (Green) `backend/app/api/seguridad.py`: agregar `servicio` a `ROLES_VALIDOS` y construir la `Identidad` desde el payload, hasta que pase T361
+- [X] T363 [S2] [US1] Test (Red) `backend/tests/api/test_dependencias_acceso.py` (aplicación mínima de prueba): `requerir_operador_o_servicio`; `requerir_conductor_propio_u_operador(id)`; `requerir_conductor_propio_operador_o_servicio(id)`; el chequeo por id responde `403` `ACCESO_PROHIBIDO` antes de buscar el recurso; el rol `servicio` recibe `403` en las dependencias que no lo admiten; `requerir_operador` existente no cambia
+- [X] T364 [S2] [US1] Impl (Green) `backend/app/api/seguridad.py`: las dependencias de acceso, una por patrón de la matriz y apoyadas en `aplicacion/politicas/acceso.py`, hasta que pase T363
+- [X] T365 [S2] [US1] Test (Red) `backend/tests/api/test_errores.py`: `AccesoProhibido` → `403` `ACCESO_PROHIBIDO`; `RolNoAutorizado` → `403` `SIN_PERMISOS`; `SolicitudYaRespondida` → `409` `SOLICITUD_YA_RESPONDIDA`; `SolicitudVencida` → `410` `SOLICITUD_VENCIDA`; `ConductorNoHabilitado` → `422` `CONDUCTOR_NO_HABILITADO`
+- [X] T366 [S2] [US1] Impl (Green) `backend/app/api/errores.py`: agregar los cinco errores a `MAPEO_ERRORES_DOMINIO`, hasta que pase T365
 
 ### PR `feat/s2-acceso-endpoints-existentes` (V2, T367–T372): Acceso por rol y propio en los 10 endpoints de la Iteración 1
 
