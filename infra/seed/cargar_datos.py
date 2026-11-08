@@ -43,6 +43,10 @@ FECHA_EMISION_VENCIDA = date(2016, 1, 1)
 SOLICITUD_VIGENTE_HASTA = datetime(2035, 12, 31, 23, 59, tzinfo=UTC)
 SOLICITUD_VENCIDA_DESDE = datetime(2020, 12, 31, 23, 59, tzinfo=UTC)
 ID_OPERADOR_SEED = 101
+# El usuario conductor del realm (conductor.m3) apunta a este conductor: el
+# primer conductor del seed recibe id_conductor=1 en una base recien migrada.
+DNI_CONDUCTOR_PRUEBA = "30111222"
+ID_CONDUCTOR_PRUEBA = 1
 
 CONDUCTORES: tuple[dict[str, Any], ...] = (
     {

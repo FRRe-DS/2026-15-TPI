@@ -28,6 +28,12 @@
         "description": "Conductor habilitado para operar en la plataforma",
         "composite": false,
         "clientRole": false
+      },
+      {
+        "name": "servicio",
+        "description": "Cuenta tecnica de solo lectura para modulos vecinos (M4)",
+        "composite": false,
+        "clientRole": false
       }
     ]
   },
@@ -146,6 +152,25 @@
       ],
       "realmRoles": [
         "conductor"
+      ],
+      "requiredActions": []
+    },
+    {
+      "username": "${M3_SERVICIO_USERNAME}",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Servicio",
+      "lastName": "M4",
+      "email": "servicio.m4@m3.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${M3_SERVICIO_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "servicio"
       ],
       "requiredActions": []
     }
