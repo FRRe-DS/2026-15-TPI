@@ -59,7 +59,7 @@ Notas:
 ## Cómo se aplica
 
 - **Stack 1**: `backend/app/aplicacion/politicas/acceso.py`, función pura sin dependencias de FastAPI ni de JWT. Recibe roles, ids y los roles admitidos de la operación.
-- **Stack 2**: dependencias reutilizables en `backend/app/api/seguridad.py`, una por patrón de la matriz: operador o servicio; conductor propio, operador o servicio; conductor propio u operador; solo operador (la existente). Cada router elige la que corresponde a su operación.
+- **Stack 2**: dependencias reutilizables en `backend/app/api/seguridad.py`, una por patrón de la matriz: operador o servicio; operador o conductor (el alta, sin id); conductor propio, operador o servicio; conductor propio u operador; solo operador (la existente). Cada router elige la que corresponde a su operación.
 - Un cambio en la matriz se hace primero en este documento y después en las dependencias y sus tests.
 
 ## Realm de prueba (Stack 3)

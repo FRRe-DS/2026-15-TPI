@@ -62,11 +62,11 @@ def _exigir_conductor_propio(
     id_conductor: int | None,
     id_conductor_recurso: int,
 ) -> None:
-    if not _es_entero(id_conductor):
+    if not es_entero(id_conductor):
         raise AccesoProhibido("El token del conductor no trae un id_conductor numerico")
     if id_conductor != id_conductor_recurso:
         raise AccesoProhibido("El conductor solo puede operar sobre sus propios datos")
 
 
-def _es_entero(valor: object) -> bool:
+def es_entero(valor: object) -> bool:
     return isinstance(valor, int) and not isinstance(valor, bool)
