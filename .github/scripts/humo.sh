@@ -21,6 +21,7 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ARCHIVO_ENV="${COMPOSE_ENV_FILE:-$RAIZ/.env}"
 ARCHIVO_COMPOSE="${COMPOSE_FILE:-$RAIZ/docker-compose.yml}"
 ARCHIVO_RESPUESTA="$(mktemp)"
+ARCHIVO_CABECERAS="$(mktemp)"
 
 COMPOSE=(docker compose --env-file "$ARCHIVO_ENV" -f "$ARCHIVO_COMPOSE")
 
@@ -36,6 +37,7 @@ limpiar() {
     fi
 
     rm -f "$ARCHIVO_RESPUESTA"
+    rm -f "$ARCHIVO_CABECERAS"
 
     if [[ "${CONSERVAR_ENTORNO:-0}" != "1" ]]; then
         local argumentos=(down --remove-orphans)
@@ -73,6 +75,7 @@ set +a
 : "${KEYCLOAK_M3_CLIENT_SECRET:?Falta KEYCLOAK_M3_CLIENT_SECRET en el .env}"
 : "${M3_OPERADOR_USERNAME:?Falta M3_OPERADOR_USERNAME en el .env}"
 : "${M3_OPERADOR_PASSWORD:?Falta M3_OPERADOR_PASSWORD en el .env}"
+: "${REDIS_PASSWORD:?Falta REDIS_PASSWORD en el .env}"
 
 API_BASE="${API_URL:-http://localhost:${API_PORT:-8080}}"
 KEYCLOAK_BASE="${KEYCLOAK_PUBLIC_URL:-http://localhost:${KEYCLOAK_PORT:-8081}}"
@@ -96,6 +99,27 @@ esperar_http() {
     done
 
     echo "ERROR: $nombre no respondio a tiempo ($url)." >&2
+    return 1
+}
+
+esperar_redis_saludable() {
+    local intentos="${1:-30}"
+    local contenedor
+    local estado
+
+    for ((intento = 1; intento <= intentos; intento++)); do
+        contenedor="$("${COMPOSE[@]}" ps -q redis)"
+        if [[ -n "$contenedor" ]]; then
+            estado="$(docker inspect --format '{{.State.Health.Status}}' "$contenedor" 2>/dev/null || true)"
+            if [[ "$estado" == "healthy" ]]; then
+                echo "OK: Redis saludable"
+                return 0
+            fi
+        fi
+        sleep 2
+    done
+
+    echo "ERROR: Redis no alcanzó el estado saludable." >&2
     return 1
 }
 
@@ -175,9 +199,102 @@ print("OK: sin token responde 401 NO_AUTENTICADO")
 PY
 }
 
+comprobar_limite_anonimo() {
+    local limite="${RATE_LIMIT_ANON_REQUESTS:-60}"
+    local codigo
+    local rechazado=0
+
+    echo "==> Verificando rate limit anónimo"
+    for ((intento = 1; intento <= limite + 1; intento++)); do
+        codigo="$(
+            curl -sS --max-time 10 \
+                -D "$ARCHIVO_CABECERAS" \
+                -o "$ARCHIVO_RESPUESTA" \
+                -w '%{http_code}' \
+                "$API_BASE/api/v1/conductores"
+        )"
+        if [[ "$codigo" == "429" ]]; then
+            rechazado=1
+            break
+        fi
+        if [[ "$codigo" != "401" ]]; then
+            echo "ERROR: solicitud anonima respondio $codigo (se esperaba 401 o 429)." >&2
+            cat "$ARCHIVO_RESPUESTA" >&2
+            return 1
+        fi
+    done
+
+    if [[ "$rechazado" -ne 1 ]]; then
+        echo "ERROR: no se alcanzo el limite anonimo de $limite solicitudes." >&2
+        return 1
+    fi
+    if ! grep -qiE '^Retry-After: [1-9][0-9]*' "$ARCHIVO_CABECERAS"; then
+        echo "ERROR: 429 no incluyo un Retry-After positivo." >&2
+        cat "$ARCHIVO_CABECERAS" >&2
+        return 1
+    fi
+    python3 - "$ARCHIVO_RESPUESTA" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as archivo:
+    cuerpo = json.load(archivo)
+
+if cuerpo.get("codigo") != "LIMITE_DE_SOLICITUDES":
+    raise SystemExit(f"ERROR: codigo de rate limit inesperado: {cuerpo!r}")
+
+print("OK: 429 LIMITE_DE_SOLICITUDES con Retry-After")
+PY
+}
+
+comprobar_falla_redis() {
+    local codigo
+
+    echo "==> Verificando fail-closed con Redis detenido"
+    "${COMPOSE[@]}" stop redis
+    codigo="$(
+        curl -sS --max-time 10 \
+            -o "$ARCHIVO_RESPUESTA" \
+            -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" \
+            "$API_BASE/api/v1/conductores"
+    )"
+    if [[ "$codigo" != "503" ]]; then
+        echo "ERROR: con Redis detenido la API respondio $codigo (se esperaba 503)." >&2
+        cat "$ARCHIVO_RESPUESTA" >&2
+        return 1
+    fi
+    python3 - "$ARCHIVO_RESPUESTA" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as archivo:
+    cuerpo = json.load(archivo)
+
+if cuerpo.get("codigo") != "SERVICIO_TEMPORALMENTE_NO_DISPONIBLE":
+    raise SystemExit(f"ERROR: codigo de Redis inesperado: {cuerpo!r}")
+
+print("OK: Redis detenido responde 503 fail-closed")
+PY
+
+    codigo="$(
+        curl -sS --max-time 10 \
+            -o "$ARCHIVO_RESPUESTA" \
+            -w '%{http_code}' \
+            "$API_BASE/salud"
+    )"
+    if [[ "$codigo" != "200" ]]; then
+        echo "ERROR: /salud respondio $codigo con Redis detenido (se esperaba 200)." >&2
+        cat "$ARCHIVO_RESPUESTA" >&2
+        return 1
+    fi
+    echo "OK: /salud permanece disponible con Redis detenido"
+}
+
 echo "==> Levantando el entorno Compose"
 "${COMPOSE[@]}" up --build -d
 
+esperar_redis_saludable
 esperar_http \
     "$KEYCLOAK_BASE/realms/$REALM/.well-known/openid-configuration" \
     "Keycloak"
@@ -195,5 +312,8 @@ echo "OK: token de operador obtenido"
 echo "==> Verificando el listado de conductores"
 comprobar_listado
 comprobar_sin_token
+
+comprobar_limite_anonimo
+comprobar_falla_redis
 
 echo "OK: prueba de humo completada"

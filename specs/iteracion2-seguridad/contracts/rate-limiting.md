@@ -24,6 +24,7 @@ Al alcanzar la cuota:
 
 - Estado HTTP: `429 Too Many Requests`.
 - Encabezado: `Retry-After`, segundos enteros hasta la próxima solicitud permitida.
+- Encabezado: `Cache-Control: no-store` para evitar almacenar la respuesta de limitación.
 - Cuerpo: `{"codigo": "LIMITE_DE_SOLICITUDES", "mensaje": "Se alcanzó el límite de solicitudes; reintente más tarde."}`.
 - No almacenar en caché la respuesta de rate limiting.
 

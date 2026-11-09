@@ -6,12 +6,17 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 import jwt
-from fastapi import Depends, Path
+from fastapi import Depends, Path, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient, PyJWKClientError
 
 from app.api.configuracion import Settings, obtener_configuracion
-from app.api.errores import no_autenticado, sin_permisos
+from app.api.errores import (
+    no_autenticado,
+    servicio_temporalmente_no_disponible,
+    sin_permisos,
+)
+from app.api.rate_limit import RedisRateLimiter
 from app.aplicacion.politicas.acceso import (
     ROL_CONDUCTOR,
     ROL_OPERADOR,
@@ -56,6 +61,14 @@ def obtener_cliente_jwks(
     return _crear_cliente_jwks(url)
 
 
+def obtener_rate_limiter(request: Request) -> RedisRateLimiter:
+    """Obtiene el limitador creado durante el ciclo de vida de la aplicación."""
+    limitador = getattr(request.app.state, "rate_limiter", None)
+    if not isinstance(limitador, RedisRateLimiter):
+        raise servicio_temporalmente_no_disponible()
+    return limitador
+
+
 def _roles_del_payload(payload: dict[str, Any]) -> list[Any] | None:
     realm_access = payload.get("realm_access")
     if not isinstance(realm_access, dict):
@@ -65,15 +78,24 @@ def _roles_del_payload(payload: dict[str, Any]) -> list[Any] | None:
 
 
 def requerir_usuario(
+    request: Request,
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
         Depends(bearer_scheme),
     ],
     settings: Annotated[Settings, Depends(obtener_configuracion)],
     jwks: Annotated[PyJWKClient, Depends(obtener_cliente_jwks)],
+    rate_limiter: Annotated[RedisRateLimiter, Depends(obtener_rate_limiter)],
 ) -> dict[str, Any]:
     """Valida el JWT y exige al menos un rol reconocido."""
+    identidad_ip = request.client.host if request.client is not None else "unknown"
     if credentials is None:
+        rate_limiter.verificar(
+            scope="ip",
+            identidad=identidad_ip,
+            limite=settings.RATE_LIMIT_ANON_REQUESTS,
+            ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+        )
         raise no_autenticado()
 
     token = credentials.credentials
@@ -90,7 +112,39 @@ def requerir_usuario(
             options={"require": ["exp", "iss"]},
         )
     except (jwt.PyJWTError, PyJWKClientError, ValueError, TypeError):
+        rate_limiter.verificar(
+            scope="ip",
+            identidad=identidad_ip,
+            limite=settings.RATE_LIMIT_ANON_REQUESTS,
+            ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+        )
         raise no_autenticado() from None
+
+    issuer = payload.get("iss")
+    sujeto = payload.get("sub")
+    if not isinstance(issuer, str) or not issuer.strip():
+        rate_limiter.verificar(
+            scope="ip",
+            identidad=identidad_ip,
+            limite=settings.RATE_LIMIT_ANON_REQUESTS,
+            ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+        )
+        raise no_autenticado()
+    if not isinstance(sujeto, str) or not sujeto.strip():
+        rate_limiter.verificar(
+            scope="ip",
+            identidad=identidad_ip,
+            limite=settings.RATE_LIMIT_ANON_REQUESTS,
+            ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+        )
+        raise no_autenticado()
+
+    rate_limiter.verificar(
+        scope="jwt",
+        identidad=f"{issuer}\0{sujeto}",
+        limite=settings.RATE_LIMIT_AUTH_REQUESTS,
+        ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+    )
 
     roles = _roles_del_payload(payload)
     if roles is None:

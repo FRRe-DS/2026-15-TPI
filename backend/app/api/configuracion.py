@@ -1,4 +1,4 @@
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     KEYCLOAK_URL: str
     KEYCLOAK_REALM: str
     DATABASE_URL: str
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_PASSWORD: SecretStr = SecretStr("")
+    RATE_LIMIT_ANON_REQUESTS: int = Field(default=60, gt=0)
+    RATE_LIMIT_AUTH_REQUESTS: int = Field(default=120, gt=0)
+    RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, gt=0)
     # Ubicación que M3 asigna cuando el conductor sale de DESCONECTADO sin informar la suya.
     UBICACION_SIMULADA_LATITUD: float = Field(default=-27.4511, ge=-90, le=90)
     UBICACION_SIMULADA_LONGITUD: float = Field(default=-58.9867, ge=-180, le=180)

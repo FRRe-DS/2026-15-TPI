@@ -68,9 +68,26 @@ jobs:
   test:
     name: Suite completa con PostgreSQL y Keycloak
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4.3-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
     defaults:
       run:
         working-directory: backend
+    env:
+      REDIS_URL: redis://localhost:6379/0
+      REDIS_PASSWORD: ""
+      RATE_LIMIT_TEST_REDIS_URL: redis://localhost:6379/0
+      RATE_LIMIT_ANON_REQUESTS: "60"
+      RATE_LIMIT_AUTH_REQUESTS: "1000"
+      RATE_LIMIT_WINDOW_SECONDS: "60"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -105,6 +122,10 @@ jobs:
             -e "s|^M3_CONDUCTOR_PASSWORD=.*|M3_CONDUCTOR_PASSWORD=$(openssl rand -hex 16)|" \
             -e "s|^M3_SERVICIO_USERNAME=.*|M3_SERVICIO_USERNAME=servicio.m4|" \
             -e "s|^M3_SERVICIO_PASSWORD=.*|M3_SERVICIO_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -hex 32)|" \
+            -e "s|^RATE_LIMIT_ANON_REQUESTS=.*|RATE_LIMIT_ANON_REQUESTS=60|" \
+            -e "s|^RATE_LIMIT_AUTH_REQUESTS=.*|RATE_LIMIT_AUTH_REQUESTS=1000|" \
+            -e "s|^RATE_LIMIT_WINDOW_SECONDS=.*|RATE_LIMIT_WINDOW_SECONDS=60|" \
             .env
       - name: Levantar Compose y ejecutar la prueba de humo
         env:

@@ -33,6 +33,7 @@ from openapi_core.testing import MockRequest, MockResponse
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.community.postgres import PostgresContainer
+from tests.api.conftest import instalar_limitador_falso
 
 RAIZ_DEL_REPOSITORIO = Path(__file__).resolve().parents[3]
 CONTRATO = RAIZ_DEL_REPOSITORIO / "docs" / "contract" / "openapi.yaml"
@@ -143,11 +144,13 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         iss: str = EMISOR,
         kid: str = KID_PRUEBA,
         id_conductor: Any = None,
+        sub: str = "usuario-de-prueba",
     ) -> str:
         ahora = datetime.now(UTC)
         expiracion = exp if exp is not None else ahora + timedelta(minutes=15)
         payload: dict[str, Any] = {
             "iss": iss,
+            "sub": sub,
             "iat": int(ahora.timestamp()),
             "exp": expiracion,
             "realm_access": {
@@ -213,6 +216,7 @@ def app_contrato(
 ) -> Iterator[FastAPI]:
     """Aplicación real con repositorios SQL y autenticación de prueba."""
     app = crear_app()
+    app.state.settings = configuracion_contrato
 
     def obtener_unidad_de_trabajo() -> Iterator[SqlUnidadDeTrabajo]:
         yield SqlUnidadDeTrabajo(fabrica_sesiones_contrato)
@@ -220,6 +224,7 @@ def app_contrato(
     app.dependency_overrides[dependencias.obtener_unidad_de_trabajo] = obtener_unidad_de_trabajo
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
     app.dependency_overrides[obtener_configuracion] = lambda: configuracion_contrato
+    instalar_limitador_falso(app)
     try:
         yield app
     finally:
