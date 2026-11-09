@@ -11,6 +11,8 @@ from app.dominio.validaciones import exigir_texto
 PATRON_DNI = re.compile(r"[0-9]{7,8}")
 PATRON_EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 CENTESIMAS = Decimal("0.01")
+PUNTAJE_MINIMO = Decimal(1)
+PUNTAJE_MAXIMO = Decimal(5)
 
 
 class EstadoConductor(Enum):
@@ -53,16 +55,6 @@ class Conductor:
         return cls(dni=dni, nombre=nombre, apellido=apellido, telefono=telefono, email=email)
 
     @property
-    def conectado(self) -> bool:
-        """Compatibilidad con la Iteracion 1: `conectado` deriva de `estado`."""
-        return self.estado is not EstadoConductor.DESCONECTADO
-
-    @property
-    def disponible(self) -> bool:
-        """Compatibilidad con la Iteracion 1: `disponible` deriva de `estado`."""
-        return self.estado is EstadoConductor.DISPONIBLE
-
-    @property
     def puntaje_promedio(self) -> Decimal | None:
         if self.suma_puntajes < 0 or self.cantidad_calificaciones < 0:
             raise DatosInvalidos("Los totales de puntajes no pueden ser negativos")
@@ -71,6 +63,8 @@ class Conductor:
                 raise DatosInvalidos("La suma de puntajes debe ser 0 cuando no hay calificaciones")
             return None
         promedio = Decimal(self.suma_puntajes) / Decimal(self.cantidad_calificaciones)
+        if not PUNTAJE_MINIMO <= promedio <= PUNTAJE_MAXIMO:
+            raise DatosInvalidos("El puntaje promedio debe estar entre 1 y 5")
         return promedio.quantize(CENTESIMAS, rounding=ROUND_HALF_UP)
 
     @property

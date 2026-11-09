@@ -1,6 +1,8 @@
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Annotated, Any
 
+import yaml
 from app.api.main import crear_app
 from app.api.seguridad import obtener_cliente_jwks, requerir_usuario
 from fastapi import APIRouter, Depends
@@ -77,3 +79,43 @@ def test_el_openapi_declara_bearer() -> None:
     esquemas = app.openapi()["components"]["securitySchemes"]
 
     assert esquemas["HTTPBearer"]["scheme"] == "bearer"
+
+
+def _dependencias_de(dependant) -> set:
+    llamadas = set()
+    for dependencia in dependant.dependencies:
+        llamadas.add(dependencia.call)
+        llamadas |= _dependencias_de(dependencia)
+    return llamadas
+
+
+def test_toda_ruta_de_la_api_declara_una_dependencia_de_acceso() -> None:
+    # Guarda de regresión: por defecto una ruta solo exige un rol reconocido, que
+    # incluye al servicio. Cada ruta debe elegir el patrón de la matriz del contrato.
+    from app.api import seguridad
+    from app.api.main import ROUTERS
+    from fastapi.routing import APIRoute
+
+    de_acceso = {
+        seguridad.requerir_operador,
+        seguridad.requerir_operador_o_servicio,
+        seguridad.requerir_operador_o_conductor,
+        seguridad.requerir_conductor_propio_u_operador,
+        seguridad.requerir_conductor_propio_operador_o_servicio,
+    }
+    rutas = [ruta for router in ROUTERS for ruta in router.routes if isinstance(ruta, APIRoute)]
+
+    assert rutas
+    sin_acceso = [
+        f"{sorted(ruta.methods)} {ruta.path}"
+        for ruta in rutas
+        if not _dependencias_de(ruta.dependant) & de_acceso
+    ]
+    assert sin_acceso == []
+
+
+def test_la_aplicacion_declara_la_version_del_contrato() -> None:
+    contrato = Path(__file__).resolve().parents[3] / "docs" / "contract" / "openapi.yaml"
+    version_del_contrato = yaml.safe_load(contrato.read_text(encoding="utf-8"))["info"]["version"]
+
+    assert crear_app().version == version_del_contrato

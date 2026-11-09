@@ -27,7 +27,8 @@ def cliente_m4(monkeypatch, fabrica_sesiones):
         {
             "iss": "http://localhost:8081/realms/m3",
             "exp": datetime.now(UTC) + timedelta(minutes=5),
-            "realm_access": {"roles": ["conductor"]},
+            # M4 lee con la cuenta de servicio; el conductor solo lee su propio id.
+            "realm_access": {"roles": ["servicio"]},
         },
         clave,
         algorithm="RS256",
@@ -57,8 +58,7 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         telefono="3794000000",
         email="ana@example.com",
         estado_habilitacion="APROBADA",
-        conectado=True,
-        disponible=True,
+        estado="DISPONIBLE",
         **ubicacion,
     )
     no_disponible = Conductor(
@@ -68,15 +68,14 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         telefono="3794000001",
         email="bruno@example.com",
         estado_habilitacion="PENDIENTE",
-        conectado=False,
-        disponible=False,
+        estado="DESCONECTADO",
     )
     sesion_bd.add_all([conductor, no_disponible])
     sesion_bd.commit()
     ruta = (
         f"/api/v1/conductores/{conductor.id_conductor}"
         if detalle
-        else "/api/v1/conductores?disponible=true&habilitado=true"
+        else "/api/v1/conductores?estado=DISPONIBLE&habilitado=true"
     )
     respuesta = cliente_m4.get(ruta)
     assert respuesta.status_code == 200
@@ -85,8 +84,12 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         assert len(datos) == 1
         datos = datos[0]
     assert datos["id"] == conductor.id_conductor
-    assert datos["conectado"] is True
-    assert datos["disponible"] is True
+    assert datos["estado"] == "DISPONIBLE"
+    assert datos["cantidad_calificaciones"] == 0
+    assert datos["puntaje_promedio"] is None
+    assert datos["id_vehiculo_activo"] is None
+    assert "conectado" not in datos
+    assert "disponible" not in datos
     assert datos["latitud"] == ubicacion["latitud"]
     assert datos["longitud"] == ubicacion["longitud"]
     if con_ubicacion:

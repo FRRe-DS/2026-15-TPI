@@ -29,8 +29,8 @@ Interfaz web construida con **Next.js 16**, **React 19** y **TypeScript 5.9** pa
    KEYCLOAK_REALM=m3
    KEYCLOAK_CLIENT_ID=m3-api
    KEYCLOAK_CLIENT_SECRET=mismo-valor-de-KEYCLOAK_M3_CLIENT_SECRET
-   TEST_USER=conductor.m3
-   TEST_PASSWORD=mismo-valor-de-M3_CONDUCTOR_PASSWORD
+   TEST_USER=operador.m3
+   TEST_PASSWORD=mismo-valor-de-M3_OPERADOR_PASSWORD
    ```
 
 ## Ejecución en Desarrollo

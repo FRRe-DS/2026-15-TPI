@@ -1,8 +1,11 @@
+from collections.abc import Sequence
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.api.esquemas.documento import DocumentoVehiculo, documento_vehiculo_desde_dominio
 from app.api.esquemas.habilitacion import EstadoHabilitacion
+from app.aplicacion.casos_de_uso.resultados import DocumentoVehiculoConEstado
 from app.dominio.habilitacion import EstadoHabilitacion as EstadoHabilitacionDominio
 from app.dominio.vehiculo import ServicioDelVehiculo
 from app.dominio.vehiculo import TipoServicio as TipoServicioDominio
@@ -63,11 +66,11 @@ class Vehiculo(BaseModel):
     modelo: str
     anio: int
     tipos_serv: list[TipoServicioHabilitado]
-    documentos: list[dict] = Field(default_factory=list)
+    documentos: list[DocumentoVehiculo] = Field(default_factory=list)
     habilitacion: EstadoHabilitacion
 
 
-def _servicios(
+def servicios_desde_dominio(
     servicios: list[ServicioDelVehiculo],
 ) -> list[TipoServicioHabilitado]:
     return [
@@ -93,7 +96,10 @@ def vehiculo_resumen_desde_dominio(vehiculo: VehiculoDominio) -> VehiculoResumen
     )
 
 
-def vehiculo_desde_dominio(vehiculo: VehiculoDominio) -> Vehiculo:
+def vehiculo_desde_dominio(
+    vehiculo: VehiculoDominio,
+    documentos: Sequence[DocumentoVehiculoConEstado] = (),
+) -> Vehiculo:
     return Vehiculo(
         id=_id(vehiculo),
         id_conductor=_id_conductor(vehiculo),
@@ -102,8 +108,11 @@ def vehiculo_desde_dominio(vehiculo: VehiculoDominio) -> Vehiculo:
         marca=vehiculo.marca,
         modelo=vehiculo.modelo,
         anio=vehiculo.anio,
-        tipos_serv=_servicios(vehiculo.tipos_servicio),
-        documentos=[],
+        tipos_serv=servicios_desde_dominio(vehiculo.tipos_servicio),
+        documentos=[
+            documento_vehiculo_desde_dominio(_id(vehiculo), item.documento, item.estado)
+            for item in documentos
+        ],
         habilitacion=EstadoHabilitacion(
             EstadoHabilitacionDominio(vehiculo.habilitacion.value).value
         ),

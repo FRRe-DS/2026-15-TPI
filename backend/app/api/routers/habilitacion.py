@@ -13,7 +13,10 @@ from app.api.esquemas.habilitacion import (
     eventos_conductor_desde_dominio,
     resumen_desde_dominio,
 )
-from app.api.seguridad import requerir_operador
+from app.api.seguridad import (
+    requerir_conductor_propio_operador_o_servicio,
+    requerir_operador,
+)
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
     AccionarHabilitacionConductor,
 )
@@ -29,6 +32,7 @@ router = APIRouter(tags=["Habilitación"])
     "/conductores/{id_conductor}/habilitacion",
     response_model=HabilitacionResumen,
     operation_id="obtenerHabilitacionConductor",
+    dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def consultar_habilitacion(
     id_conductor: int,

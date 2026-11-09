@@ -16,9 +16,13 @@ class EstadoDocumento(Enum):
     VENCIDO = "VENCIDO"
 
 
+ESQUEMAS_DE_URL_PERMITIDOS = frozenset({"http", "https"})
+
+
 def es_url_valida(url: str) -> bool:
+    """Solo `http` y `https` con host: el frontend la muestra como enlace."""
     partes = urlparse(url)
-    return bool(partes.scheme and partes.netloc)
+    return partes.scheme in ESQUEMAS_DE_URL_PERMITIDOS and bool(partes.netloc)
 
 
 @dataclass

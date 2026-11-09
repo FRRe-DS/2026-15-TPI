@@ -1,5 +1,6 @@
 from datetime import date
 
+import pytest
 from app.aplicacion.casos_de_uso.resultados import DocumentoDeConductor
 from app.dominio.documento import EstadoDocumento
 from app.dominio.errores import DatosInvalidos, NoEncontrado
@@ -93,3 +94,14 @@ def test_datos_invalidos_responde_422(client, casos, headers_conductor) -> None:
 
     assert respuesta.status_code == 422
     assert respuesta.json()["codigo"] == "DATOS_INVALIDOS"
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["ftp://archivos.example/licencia.pdf", "javascript:alert(1)", "file:///etc/passwd"],
+)
+def test_url_con_esquema_que_no_es_http_responde_400(client, headers_conductor, url) -> None:
+    respuesta = client.post(URL, json={**PAYLOAD, "url_archivo": url}, headers=headers_conductor)
+
+    assert respuesta.status_code == 400
+    assert respuesta.json()["codigo"] == "SOLICITUD_INVALIDA"

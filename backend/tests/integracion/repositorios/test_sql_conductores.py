@@ -292,11 +292,11 @@ def test_listar_filtra_por_estado(repositorio, estado, dnis_esperados):
     assert dnis(repositorio.listar(estado=estado)) == dnis_esperados
 
 
-def test_listar_por_ocupado_no_devuelve_nada_hasta_que_la_base_distinga_el_estado(repositorio):
-    """TRANSITORIO hasta L9: `OCUPADO` se guarda como `CONECTADO` y se lee como tal."""
-    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.OCUPADO))
+def test_listar_filtra_por_ocupado(repositorio):
+    repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.CONECTADO))
+    repositorio.guardar(nuevo_conductor("30000002", estado=EstadoConductor.OCUPADO))
 
-    assert repositorio.listar(estado=EstadoConductor.OCUPADO) == []
+    assert dnis(repositorio.listar(estado=EstadoConductor.OCUPADO)) == ["30000002"]
     assert dnis(repositorio.listar(estado=EstadoConductor.CONECTADO)) == ["30000001"]
 
 
@@ -457,33 +457,22 @@ def test_listar_con_filtros_sin_coincidencias_devuelve_lista_vacia(repositorio):
 @pytest.mark.parametrize(
     ("estado", "dnis_esperados"),
     [
-        (EstadoConductor.DISPONIBLE, []),
-        (EstadoConductor.DESCONECTADO, ["30000001"]),
+        (EstadoConductor.DISPONIBLE, ["30000001"]),
+        (EstadoConductor.DESCONECTADO, []),
     ],
 )
-def test_listar_por_estado_deriva_del_estado_y_no_de_la_columna_cruda(
-    repositorio, sesion_bd, estado, dnis_esperados
-):
-    """Fila `conectado=false, disponible=true`: el dominio la lee como DESCONECTADO."""
-    guardado = repositorio.guardar(nuevo_conductor("30000001"))
+def test_listar_usa_la_columna_estado_persistida(repositorio, sesion_bd, estado, dnis_esperados):
+    """Cambiar la fila en la base (no el dominio) cambia lo que devuelve `listar`."""
+    guardado = repositorio.guardar(nuevo_conductor("30000001", estado=EstadoConductor.DESCONECTADO))
     fila = sesion_bd.get(ConductorOrm, guardado.id)
-    fila.conectado, fila.disponible = False, True
+    fila.estado = EstadoConductor.DISPONIBLE.value
     sesion_bd.flush()
 
     assert dnis(repositorio.listar(estado=estado)) == dnis_esperados
 
 
-@pytest.mark.parametrize(
-    ("estado", "estado_leido"),
-    [
-        (EstadoConductor.DESCONECTADO, EstadoConductor.DESCONECTADO),
-        (EstadoConductor.CONECTADO, EstadoConductor.CONECTADO),
-        (EstadoConductor.DISPONIBLE, EstadoConductor.DISPONIBLE),
-        # TRANSITORIO hasta L9: la base no distingue OCUPADO de CONECTADO.
-        (EstadoConductor.OCUPADO, EstadoConductor.CONECTADO),
-    ],
-)
-def test_guardar_y_leer_el_estado_con_el_mapeo_transitorio(repositorio, estado, estado_leido):
+@pytest.mark.parametrize("estado", list(EstadoConductor))
+def test_guardar_y_leer_el_estado_directo(repositorio, estado):
     guardado = repositorio.guardar(nuevo_conductor("30000001", estado=estado))
 
-    assert repositorio.obtener(guardado.id).estado is estado_leido
+    assert repositorio.obtener(guardado.id).estado is estado

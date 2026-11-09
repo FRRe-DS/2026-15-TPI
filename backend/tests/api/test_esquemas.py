@@ -2,12 +2,25 @@ from datetime import date
 
 import pytest
 from app.api.esquemas.conductor import ConductorCreate, EstadoOperativo, conductor_desde_detalle
-from app.api.esquemas.documento import DocumentoConductorCreate
+from app.api.esquemas.documento import DocumentoConductorCreate, DocumentoVehiculoCreate
+from app.api.esquemas.documento import DocumentoVehiculo as DocumentoVehiculoRespuesta
+from app.api.esquemas.estado import EstadoConductor as EstadoConductorRespuesta
+from app.api.esquemas.estado import (
+    EstadoConductorRequest,
+    UbicacionConductor,
+)
+from app.api.esquemas.estado import EstadoOperativo as EstadoOperativoEstado
 from app.api.esquemas.habilitacion import (
     HabilitacionAccionRequest,
     HabilitacionEvento,
 )
-from app.api.esquemas.vehiculo import VehiculoCreate
+from app.api.esquemas.solicitud import (
+    EstadoSolicitud as EstadoSolicitudEsquema,
+)
+from app.api.esquemas.solicitud import RespuestaSolicitudRequest
+from app.api.esquemas.solicitud import Solicitud as SolicitudRespuesta
+from app.api.esquemas.vehiculo import TipoServicioHabilitado, VehiculoCreate
+from app.api.esquemas.vehiculo import Vehiculo as VehiculoRespuesta
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.dominio.conductor import Conductor, EstadoConductor
 from pydantic import ValidationError
@@ -78,8 +91,75 @@ def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
     )
 
     assert respuesta.estado == estado_esperado
-    assert respuesta.conectado is (estado_dominio is not EstadoConductor.DESCONECTADO)
-    assert respuesta.disponible is (estado_dominio is EstadoConductor.DISPONIBLE)
+    assert "conectado" not in respuesta.model_dump()
+    assert "disponible" not in respuesta.model_dump()
+
+
+def _detalle_de(**cambios):
+    conductor = Conductor.crear(
+        dni="12345678",
+        nombre="Ana",
+        apellido="Pérez",
+        telefono="3415550000",
+        email="ana@example.com",
+    )
+    conductor.id = 1
+    for campo, valor in cambios.items():
+        setattr(conductor, campo, valor)
+    return ConductorDetalle(conductor=conductor, documentos=[], vehiculos=[])
+
+
+def test_el_conductor_sin_calificaciones_no_tiene_puntaje() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de())
+
+    assert respuesta.puntaje_promedio is None
+    assert respuesta.cantidad_calificaciones == 0
+    assert respuesta.id_vehiculo_activo is None
+
+
+def test_el_puntaje_promedio_y_la_cantidad_salen_del_dominio() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de(suma_puntajes=14, cantidad_calificaciones=3))
+
+    assert respuesta.puntaje_promedio == pytest.approx(4.67)
+    assert respuesta.cantidad_calificaciones == 3
+
+
+def test_el_vehiculo_activo_sale_del_dominio() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de(id_vehiculo_activo=7))
+
+    assert respuesta.id_vehiculo_activo == 7
+
+
+def test_el_alta_devuelve_conductor_sin_ubicacion_ni_vehiculo_activo() -> None:
+    from app.api.esquemas.conductor import conductor_creado
+
+    creado = conductor_creado(_detalle_de())
+
+    assert creado.estado == EstadoOperativo.DESCONECTADO
+    assert creado.puntaje_promedio is None
+    assert creado.cantidad_calificaciones == 0
+    datos = creado.model_dump()
+    assert not {"latitud", "longitud", "fecha_act_ubic", "id_vehiculo_activo"} & datos.keys()
+
+
+@pytest.mark.parametrize("puntaje", [0.9, 5.1])
+def test_el_puntaje_promedio_se_acota_de_1_a_5(puntaje: float) -> None:
+    from app.api.esquemas.conductor import Conductor as ConductorRespuesta
+
+    with pytest.raises(ValidationError):
+        ConductorRespuesta(
+            id=1,
+            dni="12345678",
+            nombre="Ana",
+            apellido="Pérez",
+            telefono="3415550000",
+            email="ana@example.com",
+            documentos=[],
+            vehiculos=[],
+            habilitacion="PENDIENTE",
+            estado="DESCONECTADO",
+            puntaje_promedio=puntaje,
+        )
 
 
 def test_nombre_obligatorio() -> None:
@@ -220,3 +300,265 @@ def test_esquema_de_documento_expone_formatos() -> None:
     assert propiedades["fecha_emision"]["format"] == "date"
     assert propiedades["fecha_vencimiento"]["format"] == "date"
     assert propiedades["url_archivo"]["format"] == "uri"
+
+
+def test_estado_operativo_tiene_los_cuatro_estados() -> None:
+    assert {estado.value for estado in EstadoOperativoEstado} == {
+        "DESCONECTADO",
+        "CONECTADO",
+        "DISPONIBLE",
+        "OCUPADO",
+    }
+
+
+def test_estado_conductor_no_incluye_la_ubicacion() -> None:
+    respuesta = EstadoConductorRespuesta(
+        id_conductor=1,
+        estado="DISPONIBLE",
+        actualizado="2026-11-02T01:30:00Z",
+    )
+
+    assert respuesta.id_vehiculo_activo is None
+    assert set(EstadoConductorRespuesta.model_fields) == {
+        "id_conductor",
+        "estado",
+        "id_vehiculo_activo",
+        "actualizado",
+    }
+
+
+def test_ubicacion_conductor_admite_los_tres_campos_nulos() -> None:
+    ubicacion = UbicacionConductor(id_conductor=1, latitud=None, longitud=None, fecha_act_ubic=None)
+
+    assert ubicacion.latitud is None
+    assert ubicacion.longitud is None
+    assert ubicacion.fecha_act_ubic is None
+
+
+def test_estado_request_exige_al_menos_un_campo() -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest()
+
+
+@pytest.mark.parametrize("estado", ["DESCONECTADO", "CONECTADO", "DISPONIBLE"])
+def test_estado_request_admite_los_estados_pedibles(estado: str) -> None:
+    assert EstadoConductorRequest(estado=estado).estado.value == estado
+
+
+def test_estado_request_rechaza_ocupado() -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(estado="OCUPADO")
+
+
+def test_estado_request_admite_solo_el_vehiculo_activo_incluso_nulo() -> None:
+    pedido = EstadoConductorRequest(id_vehiculo_activo=None)
+
+    assert "id_vehiculo_activo" in pedido.model_fields_set
+    assert pedido.id_vehiculo_activo is None
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [{"latitud": -27.4}, {"longitud": -58.9}],
+    ids=["solo-latitud", "solo-longitud"],
+)
+def test_estado_request_exige_latitud_y_longitud_juntas(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {"latitud": 91, "longitud": 0},
+        {"latitud": -91, "longitud": 0},
+        {"latitud": 0, "longitud": 181},
+        {"latitud": 0, "longitud": -181},
+    ],
+)
+def test_estado_request_rechaza_coordenadas_fuera_de_rango(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [{"estado": None}, {"latitud": None, "longitud": None}],
+    ids=["estado-nulo", "coordenadas-nulas"],
+)
+def test_estado_request_no_admite_nulos_en_estado_ni_en_coordenadas(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        EstadoConductorRequest(**datos)
+
+
+def test_solicitud_tiene_los_campos_del_contrato() -> None:
+    solicitud = SolicitudRespuesta(
+        id=340,
+        id_conductor=15,
+        estado="PENDIENTE",
+        vence_en="2026-10-03T18:45:30Z",
+    )
+
+    assert solicitud.id_viaje is None
+    assert solicitud.respuesta is None
+    assert solicitud.hora_rta is None
+    assert set(SolicitudRespuesta.model_fields) == {
+        "id",
+        "id_conductor",
+        "id_viaje",
+        "estado",
+        "vence_en",
+        "respuesta",
+        "hora_rta",
+    }
+
+
+def test_estado_solicitud_tiene_los_cuatro_estados() -> None:
+    assert {estado.value for estado in EstadoSolicitudEsquema} == {
+        "PENDIENTE",
+        "ACEPTADO",
+        "RECHAZADO",
+        "VENCIDA",
+    }
+
+
+@pytest.mark.parametrize("respuesta", ["ACEPTADO", "RECHAZADO"])
+def test_respuesta_solicitud_admite_aceptado_y_rechazado(respuesta: str) -> None:
+    pedido = RespuestaSolicitudRequest(respuesta=respuesta, hora_rta="2026-10-03T18:44:10Z")
+
+    assert pedido.respuesta.value == respuesta
+
+
+@pytest.mark.parametrize(
+    "datos",
+    [
+        {},
+        {"respuesta": "ACEPTADO"},
+        {"hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "PENDIENTE", "hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "VENCIDA", "hora_rta": "2026-10-03T18:44:10Z"},
+        {"respuesta": "ACEPTADO", "hora_rta": "2026-10-03T18:44:10"},
+        {"respuesta": "ACEPTADO", "hora_rta": "2026-10-03"},
+    ],
+    ids=[
+        "vacio",
+        "sin-hora",
+        "sin-respuesta",
+        "pendiente",
+        "vencida",
+        "hora-sin-zona",
+        "solo-fecha",
+    ],
+)
+def test_respuesta_solicitud_exige_respuesta_valida_y_hora(datos: dict) -> None:
+    with pytest.raises(ValidationError):
+        RespuestaSolicitudRequest(**datos)
+
+
+def test_tipo_servicio_habilitado_tiene_tipo_y_habilitado() -> None:
+    servicio = TipoServicioHabilitado(tipo="ENVIOS", habilitado=False)
+
+    assert servicio.tipo.value == "ENVIOS"
+    assert servicio.habilitado is False
+    assert set(TipoServicioHabilitado.model_fields) == {"tipo", "habilitado"}
+
+
+DOCUMENTO_VEHICULO = {
+    "tipo": "SEGURO",
+    "numero": "POL-1",
+    "fecha_emision": "2026-01-01",
+    "fecha_vencimiento": "2027-01-01",
+    "url_archivo": "https://archivos.example/seguro.pdf",
+}
+
+
+@pytest.mark.parametrize("tipo", ["SEGURO", "CEDULA_VERDE", "VTV"])
+def test_documento_vehiculo_admite_los_tres_tipos(tipo: str) -> None:
+    documento = DocumentoVehiculoCreate(**{**DOCUMENTO_VEHICULO, "tipo": tipo})
+
+    assert documento.tipo.value == tipo
+    assert documento.entidad_emisora is None
+
+
+@pytest.mark.parametrize(
+    "cambios",
+    [
+        {"tipo": "LICENCIA"},
+        {"numero": ""},
+        {"url_archivo": "no-es-una-url"},
+        {"url_archivo": "ftp://archivos.example/seguro.pdf"},
+        {"url_archivo": "javascript:alert(1)"},
+        {"entidad_emisora": "x" * 256},
+    ],
+    ids=["tipo", "numero", "url", "url-ftp", "url-javascript", "entidad-demasiado-larga"],
+)
+def test_documento_vehiculo_rechaza_datos_invalidos(cambios: dict) -> None:
+    with pytest.raises(ValidationError):
+        DocumentoVehiculoCreate(**{**DOCUMENTO_VEHICULO, **cambios})
+
+
+def test_documento_vehiculo_exige_los_campos_obligatorios() -> None:
+    with pytest.raises(ValidationError):
+        DocumentoVehiculoCreate(tipo="SEGURO")
+
+
+def test_documento_vehiculo_de_respuesta_suma_id_vehiculo_y_estado() -> None:
+    documento = DocumentoVehiculoRespuesta(**DOCUMENTO_VEHICULO, id_vehiculo=5, estado="VENCIDO")
+
+    assert documento.id_vehiculo == 5
+    assert documento.estado.value == "VENCIDO"
+
+
+def test_vehiculo_incluye_los_documentos_con_su_estado() -> None:
+    vehiculo = VehiculoRespuesta(
+        id=5,
+        id_conductor=1,
+        tipo="AUTO",
+        patente="AB123CD",
+        marca="Toyota",
+        modelo="Corolla",
+        anio=2020,
+        tipos_serv=[{"tipo": "PASAJEROS", "habilitado": True}],
+        documentos=[{**DOCUMENTO_VEHICULO, "id_vehiculo": 5, "estado": "VIGENTE"}],
+        habilitacion="APROBADA",
+    )
+
+    assert vehiculo.documentos[0].estado.value == "VIGENTE"
+    assert vehiculo.documentos[0].id_vehiculo == 5
+
+
+def test_la_respuesta_no_revalida_el_esquema_de_la_url_ya_guardada() -> None:
+    # Un documento guardado antes de restringir a http y https no debe romper las lecturas.
+    from datetime import date
+
+    from app.api.esquemas.documento import documento_desde_dominio
+    from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
+
+    documento = Documento(
+        tipo=TipoDocumento.LICENCIA,
+        numero="LIC-1",
+        categoria="B1",
+        fecha_emision=date(2020, 1, 1),
+        fecha_vencimiento=date(2030, 1, 1),
+        url_archivo="ftp://archivos.example/licencia.pdf",
+        id=10,
+    )
+
+    respuesta = documento_desde_dominio(1, documento, EstadoDocumento.VIGENTE)
+
+    assert str(respuesta.url_archivo) == "ftp://archivos.example/licencia.pdf"
+
+
+@pytest.mark.parametrize(("suma", "cantidad"), [(1, 8), (16, 3), (-1, 2)])
+def test_un_puntaje_inconsistente_se_informa_como_nulo_y_se_registra(
+    suma: int, cantidad: int, caplog: pytest.LogCaptureFixture
+) -> None:
+    # Un dato corrupto de un conductor no debe hacer fallar la lectura de los demás.
+    detalle = _detalle_de(suma_puntajes=suma, cantidad_calificaciones=cantidad)
+
+    with caplog.at_level("WARNING"):
+        respuesta = conductor_desde_detalle(detalle)
+
+    assert respuesta.puntaje_promedio is None
+    assert respuesta.cantidad_calificaciones == cantidad
+    assert "puntaje" in caplog.text.lower()

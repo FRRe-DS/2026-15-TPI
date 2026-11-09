@@ -31,6 +31,7 @@ from fastapi.testclient import TestClient
 
 EMISOR_VALIDO = "http://localhost:8080/realms/m3"
 KID_PRUEBA = "test-key-1"
+SUJETO_PRUEBA = "usuario-de-prueba"
 
 VARIABLES_ENTORNO = {
     "KEYCLOAK_URL": "http://localhost:8080",
@@ -139,11 +140,14 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         exp: datetime | int | None = None,
         iss: str = EMISOR_VALIDO,
         kid: str = KID_PRUEBA,
+        id_conductor: Any = None,
+        sub: str = SUJETO_PRUEBA,
     ) -> str:
         ahora = datetime.now(UTC)
         expiracion = exp if exp is not None else ahora + timedelta(minutes=15)
         payload: dict[str, Any] = {
             "iss": iss,
+            "sub": sub,
             "iat": int(ahora.timestamp()),
             "exp": expiracion,
             "realm_access": {
@@ -152,6 +156,8 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         }
         if id_operador is not None:
             payload["id_operador"] = id_operador
+        if id_conductor is not None:
+            payload["id_conductor"] = id_conductor
         return jwt.encode(
             payload,
             clave_rsa,
@@ -164,7 +170,24 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 @pytest.fixture
 def headers_conductor(crear_token) -> dict[str, str]:
-    return {"Authorization": f"Bearer {crear_token(roles=['conductor'])}"}
+    token = crear_token(roles=["conductor"], id_conductor=1)
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def headers_servicio(crear_token) -> dict[str, str]:
+    return {"Authorization": f"Bearer {crear_token(roles=['servicio'])}"}
+
+
+@pytest.fixture
+def headers_conductor_de(crear_token):
+    """Fabrica los headers de un conductor con el ``id_conductor`` indicado."""
+
+    def _headers(id_conductor: int) -> dict[str, str]:
+        token = crear_token(roles=["conductor"], id_conductor=id_conductor)
+        return {"Authorization": f"Bearer {token}"}
+
+    return _headers
 
 
 @pytest.fixture
@@ -247,7 +270,7 @@ PROVEEDORES = (
 )
 
 
-def _devolver(caso: CasoDeUsoFalso):
+def devolver_caso(caso: CasoDeUsoFalso):
     """Crea un proveedor sin parámetros que siempre devuelve el mismo caso."""
 
     def proveedor() -> CasoDeUsoFalso:
@@ -268,7 +291,7 @@ def client(
     for nombre, proveedor in PROVEEDORES:
         # Sin argumentos: FastAPI copia los valores por defecto de los
         # parámetros y devolvería una copia del caso de uso.
-        app.dependency_overrides[proveedor] = _devolver(casos[nombre])
+        app.dependency_overrides[proveedor] = devolver_caso(casos[nombre])
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

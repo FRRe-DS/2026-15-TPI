@@ -18,7 +18,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 - Registra conductores y vehículos (autos y motos) y guarda la licencia del conductor.
 - Un operador puede aprobar, observar, suspender o rechazar a un conductor o a un vehículo, siempre con un motivo y con historial.
 - Un conductor solo se aprueba si tiene la licencia vigente.
-- Expone una API REST de 17 endpoints ([ver contrato](#contrato-de-la-api)); 10 de ellos se construyen en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)).
+- Expone una API REST de 17 endpoints ([ver contrato](#contrato-de-la-api)): 10 se construyeron en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)) y los 7 restantes en la Iteración 2. Con la Iteración 2 el backend implementa los 17.
 - Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4) ([ver autenticación](#autenticación-y-roles)).
 - Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos ([ver base de datos](#base-de-datos)).
 - Una pantalla web muestra el listado de conductores ([ver frontend](#frontend)).
@@ -50,7 +50,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 
 ## Alcance de la Iteración 1
 
-La API de M3 tiene **17 endpoints propios**. En la Iteración 1 se cubren **10**.
+La API de M3 tiene **17 endpoints propios**. La Iteración 1 cubrió **10** y la Iteración 2 sumó los otros **7** (tipos de servicio y documentación del vehículo, estado, ubicación y solicitudes); la tabla de endpoints los marca con su iteración.
 
 Los 10 endpoints de la Iteración 1:
 
@@ -158,17 +158,17 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
 | `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. Al aceptar, el conductor pasa a `OCUPADO`. | 2 |
 
-El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `estado`. El código de la Iteración 1 todavía devuelve los dos campos y filtra por `disponible`; la Iteración 2 lo migra, por eso las secciones que describen lo ya implementado los siguen nombrando.
+El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `estado`. La API ya devuelve solo `estado`, junto con `puntaje_promedio`, `cantidad_calificaciones` y, en la lectura, `id_vehiculo_activo`.
 
-### Detalle de los endpoints de la Iteración 1
+### Detalle de los endpoints
 
 **Conductores**
 
 - `POST /conductores` responde `201` con el encabezado `Location` y el conductor creado. Campos: `dni`, `nombre`, `apellido`, `telefono`, `email`.
-- `GET /conductores` filtra por `habilitado` (`true` solo con habilitación `APROBADA`), `disponible` y `tipo_vehiculo`.
+- `GET /conductores` filtra por `habilitado` (`true` solo con habilitación `APROBADA`), `estado`, `tipo_vehiculo` y `tipo_servicio` (al menos un vehículo con ese servicio habilitado), todos combinables. Solo lo usan los roles operador y servicio; un conductor recibe `403`. El parámetro `disponible` de la versión 1.0.0 ya no existe: responde `400 SOLICITUD_INVALIDA` y avisa que se reemplazó por `estado`, para que un cliente sin migrar no reciba a todos los conductores como si estuvieran disponibles.
 - `GET /conductores/{id_conductor}` devuelve el conductor con sus documentos (con el estado calculado) y sus vehículos resumidos.
 
-> ⚠️ **En la Iteración 1 los parámetros `latitud` y `longitud` de `GET /conductores` se aceptan pero se ignoran:** no filtran ni ordenan. Esa funcionalidad queda para la Iteración 2.
+> ℹ️ Los parámetros `latitud` y `longitud` de `GET /conductores` se aceptan (juntos y en rango; si viene uno solo, `400`) pero no filtran ni ordenan: la búsqueda por cercanía la hace M4 con las coordenadas que M3 devuelve.
 
 **Habilitación**
 
@@ -194,7 +194,7 @@ El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `esta
 
 **Conductores**
 
-- Un conductor nuevo queda con habilitación `PENDIENTE`, `conectado` en falso y `disponible` en falso.
+- Un conductor nuevo queda con habilitación `PENDIENTE`, estado `DESCONECTADO`.
 - El DNI debe tener 7 u 8 dígitos (`^[0-9]{7,8}$`). `nombre`, `apellido` y `telefono` son obligatorios, y el email debe tener formato válido.
 - No puede haber dos conductores con el mismo DNI.
 
@@ -220,7 +220,7 @@ El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `esta
 **Documentación**
 
 - El estado es `VIGENTE` si `fecha_vencimiento` es igual o posterior a hoy, y `VENCIDO` si es anterior.
-- `fecha_vencimiento` debe ser posterior a `fecha_emision`, y `url_archivo` debe ser una URI válida.
+- `fecha_vencimiento` debe ser posterior a `fecha_emision`, y `url_archivo` debe ser una URL `http` o `https` (se guarda y se devuelve normalizada: `https://host` pasa a `https://host/`).
 
 **Vehículos**
 
@@ -271,15 +271,17 @@ El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 
 - Todos los endpoints requieren `Authorization: Bearer <JWT>`.
 - Los tokens los emite **Keycloak** y la API los valida localmente con PyJWT y el JWKS (con caché).
-- Roles: **`operador`**, **`conductor`** y **`servicio`** (cuenta técnica de M4, solo lectura; el contrato lo define y todavía no está en el realm).
+- Roles: **`operador`**, **`conductor`** y **`servicio`** (cuenta técnica de M4, solo lectura).
 - Las acciones de habilitación solo pueden hacerlas usuarios con rol `operador`.
-- El rol `servicio` solo puede leer conductores, vehículos, estado y ubicación.
+- El rol `servicio` solo puede leer conductores, vehículos, estado y ubicación; cualquier escritura responde `403 SIN_PERMISOS`.
+- Un conductor solo accede a lo suyo en todos los endpoints con `{id_conductor}` y al responder solicitudes. El `id_conductor` sale del claim entero del token, no de lo que envíe el cliente; si pide datos de otro conductor, responde `403 ACCESO_PROHIBIDO`. El operador y el servicio no tienen esa restricción.
+- `GET /conductores` es solo de operador y servicio. El alta de conductor la hacen el operador o el conductor.
 - El usuario operador tiene un atributo numérico `id_operador`, que Keycloak incluye en el token como un claim entero. La API lo usa para registrar quién hizo cada acción.
 
 **Realm de Keycloak** (`infra/keycloak/realm-m3.json`):
 
 - Realm: `m3`.
-- Roles `operador` y `conductor`, con usuarios de prueba.
+- Roles `operador`, `conductor` y `servicio`, con usuarios de prueba.
 - Cliente confidencial con concesión de contraseña habilitada.
 - No contiene secretos ni contraseñas literales: se sustituyen por variables de entorno (`${VARIABLE}`).
 
@@ -298,10 +300,12 @@ M3 tiene su **propia base de datos** y nunca consulta tablas de otro módulo (RN
 
 | Tabla | Contenido |
 |---|---|
-| `conductor` | Datos del conductor. `dni` único. Habilitación inicial `PENDIENTE`; `conectado` y `disponible` en falso por defecto. |
+| `conductor` | Datos del conductor. `dni` único. Habilitación inicial `PENDIENTE`; `estado` `DESCONECTADO`; `suma_puntajes` y `cantidad_calificaciones` en 0. |
 | `vehiculo` | Datos del vehículo. `patente` única. |
 | `vehiculo_tipo_servicio` | Tipos de servicio de cada vehículo y si están habilitados. |
 | `documento_conductor` | Licencia del conductor. |
+| `vehiculo_documento` | Documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). |
+| `solicitud` | Solicitudes de viaje de cada conductor, con su vencimiento y su respuesta. |
 | `habilitacion_evento_conductor` | Historial de habilitación del conductor. |
 | `habilitacion_evento_vehiculo` | Historial de habilitación del vehículo. |
 
@@ -314,7 +318,7 @@ alembic upgrade head     # crea el esquema
 alembic downgrade base   # lo elimina
 ```
 
-Las migraciones están en `infra/migraciones/` (`alembic.ini`, `env.py` y `versions/0001_esquema_inicial.py`).
+Las migraciones están en `infra/migraciones/` (`alembic.ini`, `env.py` y `versions/0001_esquema_inicial.py` y `versions/0002_iteracion2.py`).
 
 **Datos de prueba (seed)**
 
@@ -322,7 +326,7 @@ Las migraciones están en `infra/migraciones/` (`alembic.ini`, `env.py` y `versi
 
 - Conductores en distintos estados de habilitación.
 - Al menos uno con licencia `VIGENTE` y otro con licencia `VENCIDO`.
-- Al menos uno con `conectado` y `disponible` verdaderos.
+- Al menos uno en estado `DISPONIBLE`.
 - Al menos un vehículo.
 - Un evento `ALTA` por cada entidad.
 

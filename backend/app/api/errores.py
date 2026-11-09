@@ -14,11 +14,16 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.dominio.errores import (
+    AccesoProhibido,
+    ConductorNoHabilitado,
     DatosInvalidos,
     DniDuplicado,
     LicenciaVigenteRequerida,
     NoEncontrado,
     PatenteDuplicada,
+    RolNoAutorizado,
+    SolicitudVencida,
+    SolicitudYaRespondida,
     TransicionInvalida,
 )
 
@@ -32,6 +37,11 @@ MAPEO_ERRORES_DOMINIO: tuple[tuple[type[Exception], int, str], ...] = (
     (TransicionInvalida, 409, "TRANSICION_INVALIDA"),
     (LicenciaVigenteRequerida, 422, "LICENCIA_VIGENTE_REQUERIDA"),
     (DatosInvalidos, 422, "DATOS_INVALIDOS"),
+    (AccesoProhibido, 403, "ACCESO_PROHIBIDO"),
+    (RolNoAutorizado, 403, "SIN_PERMISOS"),
+    (SolicitudYaRespondida, 409, "SOLICITUD_YA_RESPONDIDA"),
+    (SolicitudVencida, 410, "SOLICITUD_VENCIDA"),
+    (ConductorNoHabilitado, 422, "CONDUCTOR_NO_HABILITADO"),
 )
 
 
