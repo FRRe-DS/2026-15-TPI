@@ -547,3 +547,18 @@ def test_la_respuesta_no_revalida_el_esquema_de_la_url_ya_guardada() -> None:
     respuesta = documento_desde_dominio(1, documento, EstadoDocumento.VIGENTE)
 
     assert str(respuesta.url_archivo) == "ftp://archivos.example/licencia.pdf"
+
+
+@pytest.mark.parametrize(("suma", "cantidad"), [(1, 8), (16, 3), (-1, 2)])
+def test_un_puntaje_inconsistente_se_informa_como_nulo_y_se_registra(
+    suma: int, cantidad: int, caplog: pytest.LogCaptureFixture
+) -> None:
+    # Un dato corrupto de un conductor no debe hacer fallar la lectura de los demás.
+    detalle = _detalle_de(suma_puntajes=suma, cantidad_calificaciones=cantidad)
+
+    with caplog.at_level("WARNING"):
+        respuesta = conductor_desde_detalle(detalle)
+
+    assert respuesta.puntaje_promedio is None
+    assert respuesta.cantidad_calificaciones == cantidad
+    assert "puntaje" in caplog.text.lower()
