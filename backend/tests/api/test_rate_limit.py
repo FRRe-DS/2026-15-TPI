@@ -4,7 +4,7 @@ from collections import defaultdict
 from math import ceil
 
 import pytest
-from app.api.errores import ErrorAPI
+from app.api.errores import ErrorAPI, limite_de_solicitudes
 from app.api.main import crear_app
 from app.api.rate_limit import RedisRateLimiter
 from app.api.seguridad import obtener_cliente_jwks, obtener_rate_limiter
@@ -34,7 +34,7 @@ class RedisFalso:
         ventana_ms = int(argumentos[2])
         miembro = str(argumentos[3])
         corte = self.ahora_ms - ventana_ms
-        eventos = [evento for evento in self.eventos[clave] if evento[0] >= corte]
+        eventos = [evento for evento in self.eventos[clave] if evento[0] > corte]
         self.eventos[clave] = eventos
 
         if len(eventos) >= limite:
@@ -97,6 +97,17 @@ def test_ventana_deslizante_permite_otra_solicitud_al_expirar_el_evento() -> Non
     redis.ahora_ms += 60_001
 
     _verificar(limitador, limite=1)
+
+
+def test_evento_en_el_borde_exacto_de_la_ventana_ya_esta_expirado() -> None:
+    redis = RedisFalso()
+    limitador = _limitar(redis)
+    _verificar(limitador, limite=2)
+    redis.ahora_ms += 1
+    _verificar(limitador, limite=2)
+    redis.ahora_ms += 59_999
+
+    _verificar(limitador, limite=2)
 
 
 def test_retry_after_se_redondea_hacia_arriba_sin_extender_ventana() -> None:
@@ -201,11 +212,17 @@ def test_jwt_verificado_se_limita_por_issuer_y_subject(
     assert respuesta.status_code == 200
     assert limitador.llamadas == [
         {
+            "scope": "preauth-ip",
+            "identidad": "testclient",
+            "limite": 1000,
+            "ventana_segundos": 60,
+        },
+        {
             "scope": "jwt",
             "identidad": "http://localhost:8080/realms/m3\0subject-verificado",
             "limite": 120,
             "ventana_segundos": 60,
-        }
+        },
     ]
 
 
@@ -222,4 +239,43 @@ def test_jwt_sin_subject_no_vacio_se_limita_por_ip_y_se_rechaza(
     )
 
     assert respuesta.status_code == 401
-    assert limitador.llamadas[0]["scope"] == "ip"
+    assert [llamada["scope"] for llamada in limitador.llamadas] == ["preauth-ip", "ip"]
+
+
+def test_cuota_preliminar_rechaza_antes_de_consultar_jwks(
+    cliente_jwks,
+    entorno: None,
+    crear_token,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    consultas_jwks = 0
+
+    def consultar_jwks(_token: str) -> None:
+        nonlocal consultas_jwks
+        consultas_jwks += 1
+
+    monkeypatch.setattr(cliente_jwks, "get_signing_key_from_jwt", consultar_jwks)
+
+    class LimitadorPreautenticacionRechazante:
+        def verificar(self, *, scope: str, **_argumentos: str | int) -> None:
+            if scope == "preauth-ip":
+                raise limite_de_solicitudes(1)
+
+    router = APIRouter()
+
+    @router.get("/protegido")
+    def protegido() -> dict[str, bool]:
+        return {"ok": True}
+
+    app = crear_app(routers=[router])
+    app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    app.dependency_overrides[obtener_rate_limiter] = LimitadorPreautenticacionRechazante
+    token = crear_token()
+    with TestClient(app) as client:
+        respuesta = client.get(
+            "/api/v1/protegido",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert respuesta.status_code == 429
+    assert consultas_jwks == 0

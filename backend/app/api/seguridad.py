@@ -99,6 +99,12 @@ def requerir_usuario(
         raise no_autenticado()
 
     token = credentials.credentials
+    rate_limiter.verificar(
+        scope="preauth-ip",
+        identidad=identidad_ip,
+        limite=settings.RATE_LIMIT_PREAUTH_REQUESTS,
+        ventana_segundos=settings.RATE_LIMIT_WINDOW_SECONDS,
+    )
     url_publica = settings.KEYCLOAK_PUBLIC_URL or settings.KEYCLOAK_URL
     emisor = f"{url_publica.rstrip('/')}/realms/{settings.KEYCLOAK_REALM}"
 

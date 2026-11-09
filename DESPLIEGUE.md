@@ -40,6 +40,7 @@ Completá todos los campos vacíos:
 | `KEYCLOAK_M3_CLIENT_SECRET` | Secreto del cliente `m3-api`. |
 | `M3_OPERADOR_PASSWORD` | Contraseña del usuario `operador.m3`. |
 | `M3_CONDUCTOR_PASSWORD` | Contraseña del usuario `conductor.m3`. |
+| `REDIS_PASSWORD` | Contraseña obligatoria de Redis. Generá un valor aleatorio y no lo subas al repositorio. |
 
 Para generar un valor aleatorio hexadecimal:
 
@@ -50,6 +51,8 @@ Para generar un valor aleatorio hexadecimal:
 Genera 64 caracteres. Repetilo para cada contraseña o secreto. Usar hexadecimal evita problemas con caracteres especiales en la URL de PostgreSQL.
 
 Conservá los nombres del ejemplo: bases `m3` y `keycloak`, realm `m3`, cliente `m3-api`, usuarios `operador.m3` y `conductor.m3`. Los nombres de los usuarios y del cliente importados están definidos en `infra/keycloak/realm-m3.json`.
+
+Redis es interno al stack y no publica un puerto al host. `REDIS_PASSWORD` debe tener un valor antes de ejecutar `docker compose config` o levantar los servicios. Podés usar el comando de GUID concatenados de arriba para generar una contraseña hexadecimal. No versionés `.env`.
 
 Esta guía usa los puertos del ejemplo: PostgreSQL `5432`, API `8080`, Keycloak `8081` y frontend `3000`. Guardá el archivo sin subir las credenciales al repositorio.
 

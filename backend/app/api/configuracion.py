@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: SecretStr = SecretStr("")
     RATE_LIMIT_ANON_REQUESTS: int = Field(default=60, gt=0)
+    RATE_LIMIT_PREAUTH_REQUESTS: int = Field(default=1000, gt=0)
     RATE_LIMIT_AUTH_REQUESTS: int = Field(default=120, gt=0)
     RATE_LIMIT_WINDOW_SECONDS: int = Field(default=60, gt=0)
     # Ubicación que M3 asigna cuando el conductor sale de DESCONECTADO sin informar la suya.

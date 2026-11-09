@@ -25,7 +25,7 @@ local ventana = tonumber(ARGV[2])
 local limite = tonumber(ARGV[1])
 local desde = ahora - ventana
 
-redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', '(' .. desde)
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', desde)
 local cantidad = redis.call('ZCARD', KEYS[1])
 
 if cantidad >= limite then

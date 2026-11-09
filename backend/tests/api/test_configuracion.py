@@ -15,6 +15,10 @@ def entorno_configuracion(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KEYCLOAK_REALM", "m3")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("REDIS_PASSWORD", "redis-secret-for-tests")
+    monkeypatch.setenv("RATE_LIMIT_ANON_REQUESTS", "60")
+    monkeypatch.setenv("RATE_LIMIT_PREAUTH_REQUESTS", "1000")
+    monkeypatch.setenv("RATE_LIMIT_AUTH_REQUESTS", "120")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
     monkeypatch.setenv(
         "DATABASE_URL",
         "postgresql+psycopg://test:test@localhost:5432/test_db",
@@ -29,6 +33,7 @@ def test_configuracion_lee_variables_entorno(entorno_configuracion: None) -> Non
     assert settings.REDIS_URL == "redis://localhost:6379/0"
     assert settings.REDIS_PASSWORD.get_secret_value() == "redis-secret-for-tests"
     assert settings.RATE_LIMIT_ANON_REQUESTS == 60
+    assert settings.RATE_LIMIT_PREAUTH_REQUESTS == 1000
     assert settings.RATE_LIMIT_AUTH_REQUESTS == 120
     assert settings.RATE_LIMIT_WINDOW_SECONDS == 60
     assert settings.DATABASE_URL == "postgresql+psycopg://test:test@localhost:5432/test_db"
@@ -111,6 +116,7 @@ def test_ubicacion_simulada_cero_cero_es_un_error_de_configuracion(
     ("variable", "valor"),
     [
         ("RATE_LIMIT_ANON_REQUESTS", "0"),
+        ("RATE_LIMIT_PREAUTH_REQUESTS", "0"),
         ("RATE_LIMIT_AUTH_REQUESTS", "-1"),
         ("RATE_LIMIT_WINDOW_SECONDS", "no-es-entero"),
     ],
@@ -134,12 +140,14 @@ def test_configuracion_lee_limites_positivos(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("RATE_LIMIT_ANON_REQUESTS", "10")
+    monkeypatch.setenv("RATE_LIMIT_PREAUTH_REQUESTS", "30")
     monkeypatch.setenv("RATE_LIMIT_AUTH_REQUESTS", "20")
     monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "30")
 
     settings = Settings(_env_file=None)
 
     assert settings.RATE_LIMIT_ANON_REQUESTS == 10
+    assert settings.RATE_LIMIT_PREAUTH_REQUESTS == 30
     assert settings.RATE_LIMIT_AUTH_REQUESTS == 20
     assert settings.RATE_LIMIT_WINDOW_SECONDS == 30
 
