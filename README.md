@@ -377,11 +377,11 @@ Se trabaja con **TDD**: primero un test que falla, después el código mínimo p
 ```bash
 cd backend
 uv sync --frozen --all-groups                          # instalar todos los stacks
-uv run pytest tests/unitarios --cov=app         # tests unitarios con cobertura
-uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobertura mínima
+uv run pytest tests/unitarios --cov=app          # tests unitarios con cobertura, sin umbral
+uv run pytest --cov --cov-fail-under=90          # toda la suite con Docker y cobertura mínima
 ```
 
-**Cobertura:** mínimo **65%** en la API (`fail_under = 65` en `backend/.coveragerc`). El objetivo es estar entre 65% y 70% o más sobre lo implementado.
+**Cobertura:** el CI exige mínimo **90 %** sobre `app` con la suite completa (`--cov-fail-under=90`). En local, `backend/.coveragerc` deja `fail_under = 0` para que los subconjuntos no fallen por cobertura; usá `--cov-fail-under=90` solo al correr la suite completa con Docker.
     
 
 ---
@@ -507,6 +507,6 @@ npm run dev
 
 Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` del `.env` de la raíz. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
 
-El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
+El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 90 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
 
 Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas. No se abre una PR a main en esta integración.

@@ -3,5 +3,7 @@ source = app
 branch = True
 
 [report]
-fail_under = 65
+# El umbral se exige en CI sobre la suite completa (--cov-fail-under=90).
+# En local queda en 0 para que los subconjuntos no fallen por cobertura.
+fail_under = 0
 show_missing = True
