@@ -970,3 +970,44 @@ def test_aceptar_y_cambiar_estado_a_la_vez_aplican_las_dos_operaciones(uow_sql, 
     }
     assert (guardado.latitud, guardado.longitud) == (LATITUD, LONGITUD)
     assert guardado.fecha_act_ubic == HORA_DEL_CAMBIO_DE_ESTADO
+
+
+@pytest.mark.parametrize(
+    "respuestas",
+    [(ACEPTADO, ACEPTADO), (ACEPTADO, RECHAZADO), (RECHAZADO, ACEPTADO)],
+    ids=["aceptar-aceptar", "aceptar-rechazar", "rechazar-aceptar"],
+)
+def test_dos_respuestas_simultaneas_a_la_misma_solicitud_registran_una_sola(
+    uow_sql, fabrica_sesiones, respuestas
+):
+    """Solo una de las dos respuestas se registra; la otra falla con `SolicitudYaRespondida`."""
+    conductor = sembrar_conductor_habilitado_sql(uow_sql, estado=DISPONIBLE)
+    solicitud = sembrar_solicitud_sql(uow_sql, conductor.id)
+    barrera = Barrier(2)
+
+    def responder(respuesta):
+        barrera.wait(timeout=10)
+        try:
+            responder_en_sql(
+                SqlUnidadDeTrabajo(fabrica_sesiones),
+                RelojFijo(AHORA),
+                solicitud,
+                respuesta=respuesta,
+            )
+            return "respondio"
+        except Exception as error:  # el test compara el nombre, no el mensaje
+            return type(error).__name__
+
+    with ThreadPoolExecutor(max_workers=2) as ejecutor:
+        futuros = [ejecutor.submit(responder, respuesta) for respuesta in respuestas]
+        resultados = [futuro.result(timeout=30) for futuro in futuros]
+
+    assert sorted(resultados) == ["SolicitudYaRespondida", "respondio"]
+
+    with uow_sql:
+        guardada = uow_sql.solicitudes.obtener(solicitud.id)
+        guardado = uow_sql.conductores.obtener(conductor.id)
+
+    assert guardada.estado is guardada.respuesta
+    assert guardada.estado in {ACEPTADO, RECHAZADO}
+    assert guardado.estado is (OCUPADO if guardada.estado is ACEPTADO else DISPONIBLE)

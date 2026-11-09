@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import datetime
 from enum import StrEnum
@@ -11,8 +12,11 @@ from app.api.esquemas.vehiculo import (
     vehiculo_resumen_desde_dominio,
 )
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
+from app.dominio.errores import DatosInvalidos
 
 PATRON_EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+logger = logging.getLogger(__name__)
 
 
 class EstadoOperativo(StrEnum):
@@ -57,6 +61,22 @@ class ConductorConUbicacion(Conductor):
     fecha_act_ubic: datetime | None = None
 
 
+def _puntaje_promedio(detalle: ConductorDetalle) -> float | None:
+    """Un total de puntajes corrupto de un conductor no debe romper la lectura de los demás."""
+    conductor = detalle.conductor
+    try:
+        promedio = conductor.puntaje_promedio
+    except DatosInvalidos:
+        logger.warning(
+            "Totales de puntaje inconsistentes en el conductor %s (suma %s, cantidad %s)",
+            conductor.id,
+            conductor.suma_puntajes,
+            conductor.cantidad_calificaciones,
+        )
+        return None
+    return float(promedio) if promedio is not None else None
+
+
 def conductor_desde_detalle(
     detalle: ConductorDetalle,
 ) -> ConductorConUbicacion:
@@ -76,9 +96,7 @@ def conductor_desde_detalle(
         vehiculos=[vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos],
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
         estado=EstadoOperativo(conductor.estado.value),
-        puntaje_promedio=(
-            float(promedio) if (promedio := conductor.puntaje_promedio) is not None else None
-        ),
+        puntaje_promedio=_puntaje_promedio(detalle),
         cantidad_calificaciones=conductor.cantidad_calificaciones,
         id_vehiculo_activo=conductor.id_vehiculo_activo,
         latitud=conductor.latitud,

@@ -68,8 +68,9 @@ def test_conductor_nuevo_queda_desconectado_y_sin_estado_ni_puntajes():
     [
         (14, 3, Decimal("4.67")),
         (9, 2, Decimal("4.50")),
-        (1, 8, Decimal("0.13")),
-        (0, 3, Decimal("0.00")),
+        (37, 8, Decimal("4.63")),
+        (3, 3, Decimal("1.00")),
+        (15, 3, Decimal("5.00")),
     ],
 )
 def test_puntaje_promedio_es_suma_sobre_cantidad_en_dos_decimales_mitad_arriba(
@@ -84,8 +85,15 @@ def test_puntaje_promedio_es_suma_sobre_cantidad_en_dos_decimales_mitad_arriba(
 
 @pytest.mark.parametrize(
     ("suma", "cantidad"),
-    [(-1, 1), (10, -1), (1, 0)],
-    ids=["suma-negativa", "cantidad-negativa", "cantidad-cero-con-suma"],
+    [(-1, 1), (10, -1), (1, 0), (1, 8), (0, 3), (16, 3)],
+    ids=[
+        "suma-negativa",
+        "cantidad-negativa",
+        "cantidad-cero-con-suma",
+        "promedio-menor-a-1",
+        "promedio-cero",
+        "promedio-mayor-a-5",
+    ],
 )
 def test_puntaje_promedio_rechaza_totales_invalidos(suma, cantidad):
     conductor = crear()
