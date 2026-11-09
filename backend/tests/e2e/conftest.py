@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import httpx
@@ -41,11 +41,11 @@ class ConfiguracionE2E:
     keycloak_url: str
     realm: str
     client_id: str
-    client_secret: str
+    client_secret: str = field(repr=False)
     operador_username: str
-    operador_password: str
+    operador_password: str = field(repr=False)
     conductor_username: str
-    conductor_password: str
+    conductor_password: str = field(repr=False)
 
 
 def _url_base(nombre: str, puerto: str, por_defecto: str) -> str:
