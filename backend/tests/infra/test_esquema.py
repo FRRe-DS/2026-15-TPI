@@ -68,6 +68,9 @@ def test_checks_de_estados_tipos_y_acciones_en_el_metadata() -> None:
     for estado in ("DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO"):
         assert estado in checks_conductor
 
+    assert "cantidad_calificaciones = 0 OR" in checks_conductor
+    assert "5 * cantidad_calificaciones" in checks_conductor
+
     for estado in ("PENDIENTE", "ACEPTADO", "RECHAZADO", "VENCIDA"):
         assert estado in checks_solicitud
 
@@ -312,6 +315,7 @@ def test_postgres_tiene_unicidad_y_checks(m3_migrada: str) -> None:
         "ck_conductor_suma_puntajes_no_negativa",
         "ck_conductor_cantidad_calificaciones_no_negativa",
         "ck_conductor_puntajes_coherentes",
+        "ck_conductor_promedio_puntajes_rango",
         "ck_vehiculo_tipo",
         "ck_vehiculo_estado_habilitacion",
         "ck_vehiculo_tipo_servicio_tipo_servicio",
@@ -492,6 +496,65 @@ def test_la_base_rechaza_solicitud_aceptada_sin_respuesta(motor: Engine) -> None
                 ),
                 {"id_conductor": id_conductor},
             )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("dni", "suma", "cantidad"),
+    [
+        ("20000031", 0, 1),
+        ("20000032", 6, 1),
+        ("20000033", 11, 2),
+    ],
+)
+def test_la_base_rechaza_promedio_de_puntajes_fuera_de_rango(
+    motor: Engine, dni: str, suma: int, cantidad: int
+) -> None:
+    with pytest.raises(IntegrityError):
+        with motor.begin() as conexion:
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO conductor
+                        (dni, nombre, apellido, telefono, email,
+                         suma_puntajes, cantidad_calificaciones)
+                    VALUES
+                        (:dni, 'Promedio', 'Invalido', '3624000091',
+                         'promedio@m3.local', :suma, :cantidad)
+                    """
+                ),
+                {"dni": dni, "suma": suma, "cantidad": cantidad},
+            )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("dni", "suma", "cantidad"),
+    [
+        ("20000034", 0, 0),
+        ("20000035", 1, 1),
+        ("20000036", 5, 1),
+        ("20000037", 10, 2),
+        ("20000038", 14, 3),
+    ],
+)
+def test_la_base_acepta_promedio_de_puntajes_entre_uno_y_cinco(
+    motor: Engine, dni: str, suma: int, cantidad: int
+) -> None:
+    with motor.begin() as conexion:
+        conexion.execute(
+            text(
+                """
+                INSERT INTO conductor
+                    (dni, nombre, apellido, telefono, email,
+                     suma_puntajes, cantidad_calificaciones)
+                VALUES
+                    (:dni, 'Promedio', 'Valido', '3624000090',
+                     'promedio.valido@m3.local', :suma, :cantidad)
+                """
+            ),
+            {"dni": dni, "suma": suma, "cantidad": cantidad},
+        )
 
 
 @pytest.mark.integration
