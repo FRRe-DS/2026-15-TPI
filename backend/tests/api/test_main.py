@@ -1,6 +1,8 @@
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Annotated, Any
 
+import yaml
 from app.api.main import crear_app
 from app.api.seguridad import obtener_cliente_jwks, requerir_usuario
 from fastapi import APIRouter, Depends
@@ -110,3 +112,10 @@ def test_toda_ruta_de_la_api_declara_una_dependencia_de_acceso() -> None:
         if not _dependencias_de(ruta.dependant) & de_acceso
     ]
     assert sin_acceso == []
+
+
+def test_la_aplicacion_declara_la_version_del_contrato() -> None:
+    contrato = Path(__file__).resolve().parents[3] / "docs" / "contract" / "openapi.yaml"
+    version_del_contrato = yaml.safe_load(contrato.read_text(encoding="utf-8"))["info"]["version"]
+
+    assert crear_app().version == version_del_contrato
