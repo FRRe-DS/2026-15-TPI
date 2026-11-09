@@ -198,14 +198,14 @@ Cierre: C1
 
 ### PR `feat/s2-estado-ubicacion` (V3, T373–T380): Endpoints de estado y ubicación del conductor
 
-- [ ] T373 [S2] [US2] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar a `ESPERADOS` los pares `GET /api/v1/conductores/{id_conductor}/estado` (`obtenerEstadoConductor`), `PATCH` en la misma ruta (`actualizarEstadoConductor`) y `GET /api/v1/conductores/{id_conductor}/ubicacion` (`obtenerUbicacionConductor`)
-- [ ] T374 [S2] [US2] Test (Red) `backend/tests/api/test_configuracion.py`: `UBICACION_SIMULADA_LATITUD` y `UBICACION_SIMULADA_LONGITUD` valen por defecto `-27.4511` y `-58.9867`, se pueden cambiar por variable de entorno y fuera de rango (latitud -90 a 90, longitud -180 a 180) producen un error de validación
-- [ ] T375 [S2] [US2] Impl (Green) `backend/app/api/configuracion.py`: las dos variables opcionales con esos valores por defecto, hasta que pasen T373 y T374
-- [ ] T376 [S2] [US2] Test (Red) `backend/tests/api/test_esquemas.py`: `EstadoOperativo` con `DESCONECTADO`, `CONECTADO`, `DISPONIBLE` y `OCUPADO`; `EstadoConductor` con `id_conductor`, `estado`, `id_vehiculo_activo` (nulo) y `actualizado`, y sin campos de ubicación; `UbicacionConductor` con los tres campos que admiten nulo; `EstadoConductorRequest` exige al menos un campo, su `estado` admite solo `DESCONECTADO`, `CONECTADO` o `DISPONIBLE` (`OCUPADO` responde `400`) y `latitud` y `longitud` van juntas y en rango
-- [ ] T377 [S2] [US2] Impl (Green) `backend/app/api/esquemas/estado.py` con esos esquemas, hasta que pase T376
-- [ ] T378 [S2] [US2] Test (Red) `backend/tests/api/test_estado_ubicacion.py`: las tres operaciones según la matriz de roles; el `PATCH` responde `400` con cuerpo vacío, una sola coordenada o `estado: OCUPADO`, `422` `CONDUCTOR_NO_HABILITADO` y `404`; con el rol `servicio` el `PATCH` responde `403`; los casos de uso reciben los argumentos esperados
-- [ ] T379 [S2] [US2] Impl (Green) `backend/app/api/dependencias.py` (proveedores de `obtener_estado_conductor`, `obtener_ubicacion_conductor` y `actualizar_estado_conductor`, con la ubicación simulada de la configuración) y `backend/app/api/routers/estado.py`, hasta que pasen T373 y T378
-- [ ] T380 [S2] [US2] Impl (Green) `backend/app/api/main.py`: registrar `estado.router` en `ROUTERS`
+- [X] T373 [S2] [US2] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar a `ESPERADOS` los pares `GET /api/v1/conductores/{id_conductor}/estado` (`obtenerEstadoConductor`), `PATCH` en la misma ruta (`actualizarEstadoConductor`) y `GET /api/v1/conductores/{id_conductor}/ubicacion` (`obtenerUbicacionConductor`)
+- [X] T374 [S2] [US2] Test (Red) `backend/tests/api/test_configuracion.py`: `UBICACION_SIMULADA_LATITUD` y `UBICACION_SIMULADA_LONGITUD` valen por defecto `-27.4511` y `-58.9867`, se pueden cambiar por variable de entorno y fuera de rango (latitud -90 a 90, longitud -180 a 180) producen un error de validación
+- [X] T375 [S2] [US2] Impl (Green) `backend/app/api/configuracion.py`: las dos variables opcionales con esos valores por defecto, hasta que pasen T373 y T374
+- [X] T376 [S2] [US2] Test (Red) `backend/tests/api/test_esquemas.py`: `EstadoOperativo` con `DESCONECTADO`, `CONECTADO`, `DISPONIBLE` y `OCUPADO`; `EstadoConductor` con `id_conductor`, `estado`, `id_vehiculo_activo` (nulo) y `actualizado`, y sin campos de ubicación; `UbicacionConductor` con los tres campos que admiten nulo; `EstadoConductorRequest` exige al menos un campo, su `estado` admite solo `DESCONECTADO`, `CONECTADO` o `DISPONIBLE` (`OCUPADO` responde `400`) y `latitud` y `longitud` van juntas y en rango
+- [X] T377 [S2] [US2] Impl (Green) `backend/app/api/esquemas/estado.py` con esos esquemas, hasta que pase T376
+- [X] T378 [S2] [US2] Test (Red) `backend/tests/api/test_estado_ubicacion.py`: las tres operaciones según la matriz de roles; el `PATCH` responde `400` con cuerpo vacío, una sola coordenada o `estado: OCUPADO`, `422` `CONDUCTOR_NO_HABILITADO` y `404`; con el rol `servicio` el `PATCH` responde `403`; los casos de uso reciben los argumentos esperados
+- [X] T379 [S2] [US2] Impl (Green) `backend/app/api/dependencias.py` (proveedores de `obtener_estado_conductor`, `obtener_ubicacion_conductor` y `actualizar_estado_conductor`, con la ubicación simulada de la configuración) y `backend/app/api/routers/estado.py`, hasta que pasen T373 y T378
+- [X] T380 [S2] [US2] Impl (Green) `backend/app/api/main.py`: registrar `estado.router` en `ROUTERS`
 
 ### PR `feat/s2-solicitudes` (V4, T381–T385): Endpoints de solicitudes
 

@@ -74,3 +74,21 @@ def test_entrega_la_unidad_de_trabajo_y_cierra_la_sesion(monkeypatch) -> None:
     sesion.rollback.assert_called_once_with()
     sesion.close.assert_called_once_with()
     generador.close()
+
+
+def test_proveedor_de_actualizar_estado_usa_la_ubicacion_simulada_de_la_configuracion() -> None:
+    from app.api import dependencias
+    from app.api.configuracion import Settings
+
+    settings = Settings(
+        _env_file=None,
+        KEYCLOAK_URL="http://localhost:8080",
+        KEYCLOAK_REALM="m3",
+        DATABASE_URL="postgresql+psycopg://test:test@localhost:5432/test",
+        UBICACION_SIMULADA_LATITUD=-31.4,
+        UBICACION_SIMULADA_LONGITUD=-64.2,
+    )
+
+    caso = dependencias.obtener_caso_actualizar_estado_conductor(object(), settings)
+
+    assert (caso._latitud_simulada, caso._longitud_simulada) == (-31.4, -64.2)

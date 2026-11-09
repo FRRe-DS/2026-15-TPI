@@ -11,6 +11,7 @@ from app.api.errores import registrar_manejadores
 from app.api.routers import (
     conductores,
     documentacion,
+    estado,
     habilitacion,
     vehiculos,
     vehiculos_habilitacion,
@@ -24,6 +25,7 @@ ROUTERS: tuple[APIRouter, ...] = (
     documentacion.router,
     vehiculos.router,
     vehiculos_habilitacion.router,
+    estado.router,
 )
 
 

@@ -16,12 +16,14 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.api.configuracion import Settings, obtener_configuracion
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
     AccionarHabilitacionConductor,
 )
 from app.aplicacion.casos_de_uso.accionar_habilitacion_vehiculo import (
     AccionarHabilitacionVehiculo,
 )
+from app.aplicacion.casos_de_uso.actualizar_estado_conductor import ActualizarEstadoConductor
 from app.aplicacion.casos_de_uso.consultar_habilitacion_conductor import (
     ConsultarHabilitacionConductor,
 )
@@ -29,6 +31,8 @@ from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.aplicacion.casos_de_uso.listar_vehiculos import ListarVehiculos
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
+from app.aplicacion.casos_de_uso.obtener_estado_conductor import ObtenerEstadoConductor
+from app.aplicacion.casos_de_uso.obtener_ubicacion_conductor import ObtenerUbicacionConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
@@ -122,3 +126,27 @@ def obtener_caso_accionar_habilitacion_vehiculo(
     uow: UnidadDeTrabajoInyectada,
 ) -> AccionarHabilitacionVehiculo:
     return AccionarHabilitacionVehiculo(uow, RelojDelSistema())
+
+
+def obtener_caso_obtener_estado_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> ObtenerEstadoConductor:
+    return ObtenerEstadoConductor(uow)
+
+
+def obtener_caso_obtener_ubicacion_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> ObtenerUbicacionConductor:
+    return ObtenerUbicacionConductor(uow)
+
+
+def obtener_caso_actualizar_estado_conductor(
+    uow: UnidadDeTrabajoInyectada,
+    settings: Annotated[Settings, Depends(obtener_configuracion)],
+) -> ActualizarEstadoConductor:
+    return ActualizarEstadoConductor(
+        uow,
+        RelojDelSistema(),
+        latitud_simulada=settings.UBICACION_SIMULADA_LATITUD,
+        longitud_simulada=settings.UBICACION_SIMULADA_LONGITUD,
+    )
