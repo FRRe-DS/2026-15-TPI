@@ -12,6 +12,7 @@ from app.api.esquemas.conductor import (
     Conductor,
     ConductorConUbicacion,
     ConductorCreate,
+    EstadoOperativo,
     conductor_creado,
     conductor_desde_detalle,
 )
@@ -25,6 +26,7 @@ from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.dominio.conductor import EstadoConductor
+from app.dominio.vehiculo import TipoServicio as TipoServicioDominio
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
 
 router = APIRouter(tags=["Conductores"])
@@ -57,12 +59,21 @@ def crear_conductor(
 def listar_conductores(
     caso: Annotated[ListarConductores, Depends(obtener_caso_listar_conductores)],
     habilitado: bool | None = None,
-    disponible: bool | None = None,
+    estado: EstadoOperativo | None = None,
     tipo_vehiculo: TipoVehiculo | None = None,
     tipo_servicio: TipoServicio | None = None,
     latitud: Annotated[float | None, Query(ge=-90, le=90)] = None,
     longitud: Annotated[float | None, Query(ge=-180, le=180)] = None,
+    # Solo para avisar: reemplazado por `estado` en la versión 1.2.0. Si se ignorara, un cliente sin
+    # migrar recibiría a todos los conductores como si estuvieran disponibles.
+    disponible: Annotated[bool | None, Query(include_in_schema=False)] = None,
 ) -> list[ConductorConUbicacion]:
+    if disponible is not None:
+        raise ErrorAPI(
+            400,
+            "SOLICITUD_INVALIDA",
+            "El parámetro disponible se reemplazó por estado (por ejemplo, estado=DISPONIBLE)",
+        )
     if (latitud is None) != (longitud is None):
         raise ErrorAPI(
             400,
@@ -70,21 +81,17 @@ def listar_conductores(
             "latitud y longitud deben enviarse juntas",
         )
 
-    # TRANSITORIO hasta V6: el contrato HTTP sigue con `disponible` y `tipo_servicio` se
-    # acepta sin filtrar (V6 lo pasa al caso de uso; el repositorio SQL ya lo soporta).
-    # La ubicación nunca filtra.
-    _ = (tipo_servicio, latitud, longitud)
-
+    # La ubicación se valida pero nunca filtra: el contrato la acepta y M3 no ordena por cercanía.
     conductores = caso.ejecutar(
         habilitado=habilitado,
-        estado=EstadoConductor.DISPONIBLE if disponible is True else None,
+        estado=EstadoConductor(estado.value) if estado is not None else None,
         tipo_vehiculo=(
             TipoVehiculoDominio(tipo_vehiculo.value) if tipo_vehiculo is not None else None
         ),
+        tipo_servicio=(
+            TipoServicioDominio(tipo_servicio.value) if tipo_servicio is not None else None
+        ),
     )
-    if disponible is False:
-        # `estado` admite un solo valor: "no disponible" se resuelve excluyendo a los DISPONIBLE.
-        conductores = [detalle for detalle in conductores if not detalle.conductor.disponible]
     return [conductor_desde_detalle(detalle) for detalle in conductores]
 
 

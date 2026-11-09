@@ -46,11 +46,12 @@ class Conductor(ConductorCreate):
     vehiculos: list[VehiculoResumen]
     habilitacion: EstadoHabilitacion
     estado: EstadoOperativo
-    conectado: bool
-    disponible: bool
+    puntaje_promedio: float | None = Field(default=None, ge=1, le=5)
+    cantidad_calificaciones: int = Field(default=0, ge=0)
 
 
 class ConductorConUbicacion(Conductor):
+    id_vehiculo_activo: int | None = None
     latitud: float | None = None
     longitud: float | None = None
     fecha_act_ubic: datetime | None = None
@@ -75,8 +76,11 @@ def conductor_desde_detalle(
         vehiculos=[vehiculo_resumen_desde_dominio(vehiculo) for vehiculo in detalle.vehiculos],
         habilitacion=EstadoHabilitacion(conductor.habilitacion.value),
         estado=EstadoOperativo(conductor.estado.value),
-        conectado=conductor.conectado,
-        disponible=conductor.disponible,
+        puntaje_promedio=(
+            float(promedio) if (promedio := conductor.puntaje_promedio) is not None else None
+        ),
+        cantidad_calificaciones=conductor.cantidad_calificaciones,
+        id_vehiculo_activo=conductor.id_vehiculo_activo,
         latitud=conductor.latitud,
         longitud=conductor.longitud,
         fecha_act_ubic=conductor.fecha_act_ubic,
@@ -85,6 +89,6 @@ def conductor_desde_detalle(
 
 def conductor_creado(detalle: ConductorDetalle) -> Conductor:
     datos = conductor_desde_detalle(detalle).model_dump(
-        exclude={"latitud", "longitud", "fecha_act_ubic"}
+        exclude={"id_vehiculo_activo", "latitud", "longitud", "fecha_act_ubic"}
     )
     return Conductor(**datos)
