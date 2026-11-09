@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 from app.api.esquemas.conductor import ConductorCreate, EstadoOperativo, conductor_desde_detalle
-from app.api.esquemas.documento import DocumentoConductorCreate
+from app.api.esquemas.documento import DocumentoConductorCreate, DocumentoVehiculoCreate
+from app.api.esquemas.documento import DocumentoVehiculo as DocumentoVehiculoRespuesta
 from app.api.esquemas.estado import EstadoConductor as EstadoConductorRespuesta
 from app.api.esquemas.estado import (
     EstadoConductorRequest,
@@ -18,7 +19,8 @@ from app.api.esquemas.solicitud import (
 )
 from app.api.esquemas.solicitud import RespuestaSolicitudRequest
 from app.api.esquemas.solicitud import Solicitud as SolicitudRespuesta
-from app.api.esquemas.vehiculo import VehiculoCreate
+from app.api.esquemas.vehiculo import TipoServicioHabilitado, VehiculoCreate
+from app.api.esquemas.vehiculo import Vehiculo as VehiculoRespuesta
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.dominio.conductor import Conductor, EstadoConductor
 from pydantic import ValidationError
@@ -384,3 +386,97 @@ def test_respuesta_solicitud_admite_aceptado_y_rechazado(respuesta: str) -> None
 def test_respuesta_solicitud_exige_respuesta_valida_y_hora(datos: dict) -> None:
     with pytest.raises(ValidationError):
         RespuestaSolicitudRequest(**datos)
+
+
+def test_tipo_servicio_habilitado_tiene_tipo_y_habilitado() -> None:
+    servicio = TipoServicioHabilitado(tipo="ENVIOS", habilitado=False)
+
+    assert servicio.tipo.value == "ENVIOS"
+    assert servicio.habilitado is False
+    assert set(TipoServicioHabilitado.model_fields) == {"tipo", "habilitado"}
+
+
+DOCUMENTO_VEHICULO = {
+    "tipo": "SEGURO",
+    "numero": "POL-1",
+    "fecha_emision": "2026-01-01",
+    "fecha_vencimiento": "2027-01-01",
+    "url_archivo": "https://archivos.example/seguro.pdf",
+}
+
+
+@pytest.mark.parametrize("tipo", ["SEGURO", "CEDULA_VERDE", "VTV"])
+def test_documento_vehiculo_admite_los_tres_tipos(tipo: str) -> None:
+    documento = DocumentoVehiculoCreate(**{**DOCUMENTO_VEHICULO, "tipo": tipo})
+
+    assert documento.tipo.value == tipo
+    assert documento.entidad_emisora is None
+
+
+@pytest.mark.parametrize(
+    "cambios",
+    [
+        {"tipo": "LICENCIA"},
+        {"numero": ""},
+        {"url_archivo": "no-es-una-url"},
+        {"url_archivo": "ftp://archivos.example/seguro.pdf"},
+        {"url_archivo": "javascript:alert(1)"},
+        {"entidad_emisora": "x" * 256},
+    ],
+    ids=["tipo", "numero", "url", "url-ftp", "url-javascript", "entidad-demasiado-larga"],
+)
+def test_documento_vehiculo_rechaza_datos_invalidos(cambios: dict) -> None:
+    with pytest.raises(ValidationError):
+        DocumentoVehiculoCreate(**{**DOCUMENTO_VEHICULO, **cambios})
+
+
+def test_documento_vehiculo_exige_los_campos_obligatorios() -> None:
+    with pytest.raises(ValidationError):
+        DocumentoVehiculoCreate(tipo="SEGURO")
+
+
+def test_documento_vehiculo_de_respuesta_suma_id_vehiculo_y_estado() -> None:
+    documento = DocumentoVehiculoRespuesta(**DOCUMENTO_VEHICULO, id_vehiculo=5, estado="VENCIDO")
+
+    assert documento.id_vehiculo == 5
+    assert documento.estado.value == "VENCIDO"
+
+
+def test_vehiculo_incluye_los_documentos_con_su_estado() -> None:
+    vehiculo = VehiculoRespuesta(
+        id=5,
+        id_conductor=1,
+        tipo="AUTO",
+        patente="AB123CD",
+        marca="Toyota",
+        modelo="Corolla",
+        anio=2020,
+        tipos_serv=[{"tipo": "PASAJEROS", "habilitado": True}],
+        documentos=[{**DOCUMENTO_VEHICULO, "id_vehiculo": 5, "estado": "VIGENTE"}],
+        habilitacion="APROBADA",
+    )
+
+    assert vehiculo.documentos[0].estado.value == "VIGENTE"
+    assert vehiculo.documentos[0].id_vehiculo == 5
+
+
+def test_la_respuesta_no_revalida_el_esquema_de_la_url_ya_guardada() -> None:
+    # Un documento guardado antes de restringir a http y https no debe romper las lecturas.
+    from datetime import date
+
+    from app.api.esquemas.documento import documento_desde_dominio
+    from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
+
+    documento = Documento(
+        tipo=TipoDocumento.LICENCIA,
+        numero="LIC-1",
+        categoria="B1",
+        fecha_emision=date(2020, 1, 1),
+        fecha_vencimiento=date(2030, 1, 1),
+        url_archivo="ftp://archivos.example/licencia.pdf",
+        id=10,
+    )
+
+    respuesta = documento_desde_dominio(1, documento, EstadoDocumento.VIGENTE)
+
+    assert str(respuesta.url_archivo) == "ftp://archivos.example/licencia.pdf"

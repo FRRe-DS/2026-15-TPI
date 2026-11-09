@@ -217,10 +217,10 @@ Cierre: C1
 
 ### PR `feat/s2-vehiculo-i2` (V5, T386–T389): Endpoints de tipos de servicio y documentación del vehículo
 
-- [ ] T386 [S2] [US6] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar `GET /api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` (`listarTiposServicioVehiculo`) y `POST` en `.../vehiculos/{id_vehiculo}/documentacion` (`crearDocumentacionVehiculo`)
-- [ ] T387 [S2] [US6] Test (Red) `backend/tests/api/test_esquemas.py`: `TipoServicioHabilitado` (`tipo` y `habilitado`); `DocumentoVehiculoCreate` con `tipo` (`SEGURO`, `CEDULA_VERDE` o `VTV`), `numero`, `entidad_emisora` opcional, fechas y `url_archivo` con formato de URL; `DocumentoVehiculo` con `id_vehiculo` y `estado`; `Vehiculo.documentos` incluye los documentos con su estado
-- [ ] T388 [S2] [US6] Test (Red) `backend/tests/api/test_vehiculos_i2.py`: tipos de servicio según la matriz de roles y `404`; el documento responde `201` con el estado calculado; `400` con tipo inválido o URL inválida; `422` con vencimiento anterior a la emisión; `404` si el vehículo es de otro conductor; `servicio` recibe `403` al crear el documento
-- [ ] T389 [S2] [US6] Impl (Green) `backend/app/api/esquemas/vehiculo.py` y `documento.py`, los proveedores de `listar_tipos_servicio_vehiculo` y `registrar_documento_vehiculo` en `dependencias.py` y las dos rutas en `backend/app/api/routers/vehiculos.py`, hasta que pasen T386 a T388
+- [X] T386 [S2] [US6] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar `GET /api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` (`listarTiposServicioVehiculo`) y `POST` en `.../vehiculos/{id_vehiculo}/documentacion` (`crearDocumentacionVehiculo`)
+- [X] T387 [S2] [US6] Test (Red) `backend/tests/api/test_esquemas.py`: `TipoServicioHabilitado` (`tipo` y `habilitado`); `DocumentoVehiculoCreate` con `tipo` (`SEGURO`, `CEDULA_VERDE` o `VTV`), `numero`, `entidad_emisora` opcional, fechas y `url_archivo` con formato de URL; `DocumentoVehiculo` con `id_vehiculo` y `estado`; `Vehiculo.documentos` incluye los documentos con su estado
+- [X] T388 [S2] [US6] Test (Red) `backend/tests/api/test_vehiculos_i2.py`: tipos de servicio según la matriz de roles y `404`; el documento responde `201` con el estado calculado; `400` con tipo inválido o URL inválida; `422` con vencimiento anterior a la emisión; `404` si el vehículo es de otro conductor; `servicio` recibe `403` al crear el documento
+- [X] T389 [S2] [US6] Impl (Green) `backend/app/api/esquemas/vehiculo.py` y `documento.py`, los proveedores de `listar_tipos_servicio_vehiculo` y `registrar_documento_vehiculo` en `dependencias.py` y las dos rutas en `backend/app/api/routers/vehiculos.py`, hasta que pasen T386 a T388
 
 ### PR `feat/s2-conductor-campos-nuevos` (V6, T390–T397): Estado, campos nuevos y filtros del conductor, y versión 1.2.0
 
@@ -244,7 +244,7 @@ Cierre: C1
 - [ ] T398 Actualizar `README.md`: la tabla de endpoints marca como implementados los 17, la sección de la API refleja el rol `servicio` de solo lectura, el acceso propio del conductor, el listado solo para operador y servicio y el campo `estado` en lugar de `conectado` y `disponible`, y se quita la nota sobre la diferencia con la Iteración 1
 - [ ] T399 Recorrer [quickstart.md](./quickstart.md) contra el entorno real una vez que L9 y L10 y la migración de Datos y seguridad están en `dev`, y anotar cualquier diferencia
 - [ ] T400 Informar a Testing el valor propuesto para el umbral de cobertura (70 %) y los resultados de `pytest --cov` sobre lo implementado
-- [ ] T401 PR de contrato aparte (`docs/contrato-roles-bearer`): ajustar en `docs/contract/openapi.yaml` la descripción de roles de `bearerAuth`, que hoy dice que el conductor consulta conductores y vehículos, para que el listado figure como de operador y servicio
+- [ ] T401 PR de contrato aparte (`docs/contrato-roles-bearer`): ajustar en `docs/contract/openapi.yaml` la descripción de roles de `bearerAuth`, que hoy dice que el conductor consulta conductores y vehículos, para que el listado figure como de operador y servicio; en el mismo PR, `url_archivo` de `DocumentoConductorCreate` y `DocumentoVehiculoCreate` pasa a documentarse como `http` o `https` (`pattern: '^[Hh][Tt][Tt][Pp][Ss]?://'`), y se declaran los largos que el servidor ya aplica (`numero` 50, `url_archivo` 500 y `entidad_emisora` 255 del documento del vehículo)
 
 ---
 
