@@ -209,11 +209,11 @@ Cierre: C1
 
 ### PR `feat/s2-solicitudes` (V4, T381–T385): Endpoints de solicitudes
 
-- [ ] T381 [S2] [US5] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar `GET /api/v1/conductores/{id_conductor}/solicitudes` (`listarSolicitudesConductor`) y `POST /api/v1/solicitudes/{id_solicitud}` (`responderSolicitud`)
-- [ ] T382 [S2] [US5] Test (Red) `backend/tests/api/test_esquemas.py`: `Solicitud` con `id`, `id_conductor`, `id_viaje` (nulo), `estado`, `vence_en`, `respuesta` (nulo) y `hora_rta` (nulo); `RespuestaSolicitudRequest` con `respuesta` (`ACEPTADO` o `RECHAZADO`) y `hora_rta` obligatorias
-- [ ] T383 [S2] [US5] Test (Red) `backend/tests/api/test_solicitudes.py`: el listado admite el filtro `estado` y un valor inválido responde `400`; el conductor lista solo las suyas; responder devuelve la solicitud y mapea `404`, `403` `ACCESO_PROHIBIDO`, `409` `SOLICITUD_YA_RESPONDIDA`, `410` `SOLICITUD_VENCIDA` y `422` `CONDUCTOR_NO_HABILITADO`; el rol `servicio` recibe `403`; el caso de uso recibe la identidad de quien responde
-- [ ] T384 [S2] [US5] Impl (Green) `backend/app/api/esquemas/solicitud.py`, los proveedores de `listar_solicitudes_conductor` y `responder_solicitud` en `dependencias.py` y el router `backend/app/api/routers/solicitudes.py`, hasta que pasen T381 a T383
-- [ ] T385 [S2] [US5] Impl (Green) `backend/app/api/main.py`: registrar `solicitudes.router` en `ROUTERS`
+- [X] T381 [S2] [US5] Test (Red) `backend/tests/api/test_paridad_rutas.py`: agregar `GET /api/v1/conductores/{id_conductor}/solicitudes` (`listarSolicitudesConductor`) y `POST /api/v1/solicitudes/{id_solicitud}` (`responderSolicitud`)
+- [X] T382 [S2] [US5] Test (Red) `backend/tests/api/test_esquemas.py`: `Solicitud` con `id`, `id_conductor`, `id_viaje` (nulo), `estado`, `vence_en`, `respuesta` (nulo) y `hora_rta` (nulo); `RespuestaSolicitudRequest` con `respuesta` (`ACEPTADO` o `RECHAZADO`) y `hora_rta` obligatorias
+- [X] T383 [S2] [US5] Test (Red) `backend/tests/api/test_solicitudes.py`: el listado admite el filtro `estado` y un valor inválido responde `400`; el conductor lista solo las suyas; responder devuelve la solicitud y mapea `404`, `403` `ACCESO_PROHIBIDO`, `409` `SOLICITUD_YA_RESPONDIDA`, `410` `SOLICITUD_VENCIDA` y `422` `CONDUCTOR_NO_HABILITADO`; el rol `servicio` recibe `403`; el caso de uso recibe la identidad de quien responde
+- [X] T384 [S2] [US5] Impl (Green) `backend/app/api/esquemas/solicitud.py`, los proveedores de `listar_solicitudes_conductor` y `responder_solicitud` en `dependencias.py` y el router `backend/app/api/routers/solicitudes.py`, hasta que pasen T381 a T383
+- [X] T385 [S2] [US5] Impl (Green) `backend/app/api/main.py`: registrar `solicitudes.router` en `ROUTERS`
 
 ### PR `feat/s2-vehiculo-i2` (V5, T386–T389): Endpoints de tipos de servicio y documentación del vehículo
 

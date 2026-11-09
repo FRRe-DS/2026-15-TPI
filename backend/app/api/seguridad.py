@@ -149,7 +149,11 @@ def requerir_operador_o_servicio(
 def requerir_operador_o_conductor(
     identidad: Annotated[Identidad, Depends(requerir_identidad)],
 ) -> Identidad:
-    """Alta de conductor: operador o conductor; servicio no da altas."""
+    """Operaciones de operador o conductor sin id de conductor en la ruta.
+
+    Son el alta (1) y responder una solicitud (17): ambas usan `ROLES_ALTA_CONDUCTOR`, así que
+    cambiar ese conjunto cambia las dos filas de la matriz. El servicio no escribe.
+    """
     verificar_rol(identidad, ROLES_ALTA_CONDUCTOR)
     return identidad
 

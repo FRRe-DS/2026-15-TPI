@@ -13,6 +13,7 @@ from app.api.routers import (
     documentacion,
     estado,
     habilitacion,
+    solicitudes,
     vehiculos,
     vehiculos_habilitacion,
 )
@@ -26,6 +27,7 @@ ROUTERS: tuple[APIRouter, ...] = (
     vehiculos.router,
     vehiculos_habilitacion.router,
     estado.router,
+    solicitudes.router,
 )
 
 

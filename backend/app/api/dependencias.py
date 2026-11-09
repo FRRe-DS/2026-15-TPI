@@ -29,6 +29,9 @@ from app.aplicacion.casos_de_uso.consultar_habilitacion_conductor import (
 )
 from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
 from app.aplicacion.casos_de_uso.listar_conductores import ListarConductores
+from app.aplicacion.casos_de_uso.listar_solicitudes_conductor import (
+    ListarSolicitudesConductor,
+)
 from app.aplicacion.casos_de_uso.listar_vehiculos import ListarVehiculos
 from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_estado_conductor import ObtenerEstadoConductor
@@ -36,6 +39,7 @@ from app.aplicacion.casos_de_uso.obtener_ubicacion_conductor import ObtenerUbica
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
+from app.aplicacion.casos_de_uso.responder_solicitud import ResponderSolicitud
 from app.aplicacion.puertos.reloj import Reloj
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.infraestructura.db.sesion import crear_sessionmaker
@@ -150,3 +154,15 @@ def obtener_caso_actualizar_estado_conductor(
         latitud_simulada=settings.UBICACION_SIMULADA_LATITUD,
         longitud_simulada=settings.UBICACION_SIMULADA_LONGITUD,
     )
+
+
+def obtener_caso_listar_solicitudes_conductor(
+    uow: UnidadDeTrabajoInyectada,
+) -> ListarSolicitudesConductor:
+    return ListarSolicitudesConductor(uow, RelojDelSistema())
+
+
+def obtener_caso_responder_solicitud(
+    uow: UnidadDeTrabajoInyectada,
+) -> ResponderSolicitud:
+    return ResponderSolicitud(uow, RelojDelSistema())
