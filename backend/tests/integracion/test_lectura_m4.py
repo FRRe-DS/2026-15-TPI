@@ -27,7 +27,8 @@ def cliente_m4(monkeypatch, fabrica_sesiones):
         {
             "iss": "http://localhost:8081/realms/m3",
             "exp": datetime.now(UTC) + timedelta(minutes=5),
-            "realm_access": {"roles": ["conductor"]},
+            # M4 lee con la cuenta de servicio; el conductor solo lee su propio id.
+            "realm_access": {"roles": ["servicio"]},
         },
         clave,
         algorithm="RS256",

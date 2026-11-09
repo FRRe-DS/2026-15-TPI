@@ -142,6 +142,7 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         exp: datetime | int | None = None,
         iss: str = EMISOR,
         kid: str = KID_PRUEBA,
+        id_conductor: Any = None,
     ) -> str:
         ahora = datetime.now(UTC)
         expiracion = exp if exp is not None else ahora + timedelta(minutes=15)
@@ -155,6 +156,8 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         }
         if id_operador is not None:
             payload["id_operador"] = id_operador
+        if id_conductor is not None:
+            payload["id_conductor"] = id_conductor
         return jwt.encode(
             payload,
             clave_rsa,
@@ -167,7 +170,24 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 @pytest.fixture
 def headers_conductor(crear_token) -> dict[str, str]:
-    return {"Authorization": f"Bearer {crear_token(roles=['conductor'])}"}
+    """Headers de quien opera sobre cualquier conductor (token de operador).
+
+    Con la matriz de acceso de la Iteración 2 un token de conductor solo opera sobre su
+    propio `id_conductor`, y estas pruebas operan sobre conductores recién creados, cuyo id
+    se conoce recién después del alta. El nombre se conserva para no tocar las pruebas.
+    """
+    return {"Authorization": f"Bearer {crear_token(roles=['operador'], id_operador=7)}"}
+
+
+@pytest.fixture
+def headers_conductor_de(crear_token):
+    """Fabrica los headers de un conductor con el `id_conductor` indicado."""
+
+    def _headers(id_conductor: int) -> dict[str, str]:
+        token = crear_token(roles=["conductor"], id_conductor=id_conductor)
+        return {"Authorization": f"Bearer {token}"}
+
+    return _headers
 
 
 @pytest.fixture

@@ -16,6 +16,10 @@ from app.api.esquemas.vehiculo import (
     vehiculo_desde_dominio,
     vehiculo_resumen_desde_dominio,
 )
+from app.api.seguridad import (
+    requerir_conductor_propio_operador_o_servicio,
+    requerir_conductor_propio_u_operador,
+)
 from app.aplicacion.casos_de_uso.listar_vehiculos import ListarVehiculos
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
@@ -31,6 +35,7 @@ router = APIRouter(tags=["Vehículos"])
     response_model=Vehiculo,
     status_code=status.HTTP_201_CREATED,
     operation_id="crearVehiculo",
+    dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def crear_vehiculo(
     id_conductor: int,
@@ -56,6 +61,7 @@ def crear_vehiculo(
     "/conductores/{id_conductor}/vehiculos",
     response_model=list[VehiculoResumen],
     operation_id="listarVehiculos",
+    dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def listar_vehiculos(
     id_conductor: int,
@@ -77,6 +83,7 @@ def listar_vehiculos(
     "/conductores/{id_conductor}/vehiculos/{id_vehiculo}",
     response_model=Vehiculo,
     operation_id="obtenerVehiculo",
+    dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_vehiculo(
     id_conductor: int,

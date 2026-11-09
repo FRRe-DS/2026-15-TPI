@@ -12,10 +12,10 @@ def test_obtiene_conductor(client, casos, headers_conductor) -> None:
     assert casos["obtener_conductor"].llamadas == [{"id_conductor": 1}]
 
 
-def test_conductor_inexistente_responde_404(client, casos, headers_conductor) -> None:
+def test_conductor_inexistente_responde_404(client, casos, headers_operador) -> None:
     casos["obtener_conductor"].error = NoEncontrado("No existe el conductor 99")
 
-    respuesta = client.get("/api/v1/conductores/99", headers=headers_conductor)
+    respuesta = client.get("/api/v1/conductores/99", headers=headers_operador)
 
     assert respuesta.status_code == 404
     cuerpo = respuesta.json()
