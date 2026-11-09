@@ -63,6 +63,9 @@ def _copiar_a_fila(conductor: Conductor, fila: ConductorOrm) -> None:
     fila.fecha_ultimo_cambio_estado = conductor.fecha_ultimo_cambio_estado
     fila.suma_puntajes = conductor.suma_puntajes
     fila.cantidad_calificaciones = conductor.cantidad_calificaciones
+    fila.latitud = conductor.latitud
+    fila.longitud = conductor.longitud
+    fila.fecha_act_ubic = conductor.fecha_act_ubic
 
 
 class SqlRepositorioConductores(RepositorioConductores):
