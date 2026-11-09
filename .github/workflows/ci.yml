@@ -103,6 +103,8 @@ jobs:
             -e "s|^KEYCLOAK_M3_CLIENT_SECRET=.*|KEYCLOAK_M3_CLIENT_SECRET=$(openssl rand -hex 32)|" \
             -e "s|^M3_OPERADOR_PASSWORD=.*|M3_OPERADOR_PASSWORD=$(openssl rand -hex 16)|" \
             -e "s|^M3_CONDUCTOR_PASSWORD=.*|M3_CONDUCTOR_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^M3_SERVICIO_USERNAME=.*|M3_SERVICIO_USERNAME=servicio.m4|" \
+            -e "s|^M3_SERVICIO_PASSWORD=.*|M3_SERVICIO_PASSWORD=$(openssl rand -hex 16)|" \
             .env
       - name: Levantar Compose y ejecutar la prueba de humo
         env:

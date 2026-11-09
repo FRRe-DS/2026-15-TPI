@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 
 import pytest
 from app.aplicacion.casos_de_uso.crear_conductor import CrearConductor
+from app.dominio.conductor import EstadoConductor
 from app.dominio.errores import DatosInvalidos, DniDuplicado
 from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion
 
@@ -54,8 +55,7 @@ def test_crea_el_conductor_pendiente_y_sin_conexion(crear_conductor):
     assert conductor.telefono == DATOS_VALIDOS["telefono"]
     assert conductor.email == DATOS_VALIDOS["email"]
     assert conductor.habilitacion is EstadoHabilitacion.PENDIENTE
-    assert conductor.conectado is False
-    assert conductor.disponible is False
+    assert conductor.estado is EstadoConductor.DESCONECTADO
 
 
 def test_el_detalle_del_conductor_nuevo_no_tiene_documentos_ni_vehiculos(

@@ -220,7 +220,7 @@ El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `esta
 **Documentación**
 
 - El estado es `VIGENTE` si `fecha_vencimiento` es igual o posterior a hoy, y `VENCIDO` si es anterior.
-- `fecha_vencimiento` debe ser posterior a `fecha_emision`, y `url_archivo` debe ser una URI válida.
+- `fecha_vencimiento` debe ser posterior a `fecha_emision`, y `url_archivo` debe ser una URL `http` o `https` (se guarda y se devuelve normalizada: `https://host` pasa a `https://host/`).
 
 **Vehículos**
 

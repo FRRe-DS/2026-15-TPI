@@ -11,7 +11,9 @@ from app.api.errores import registrar_manejadores
 from app.api.routers import (
     conductores,
     documentacion,
+    estado,
     habilitacion,
+    solicitudes,
     vehiculos,
     vehiculos_habilitacion,
 )
@@ -24,6 +26,8 @@ ROUTERS: tuple[APIRouter, ...] = (
     documentacion.router,
     vehiculos.router,
     vehiculos_habilitacion.router,
+    estado.router,
+    solicitudes.router,
 )
 
 
@@ -31,7 +35,7 @@ def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
     """Crea la aplicación con el prefijo, la seguridad y los errores comunes."""
     app = FastAPI(
         title="API M3 - Conductores y Vehículos",
-        version="1.0.0",
+        version="1.2.0",
     )
     registrar_manejadores(app)
 

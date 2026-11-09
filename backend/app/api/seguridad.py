@@ -6,16 +6,29 @@ from functools import lru_cache
 from typing import Annotated, Any
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Path
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient, PyJWKClientError
 
 from app.api.configuracion import Settings, obtener_configuracion
 from app.api.errores import no_autenticado, sin_permisos
+from app.aplicacion.politicas.acceso import (
+    ROL_CONDUCTOR,
+    ROL_OPERADOR,
+    ROL_SERVICIO,
+    ROLES_ALTA_CONDUCTOR,
+    ROLES_ESCRITURA_CONDUCTOR,
+    ROLES_LECTURA_CONDUCTOR,
+    ROLES_LISTAR_CONDUCTORES,
+    Identidad,
+    es_entero,
+    verificar_acceso,
+    verificar_rol,
+)
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-ROLES_VALIDOS = {"conductor", "operador"}
+ROLES_VALIDOS = {ROL_CONDUCTOR, ROL_OPERADOR, ROL_SERVICIO}
 
 
 @lru_cache(maxsize=8)
@@ -98,8 +111,66 @@ def requerir_operador(
         raise sin_permisos("Se requiere el rol operador para esta acción")
 
     id_operador = usuario.get("id_operador")
-    # ``bool`` es subclase de ``int``, pero no es un identificador válido.
-    if isinstance(id_operador, bool) or not isinstance(id_operador, int):
+    if not es_entero(id_operador):
         raise sin_permisos("El operador debe tener un id_operador numérico")
 
     return usuario
+
+
+def _entero_o_none(valor: Any) -> int | None:
+    return valor if es_entero(valor) else None
+
+
+def identidad_del_payload(payload: dict[str, Any]) -> Identidad:
+    """Construye la identidad con los roles reconocidos y los ids enteros."""
+    roles = _roles_del_payload(payload) or []
+    return Identidad(
+        roles=frozenset(rol for rol in roles if isinstance(rol, str) and rol in ROLES_VALIDOS),
+        id_conductor=_entero_o_none(payload.get("id_conductor")),
+        id_operador=_entero_o_none(payload.get("id_operador")),
+    )
+
+
+def requerir_identidad(
+    usuario: Annotated[dict[str, Any], Depends(requerir_usuario)],
+) -> Identidad:
+    """Valida el token y entrega la identidad de quien llama."""
+    return identidad_del_payload(usuario)
+
+
+def requerir_operador_o_servicio(
+    identidad: Annotated[Identidad, Depends(requerir_identidad)],
+) -> Identidad:
+    """Operaciones sin conductor concreto: solo operador o servicio."""
+    verificar_rol(identidad, ROLES_LISTAR_CONDUCTORES)
+    return identidad
+
+
+def requerir_operador_o_conductor(
+    identidad: Annotated[Identidad, Depends(requerir_identidad)],
+) -> Identidad:
+    """Operaciones de operador o conductor sin id de conductor en la ruta.
+
+    Son el alta (1) y responder una solicitud (17): ambas usan `ROLES_ALTA_CONDUCTOR`, así que
+    cambiar ese conjunto cambia las dos filas de la matriz. El servicio no escribe.
+    """
+    verificar_rol(identidad, ROLES_ALTA_CONDUCTOR)
+    return identidad
+
+
+def requerir_conductor_propio_u_operador(
+    id_conductor: Annotated[int, Path()],
+    identidad: Annotated[Identidad, Depends(requerir_identidad)],
+) -> Identidad:
+    """Escrituras sobre un conductor: operador, o el conductor sobre sí mismo."""
+    verificar_acceso(identidad, id_conductor, ROLES_ESCRITURA_CONDUCTOR)
+    return identidad
+
+
+def requerir_conductor_propio_operador_o_servicio(
+    id_conductor: Annotated[int, Path()],
+    identidad: Annotated[Identidad, Depends(requerir_identidad)],
+) -> Identidad:
+    """Lecturas sobre un conductor: operador, servicio o el propio conductor."""
+    verificar_acceso(identidad, id_conductor, ROLES_LECTURA_CONDUCTOR)
+    return identidad

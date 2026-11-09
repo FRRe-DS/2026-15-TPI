@@ -1,11 +1,16 @@
 import pytest
 from app.api.errores import ErrorAPI, registrar_manejadores
 from app.dominio.errores import (
+    AccesoProhibido,
+    ConductorNoHabilitado,
     DatosInvalidos,
     DniDuplicado,
     LicenciaVigenteRequerida,
     NoEncontrado,
     PatenteDuplicada,
+    RolNoAutorizado,
+    SolicitudVencida,
+    SolicitudYaRespondida,
     TransicionInvalida,
 )
 from fastapi import FastAPI
@@ -45,6 +50,26 @@ def _app_con_errores() -> FastAPI:
     def datos_invalidos() -> None:
         raise DatosInvalidos("El vencimiento debe ser posterior a la emisión")
 
+    @app.get("/acceso-prohibido")
+    def acceso_prohibido() -> None:
+        raise AccesoProhibido("Solo podés operar sobre tus propios datos")
+
+    @app.get("/rol-no-autorizado")
+    def rol_no_autorizado() -> None:
+        raise RolNoAutorizado("El rol del token no permite esta operación")
+
+    @app.get("/solicitud-ya-respondida")
+    def solicitud_ya_respondida() -> None:
+        raise SolicitudYaRespondida("La solicitud ya fue respondida")
+
+    @app.get("/solicitud-vencida")
+    def solicitud_vencida() -> None:
+        raise SolicitudVencida("La solicitud venció")
+
+    @app.get("/conductor-no-habilitado")
+    def conductor_no_habilitado() -> None:
+        raise ConductorNoHabilitado("El conductor no está habilitado")
+
     @app.get("/error-api")
     def error_api() -> None:
         raise ErrorAPI(409, "CONFLICTO", "Conflicto de prueba")
@@ -76,6 +101,11 @@ def client_errores() -> TestClient:
         ("/transicion-invalida", 409, "TRANSICION_INVALIDA"),
         ("/licencia-requerida", 422, "LICENCIA_VIGENTE_REQUERIDA"),
         ("/datos-invalidos", 422, "DATOS_INVALIDOS"),
+        ("/acceso-prohibido", 403, "ACCESO_PROHIBIDO"),
+        ("/rol-no-autorizado", 403, "SIN_PERMISOS"),
+        ("/solicitud-ya-respondida", 409, "SOLICITUD_YA_RESPONDIDA"),
+        ("/solicitud-vencida", 410, "SOLICITUD_VENCIDA"),
+        ("/conductor-no-habilitado", 422, "CONDUCTOR_NO_HABILITADO"),
         ("/error-api", 409, "CONFLICTO"),
     ],
 )
@@ -135,4 +165,9 @@ def test_catalogo_completo_se_registra() -> None:
         TransicionInvalida,
         LicenciaVigenteRequerida,
         DatosInvalidos,
+        AccesoProhibido,
+        RolNoAutorizado,
+        SolicitudYaRespondida,
+        SolicitudVencida,
+        ConductorNoHabilitado,
     }

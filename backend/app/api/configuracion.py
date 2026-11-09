@@ -1,3 +1,4 @@
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +13,17 @@ class Settings(BaseSettings):
     KEYCLOAK_URL: str
     KEYCLOAK_REALM: str
     DATABASE_URL: str
+    # Ubicación que M3 asigna cuando el conductor sale de DESCONECTADO sin informar la suya.
+    UBICACION_SIMULADA_LATITUD: float = Field(default=-27.4511, ge=-90, le=90)
+    UBICACION_SIMULADA_LONGITUD: float = Field(default=-58.9867, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def _ubicacion_simulada_no_es_cero_cero(self) -> "Settings":
+        if self.UBICACION_SIMULADA_LATITUD == 0 and self.UBICACION_SIMULADA_LONGITUD == 0:
+            raise ValueError(
+                "UBICACION_SIMULADA_LATITUD y UBICACION_SIMULADA_LONGITUD no pueden ser 0, 0"
+            )
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

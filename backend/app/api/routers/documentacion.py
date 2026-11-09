@@ -8,6 +8,9 @@ from app.api.esquemas.documento import (
     DocumentoConductorCreate,
     documento_desde_dominio,
 )
+from app.api.seguridad import (
+    requerir_conductor_propio_u_operador,
+)
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 
 router = APIRouter(tags=["Documentación"])
@@ -18,6 +21,7 @@ router = APIRouter(tags=["Documentación"])
     response_model=DocumentoConductor,
     status_code=status.HTTP_201_CREATED,
     operation_id="crearDocumentacionConductor",
+    dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def registrar_documentacion(
     id_conductor: int,

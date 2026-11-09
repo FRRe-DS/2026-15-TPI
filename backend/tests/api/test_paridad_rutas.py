@@ -4,7 +4,7 @@ from app.api.main import crear_app
 
 CONTRATO = Path(__file__).resolve().parents[3] / "docs" / "contract" / "openapi.yaml"
 
-# Los 10 pares (ruta, método) del alcance de la Iteración 1 y su operationId.
+# Los pares (ruta, método) del alcance implementado y su operationId.
 ESPERADOS: dict[tuple[str, str], str] = {
     ("/api/v1/conductores", "post"): "crearConductor",
     ("/api/v1/conductores", "get"): "listarConductores",
@@ -37,6 +37,19 @@ ESPERADOS: dict[tuple[str, str], str] = {
         "/api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion",
         "post",
     ): "accionHabilitacionVehiculo",
+    ("/api/v1/conductores/{id_conductor}/estado", "get"): "obtenerEstadoConductor",
+    ("/api/v1/conductores/{id_conductor}/estado", "patch"): "actualizarEstadoConductor",
+    ("/api/v1/conductores/{id_conductor}/ubicacion", "get"): "obtenerUbicacionConductor",
+    ("/api/v1/conductores/{id_conductor}/solicitudes", "get"): "listarSolicitudesConductor",
+    ("/api/v1/solicitudes/{id_solicitud}", "post"): "responderSolicitud",
+    (
+        "/api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio",
+        "get",
+    ): "listarTiposServicioVehiculo",
+    (
+        "/api/v1/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion",
+        "post",
+    ): "crearDocumentacionVehiculo",
 }
 
 
@@ -51,7 +64,12 @@ def _pares_generados() -> dict[tuple[str, str], str]:
     return pares
 
 
-def test_genera_exactamente_los_10_pares_del_alcance() -> None:
+def test_el_alcance_son_las_17_operaciones_del_contrato() -> None:
+    assert len(ESPERADOS) == 17
+    assert len(set(ESPERADOS.values())) == 17
+
+
+def test_genera_exactamente_los_pares_del_alcance() -> None:
     assert set(_pares_generados()) == set(ESPERADOS)
 
 

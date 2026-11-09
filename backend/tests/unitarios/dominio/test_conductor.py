@@ -49,8 +49,7 @@ def test_conductor_nuevo_queda_pendiente_y_sin_conexion():
     conductor = crear()
 
     assert conductor.habilitacion is EstadoHabilitacion.PENDIENTE
-    assert conductor.conectado is False
-    assert conductor.disponible is False
+    assert conductor.estado is EstadoConductor.DESCONECTADO
 
 
 def test_conductor_nuevo_queda_desconectado_y_sin_estado_ni_puntajes():

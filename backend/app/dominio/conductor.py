@@ -53,16 +53,6 @@ class Conductor:
         return cls(dni=dni, nombre=nombre, apellido=apellido, telefono=telefono, email=email)
 
     @property
-    def conectado(self) -> bool:
-        """Compatibilidad con la Iteracion 1: `conectado` deriva de `estado`."""
-        return self.estado is not EstadoConductor.DESCONECTADO
-
-    @property
-    def disponible(self) -> bool:
-        """Compatibilidad con la Iteracion 1: `disponible` deriva de `estado`."""
-        return self.estado is EstadoConductor.DISPONIBLE
-
-    @property
     def puntaje_promedio(self) -> Decimal | None:
         if self.suma_puntajes < 0 or self.cantidad_calificaciones < 0:
             raise DatosInvalidos("Los totales de puntajes no pueden ser negativos")
