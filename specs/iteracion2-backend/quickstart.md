@@ -81,7 +81,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN_CONDUCTOR" -H "Content-Type: ap
 
 Resultado esperado:
 - La lista trae solo las solicitudes del conductor; una `PENDIENTE` ya vencida figura como `VENCIDA`.
-- Aceptar una vigente da `200` y deja al conductor `OCUPADO` (si estaba `CONECTADO` o `DISPONIBLE` y cumple las reglas; si no, `422`); rechazar no cambia su estado.
+- Aceptar una vigente da `200` (la respuesta trae `id_viaje`, como el contrato) y deja al conductor `OCUPADO` (si estaba `CONECTADO` o `DISPONIBLE` y cumple las reglas; si no, `422`); rechazar no cambia su estado.
 - Para volver a `DISPONIBLE`, el conductor lo pide con `PATCH .../estado`.
 - Una vencida da `410` `SOLICITUD_VENCIDA` y una ya respondida, `409` `SOLICITUD_YA_RESPONDIDA`.
 - La solicitud de otro conductor da `403` `ACCESO_PROHIBIDO`; una inexistente, `404`.
@@ -115,6 +115,15 @@ Resultado esperado: la API genera las 17 operaciones del contrato 1.2.0 con sus 
 
 - M4 y M6 no escriben en M3: el contrato 1.2.0 no tiene operaciones de entrada. Quién marca `OCUPADO` más allá de la aceptación de una solicitud, y de dónde salen los puntajes, queda por acordar con ellos.
 - Los cambios de estado de un mismo conductor se serializan: un cambio de estado y la aceptación de una solicitud simultáneos se aplican uno tras otro, sin perder ninguno.
+
+## Recorrido contra el entorno real (2026-11-08)
+
+Se levantó Compose desde `dev` (con L9, L10, la migración 0002 y el seed) y se recorrieron las secciones 3 a 6 con los tokens de operador y de conductor (`conductor.m3`, `id_conductor` 1). Todo respondió como dice esta guía, con estas diferencias:
+
+- **No se pudo comprobar con el rol `servicio` en vivo.** El `infra/.env` local es anterior a la cuenta técnica de M4 y no tiene `M3_SERVICIO_USERNAME` ni `M3_SERVICIO_PASSWORD`; hay que sumarlos desde `.env.example` y recrear Keycloak (el realm solo se importa con el volumen vacío). Los permisos del servicio quedan cubiertos por las pruebas de integración (`test_lectura_m4`) y de API.
+- El seed trae 7 conductores, 5 vehículos, 3 documentos de vehículo y 5 solicitudes. El conductor 1 tiene una solicitud `PENDIENTE` y otra `VENCIDA`: aceptar la primera da `200` y lo deja `OCUPADO`, reaceptarla da `409`, y la vencida da `410`.
+- `GET /conductores?disponible=true` responde `400` con el aviso de que se reemplazó por `estado`.
+- Los mensajes de error salen con tildes en UTF-8; en la consola de Windows hay que fijar la codificación para leerlos bien.
 
 ## Referencias
 
