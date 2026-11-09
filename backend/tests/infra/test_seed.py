@@ -271,6 +271,12 @@ def test_seed_idempotente_y_completo(base_temporal_migrada: str, seed_module: An
             )
             assert estados_conductor == {"DESCONECTADO", "CONECTADO", "DISPONIBLE", "OCUPADO"}
 
+            dni_conductor_prueba = conexion.execute(
+                text("SELECT dni FROM conductor WHERE id_conductor = :id"),
+                {"id": seed_module.ID_CONDUCTOR_PRUEBA},
+            ).scalar_one()
+            assert dni_conductor_prueba == seed_module.DNI_CONDUCTOR_PRUEBA
+
             sin_ubicacion = conexion.execute(
                 text(
                     """

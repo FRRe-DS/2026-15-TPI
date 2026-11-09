@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -20,6 +21,8 @@ CLIENTE = "m3-api"
 SECRETO_CLIENTE = "test-client-secret-no-real"
 CLAVE_OPERADOR = "test-operador-no-real"
 CLAVE_CONDUCTOR = "test-conductor-no-real"
+USUARIO_SERVICIO = "servicio.m4"
+CLAVE_SERVICIO = "test-servicio-no-real"
 
 pytestmark = pytest.mark.integration
 
@@ -30,6 +33,8 @@ def _realm_para_prueba(destino: Path) -> Path:
         "KEYCLOAK_M3_CLIENT_SECRET": SECRETO_CLIENTE,
         "M3_OPERADOR_PASSWORD": CLAVE_OPERADOR,
         "M3_CONDUCTOR_PASSWORD": CLAVE_CONDUCTOR,
+        "M3_SERVICIO_USERNAME": USUARIO_SERVICIO,
+        "M3_SERVICIO_PASSWORD": CLAVE_SERVICIO,
     }
     for variable, valor in reemplazos.items():
         contenido = contenido.replace(f"${{{variable}}}", valor)
@@ -83,11 +88,22 @@ def keycloak(requiere_docker: None, tmp_path_factory: pytest.TempPathFactory) ->
         contenedor.stop()
 
 
-def test_el_token_real_trae_los_ids_como_enteros(keycloak: str) -> None:
+def test_el_token_real_trae_los_ids_como_enteros(keycloak: str, seed_module: Any) -> None:
     operador = _claims(_token(keycloak, "operador.m3", CLAVE_OPERADOR))
     assert operador["id_operador"] == 101
     assert isinstance(operador["id_operador"], int)
 
     conductor = _claims(_token(keycloak, "conductor.m3", CLAVE_CONDUCTOR))
-    assert conductor["id_conductor"] == 1
+    assert conductor["id_conductor"] == seed_module.ID_CONDUCTOR_PRUEBA
     assert isinstance(conductor["id_conductor"], int)
+
+
+def test_el_token_de_servicio_solo_trae_el_rol_de_lectura(keycloak: str) -> None:
+    claims = _claims(_token(keycloak, USUARIO_SERVICIO, CLAVE_SERVICIO))
+    roles = claims["realm_access"]["roles"]
+
+    assert "servicio" in roles
+    assert "operador" not in roles
+    assert "conductor" not in roles
+    assert "id_conductor" not in claims
+    assert "id_operador" not in claims
