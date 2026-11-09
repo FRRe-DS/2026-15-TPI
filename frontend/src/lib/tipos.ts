@@ -22,6 +22,12 @@ export type TipoServicio = "PASAJEROS" | "ENVIOS";
 
 export type EstadoDocumento = "VIGENTE" | "VENCIDO";
 
+export type EstadoOperativo =
+  | "DESCONECTADO"
+  | "CONECTADO"
+  | "DISPONIBLE"
+  | "OCUPADO";
+
 export interface DocumentoConductor {
   id_conductor: number;
   tipo: string;
@@ -51,8 +57,9 @@ export interface Conductor {
   telefono: string;
   email: string;
   habilitacion: EstadoHabilitacion;
-  conectado: boolean;
-  disponible: boolean;
+  estado: EstadoOperativo;
+  puntaje_promedio: number | null;
+  cantidad_calificaciones: number;
   documentos: DocumentoConductor[];
   vehiculos: VehiculoResumen[];
 }
@@ -61,4 +68,6 @@ export interface ConductorConUbicacion extends Conductor {
   latitud?: number | null;
   longitud?: number | null;
   fecha_act_ubic?: string | null;
+  id_vehiculo_activo: number | null;
+
 }

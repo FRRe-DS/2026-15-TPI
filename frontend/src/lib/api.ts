@@ -1,5 +1,10 @@
 import { obtenerToken } from "./token";
-import type { ConductorConUbicacion, TipoVehiculo, TipoServicio } from "./tipos";
+import type {
+  ConductorConUbicacion,
+  TipoVehiculo,
+  TipoServicio,
+  EstadoOperativo,
+} from "./tipos";
 
 export class ErrorApi extends Error {
   readonly status: number;
@@ -14,7 +19,7 @@ export class ErrorApi extends Error {
 }
 
 export interface FiltrosListarConductores {
-  disponible?: boolean;
+  estado?: EstadoOperativo;
   habilitado?: boolean;
   tipo_vehiculo?: TipoVehiculo;
   tipo_servicio?: TipoServicio;
@@ -39,8 +44,8 @@ export async function listarConductores(
 
   if (opciones?.filtros) {
     const params = new URLSearchParams();
-    if (opciones.filtros.disponible !== undefined) {
-      params.append("disponible", String(opciones.filtros.disponible));
+    if (opciones.filtros.estado) {
+      params.append("estado", opciones.filtros.estado);
     }
     if (opciones.filtros.habilitado !== undefined) {
       params.append("habilitado", String(opciones.filtros.habilitado));

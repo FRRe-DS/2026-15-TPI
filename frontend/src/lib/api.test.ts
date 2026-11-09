@@ -30,8 +30,10 @@ describe("listarConductores", () => {
         telefono: "1122334455",
         email: "juan.perez@example.com",
         habilitacion: "APROBADA",
-        conectado: true,
-        disponible: true,
+        estado: "DISPONIBLE",
+        puntaje_promedio: 4.5,
+        cantidad_calificaciones: 10,
+        id_vehiculo_activo: 10,
         documentos: [],
         vehiculos: [
           {
@@ -66,7 +68,22 @@ describe("listarConductores", () => {
     expect(options.method).toBe("GET");
     expect(options.headers.Authorization).toBe("Bearer test-bearer-token");
   });
-
+  it("envía el filtro estado como parámetro de consulta", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    await listarConductores({
+      filtros: {
+        estado: "DISPONIBLE",
+      },
+    });
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe(
+      "http://api.test:8080/api/v1/conductores?estado=DISPONIBLE"
+    );
+  });
   it("lanza ErrorApi ante error 401", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,

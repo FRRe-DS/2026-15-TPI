@@ -12,8 +12,10 @@ describe("ListadoConductores", () => {
     telefono: "1122334455",
     email: "juan@example.com",
     habilitacion: "APROBADA",
-    conectado: true,
-    disponible: true,
+    estado: "DISPONIBLE",
+    puntaje_promedio: 4.8,
+    cantidad_calificaciones: 15,
+    id_vehiculo_activo: null,
     documentos: [],
     vehiculos: [],
   };
