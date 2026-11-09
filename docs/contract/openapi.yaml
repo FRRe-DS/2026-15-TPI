@@ -91,7 +91,7 @@ paths:
     get:
       tags: [Conductores]
       summary: Listar conductores
-      description: Filtros opcionales de estado, habilitación y tipo de vehículo. Devuelve la ubicación persistida y su fecha, o null si no existe. En esta iteración latitud, longitud y tipo_servicio se aceptan pero no filtran ni ordenan; no se aplica vencimiento de ubicación.
+      description: Solo para los roles operador y servicio. Filtros opcionales de estado, habilitación, tipo de vehículo y tipo de servicio (al menos un vehículo con ese tipo de servicio habilitado), combinados en conjunción. Devuelve la ubicación persistida y su fecha, o null si no existe. latitud y longitud se aceptan (juntas y en rango) pero no filtran ni ordenan; no se aplica vencimiento de ubicación. El parámetro disponible de la versión 1.0.0 ya no existe y responde 400.
       operationId: listarConductores
       parameters:
         - name: latitud
@@ -793,7 +793,7 @@ components:
         JWT emitido por Keycloak (realm `m3`). Roles:
 
         - `operador`: acciones de habilitación. El token trae el claim entero `id_operador`.
-        - `conductor`: consulta de conductores y vehículos.
+        - `conductor`: opera sobre sus propios datos. El token trae el claim entero `id_conductor`; si pide datos de otro conductor recibe `403 ACCESO_PROHIBIDO`. No puede listar conductores (`GET /conductores`).
         - `servicio`: cuenta técnica de otros módulos (M4). Solo puede leer conductores, vehículos, estado y ubicación.
 
   parameters:
@@ -1179,6 +1179,8 @@ components:
           type: string
           maxLength: 500
           format: uri
+          pattern: '^[Hh][Tt][Tt][Pp][Ss]?://'
+          description: URL `http` o `https`. Se guarda y se devuelve normalizada (`https://host` pasa a `https://host/`).
 
     DocumentoConductor:
       allOf:
@@ -1201,8 +1203,11 @@ components:
           enum: [SEGURO, CEDULA_VERDE, VTV]
         numero:
           type: string
+          minLength: 1
+          maxLength: 50
         entidad_emisora:
           type: string
+          maxLength: 255
         fecha_emision:
           type: string
           format: date
@@ -1211,7 +1216,10 @@ components:
           format: date
         url_archivo:
           type: string
+          maxLength: 500
           format: uri
+          pattern: '^[Hh][Tt][Tt][Pp][Ss]?://'
+          description: URL `http` o `https`. Se guarda y se devuelve normalizada (`https://host` pasa a `https://host/`).
 
     DocumentoVehiculo:
       allOf:
