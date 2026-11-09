@@ -75,7 +75,7 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
     ruta = (
         f"/api/v1/conductores/{conductor.id_conductor}"
         if detalle
-        else "/api/v1/conductores?disponible=true&habilitado=true"
+        else "/api/v1/conductores?estado=DISPONIBLE&habilitado=true"
     )
     respuesta = cliente_m4.get(ruta)
     assert respuesta.status_code == 200
@@ -84,8 +84,12 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
         assert len(datos) == 1
         datos = datos[0]
     assert datos["id"] == conductor.id_conductor
-    assert datos["conectado"] is True
-    assert datos["disponible"] is True
+    assert datos["estado"] == "DISPONIBLE"
+    assert datos["cantidad_calificaciones"] == 0
+    assert datos["puntaje_promedio"] is None
+    assert datos["id_vehiculo_activo"] is None
+    assert "conectado" not in datos
+    assert "disponible" not in datos
     assert datos["latitud"] == ubicacion["latitud"]
     assert datos["longitud"] == ubicacion["longitud"]
     if con_ubicacion:

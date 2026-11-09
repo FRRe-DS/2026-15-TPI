@@ -91,8 +91,75 @@ def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
     )
 
     assert respuesta.estado == estado_esperado
-    assert respuesta.conectado is (estado_dominio is not EstadoConductor.DESCONECTADO)
-    assert respuesta.disponible is (estado_dominio is EstadoConductor.DISPONIBLE)
+    assert "conectado" not in respuesta.model_dump()
+    assert "disponible" not in respuesta.model_dump()
+
+
+def _detalle_de(**cambios):
+    conductor = Conductor.crear(
+        dni="12345678",
+        nombre="Ana",
+        apellido="Pérez",
+        telefono="3415550000",
+        email="ana@example.com",
+    )
+    conductor.id = 1
+    for campo, valor in cambios.items():
+        setattr(conductor, campo, valor)
+    return ConductorDetalle(conductor=conductor, documentos=[], vehiculos=[])
+
+
+def test_el_conductor_sin_calificaciones_no_tiene_puntaje() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de())
+
+    assert respuesta.puntaje_promedio is None
+    assert respuesta.cantidad_calificaciones == 0
+    assert respuesta.id_vehiculo_activo is None
+
+
+def test_el_puntaje_promedio_y_la_cantidad_salen_del_dominio() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de(suma_puntajes=14, cantidad_calificaciones=3))
+
+    assert respuesta.puntaje_promedio == pytest.approx(4.67)
+    assert respuesta.cantidad_calificaciones == 3
+
+
+def test_el_vehiculo_activo_sale_del_dominio() -> None:
+    respuesta = conductor_desde_detalle(_detalle_de(id_vehiculo_activo=7))
+
+    assert respuesta.id_vehiculo_activo == 7
+
+
+def test_el_alta_devuelve_conductor_sin_ubicacion_ni_vehiculo_activo() -> None:
+    from app.api.esquemas.conductor import conductor_creado
+
+    creado = conductor_creado(_detalle_de())
+
+    assert creado.estado == EstadoOperativo.DESCONECTADO
+    assert creado.puntaje_promedio is None
+    assert creado.cantidad_calificaciones == 0
+    datos = creado.model_dump()
+    assert not {"latitud", "longitud", "fecha_act_ubic", "id_vehiculo_activo"} & datos.keys()
+
+
+@pytest.mark.parametrize("puntaje", [0.9, 5.1])
+def test_el_puntaje_promedio_se_acota_de_1_a_5(puntaje: float) -> None:
+    from app.api.esquemas.conductor import Conductor as ConductorRespuesta
+
+    with pytest.raises(ValidationError):
+        ConductorRespuesta(
+            id=1,
+            dni="12345678",
+            nombre="Ana",
+            apellido="Pérez",
+            telefono="3415550000",
+            email="ana@example.com",
+            documentos=[],
+            vehiculos=[],
+            habilitacion="PENDIENTE",
+            estado="DESCONECTADO",
+            puntaje_promedio=puntaje,
+        )
 
 
 def test_nombre_obligatorio() -> None:

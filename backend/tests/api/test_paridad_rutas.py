@@ -64,6 +64,11 @@ def _pares_generados() -> dict[tuple[str, str], str]:
     return pares
 
 
+def test_el_alcance_son_las_17_operaciones_del_contrato() -> None:
+    assert len(ESPERADOS) == 17
+    assert len(set(ESPERADOS.values())) == 17
+
+
 def test_genera_exactamente_los_pares_del_alcance() -> None:
     assert set(_pares_generados()) == set(ESPERADOS)
 

@@ -45,8 +45,11 @@ def test_crear_conductor_cumple_el_contrato(
     assert creado["telefono"] == CONDUCTOR["telefono"]
     assert creado["email"] == CONDUCTOR["email"]
     assert creado["habilitacion"] == "PENDIENTE"
-    assert creado["conectado"] is False
-    assert creado["disponible"] is False
+    assert creado["estado"] == "DESCONECTADO"
+    assert creado["cantidad_calificaciones"] == 0
+    assert creado["puntaje_promedio"] is None
+    assert "conectado" not in creado
+    assert "disponible" not in creado
     assert creado["documentos"] == []
     assert creado["vehiculos"] == []
     assert respuesta.headers["location"] == f"/api/v1/conductores/{creado['id']}"
@@ -122,3 +125,30 @@ def test_obtener_conductor_cumple_el_contrato(
     assert detalle["latitud"] is None
     assert detalle["longitud"] is None
     assert detalle["fecha_act_ubic"] is None
+
+
+def test_listar_conductores_filtra_por_estado_y_tipo_servicio(
+    cliente: TestClient,
+    headers_conductor: dict[str, str],
+    validar_contrato: Callable[[httpx.Response], None],
+) -> None:
+    creado = _crear_conductor(cliente, headers_conductor).json()
+
+    desconectados = cliente.get(
+        "/api/v1/conductores",
+        params={"estado": "DESCONECTADO"},
+        headers=headers_conductor,
+    )
+    assert desconectados.status_code == 200, desconectados.text
+    validar_contrato(desconectados)
+    assert creado["id"] in [conductor["id"] for conductor in desconectados.json()]
+    assert all(conductor["estado"] == "DESCONECTADO" for conductor in desconectados.json())
+
+    disponibles = cliente.get(
+        "/api/v1/conductores",
+        params={"estado": "DISPONIBLE", "tipo_servicio": "PASAJEROS"},
+        headers=headers_conductor,
+    )
+    assert disponibles.status_code == 200, disponibles.text
+    validar_contrato(disponibles)
+    assert creado["id"] not in [conductor["id"] for conductor in disponibles.json()]
