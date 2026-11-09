@@ -20,8 +20,11 @@ set -euo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ARCHIVO_ENV="${COMPOSE_ENV_FILE:-$RAIZ/.env}"
 ARCHIVO_COMPOSE="${COMPOSE_FILE:-$RAIZ/docker-compose.yml}"
+umask 077
 ARCHIVO_RESPUESTA="$(mktemp)"
 ARCHIVO_CABECERAS="$(mktemp)"
+ARCHIVO_FORMULARIO="$(mktemp)"
+ARCHIVO_AUTORIZACION="$(mktemp)"
 
 COMPOSE=(docker compose --env-file "$ARCHIVO_ENV" -f "$ARCHIVO_COMPOSE")
 
@@ -38,6 +41,8 @@ limpiar() {
 
     rm -f "$ARCHIVO_RESPUESTA"
     rm -f "$ARCHIVO_CABECERAS"
+    rm -f "$ARCHIVO_FORMULARIO"
+    rm -f "$ARCHIVO_AUTORIZACION"
 
     if [[ "${CONSERVAR_ENTORNO:-0}" != "1" ]]; then
         local argumentos=(down --remove-orphans)
@@ -51,7 +56,7 @@ limpiar() {
 }
 trap limpiar EXIT
 
-for comando in docker curl python3; do
+for comando in docker curl python3 chmod; do
     if ! command -v "$comando" >/dev/null 2>&1; then
         echo "ERROR: falta el comando '$comando'." >&2
         exit 1
@@ -67,10 +72,25 @@ if [[ ! -f "$ARCHIVO_COMPOSE" ]]; then
     exit 1
 fi
 
-set -a
+set +a
 # shellcheck source=/dev/null
 . "$ARCHIVO_ENV"
-set +a
+# A previous export from the caller remains attached to a sourced assignment.
+# Keep secrets available only to this shell; Compose reads its own env file.
+export -n \
+    POSTGRES_PASSWORD \
+    M3_DB_PASSWORD \
+    KEYCLOAK_DB_PASSWORD \
+    KEYCLOAK_ADMIN_PASSWORD \
+    KEYCLOAK_M3_CLIENT_SECRET \
+    M3_OPERADOR_PASSWORD \
+    M3_CONDUCTOR_PASSWORD \
+    M3_SERVICIO_PASSWORD \
+    REDIS_PASSWORD \
+    DATABASE_URL \
+    TOKEN 2>/dev/null || true
+chmod 600 "$ARCHIVO_RESPUESTA" "$ARCHIVO_CABECERAS" \
+    "$ARCHIVO_FORMULARIO" "$ARCHIVO_AUTORIZACION"
 
 : "${KEYCLOAK_M3_CLIENT_SECRET:?Falta KEYCLOAK_M3_CLIENT_SECRET en el .env}"
 : "${M3_OPERADOR_USERNAME:?Falta M3_OPERADOR_USERNAME en el .env}"
@@ -124,20 +144,30 @@ esperar_redis_saludable() {
 }
 
 obtener_token() {
-    local respuesta
-    respuesta="$(
-        curl -fsS --max-time 10 \
-            -X POST "$KEYCLOAK_BASE/realms/$REALM/protocol/openid-connect/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "grant_type=password" \
-            --data-urlencode "client_id=$CLIENT_ID" \
-            --data-urlencode "client_secret=$KEYCLOAK_M3_CLIENT_SECRET" \
-            --data-urlencode "username=$M3_OPERADOR_USERNAME" \
-            --data-urlencode "password=$M3_OPERADOR_PASSWORD"
-    )"
+    printf '%s\0' \
+        "grant_type" "password" \
+        "client_id" "$CLIENT_ID" \
+        "client_secret" "$KEYCLOAK_M3_CLIENT_SECRET" \
+        "username" "$M3_OPERADOR_USERNAME" \
+        "password" "$M3_OPERADOR_PASSWORD" |
+        python3 -c '
+import sys
+from urllib.parse import urlencode
 
-    printf '%s' "$respuesta" | python3 -c \
-        'import json, sys; print(json.load(sys.stdin)["access_token"])'
+campos = sys.stdin.buffer.read().split(b"\0")
+if campos[-1] == b"":
+    campos.pop()
+if len(campos) % 2:
+    raise SystemExit("ERROR: formulario OAuth incompleto.")
+pares = zip(campos[::2], campos[1::2])
+sys.stdout.write(urlencode([(k.decode(), v.decode()) for k, v in pares]))
+' > "$ARCHIVO_FORMULARIO"
+
+    curl -fsS --max-time 10 \
+        -X POST "$KEYCLOAK_BASE/realms/$REALM/protocol/openid-connect/token" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        --data-binary "@$ARCHIVO_FORMULARIO" |
+        python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])'
 }
 
 comprobar_listado() {
@@ -146,7 +176,7 @@ comprobar_listado() {
         curl -sS --max-time 10 \
             -o "$ARCHIVO_RESPUESTA" \
             -w '%{http_code}' \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "@$ARCHIVO_AUTORIZACION" \
             "$API_BASE/api/v1/conductores"
     )"
 
@@ -256,7 +286,7 @@ comprobar_falla_redis() {
         curl -sS --max-time 10 \
             -o "$ARCHIVO_RESPUESTA" \
             -w '%{http_code}' \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "@$ARCHIVO_AUTORIZACION" \
             "$API_BASE/api/v1/conductores"
     )"
     if [[ "$codigo" != "503" ]]; then
@@ -303,10 +333,13 @@ esperar_http "$FRONTEND_BASE" "Frontend"
 
 echo "==> Solicitando token de operador"
 TOKEN="$(obtener_token)"
+export -n TOKEN 2>/dev/null || true
 if [[ -z "$TOKEN" ]]; then
     echo "ERROR: Keycloak no devolvio un access_token." >&2
     exit 1
 fi
+printf 'Authorization: Bearer %s\n' "$TOKEN" > "$ARCHIVO_AUTORIZACION"
+unset TOKEN
 echo "OK: token de operador obtenido"
 
 echo "==> Verificando el listado de conductores"
