@@ -17,7 +17,9 @@ El valor esta en detectar diferencias entre fake y SQL; si una aparece, se repor
 ajusta el test.
 """
 
-from datetime import UTC, date, datetime
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, date, datetime, timedelta
+from threading import Barrier
 
 import pytest
 from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
@@ -25,6 +27,9 @@ from app.aplicacion.casos_de_uso.accionar_habilitacion_conductor import (
 )
 from app.aplicacion.casos_de_uso.accionar_habilitacion_vehiculo import (
     AccionarHabilitacionVehiculo,
+)
+from app.aplicacion.casos_de_uso.actualizar_estado_conductor import (
+    ActualizarEstadoConductor,
 )
 from app.aplicacion.casos_de_uso.consultar_habilitacion_conductor import (
     ConsultarHabilitacionConductor,
@@ -36,15 +41,19 @@ from app.aplicacion.casos_de_uso.obtener_conductor import ObtenerConductor
 from app.aplicacion.casos_de_uso.obtener_vehiculo import ObtenerVehiculo
 from app.aplicacion.casos_de_uso.registrar_licencia import RegistrarLicencia
 from app.aplicacion.casos_de_uso.registrar_vehiculo import RegistrarVehiculo
-from app.dominio.conductor import EstadoConductor
+from app.aplicacion.casos_de_uso.responder_solicitud import ResponderSolicitud
+from app.aplicacion.politicas.acceso import ROL_CONDUCTOR, Identidad
+from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import (
     DatosInvalidos,
     DniDuplicado,
     LicenciaVigenteRequerida,
     PatenteDuplicada,
+    SolicitudYaRespondida,
 )
 from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion
-from app.dominio.vehiculo import TipoServicio, TipoVehiculo
+from app.dominio.solicitud import EstadoSolicitud, Solicitud
+from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 from sqlalchemy import text
 
@@ -776,3 +785,188 @@ def test_los_ids_de_los_eventos_devueltos_son_los_de_la_base(uow_sql, fabrica_se
             .all()
         )
     assert [evento.id for evento in resultado.eventos] == ids_en_la_base
+
+
+# --- T357: responder una solicitud y cambiar el estado del mismo conductor ---
+
+
+VIGENTE_HASTA = AHORA + timedelta(minutes=2)
+HORA_RTA = AHORA - timedelta(seconds=30)
+ULTIMO_CAMBIO = AHORA - timedelta(days=1)
+HORA_DEL_CAMBIO_DE_ESTADO = AHORA + timedelta(minutes=1)
+LATITUD = -27.4511
+LONGITUD = -58.9867
+
+PENDIENTE = EstadoSolicitud.PENDIENTE
+ACEPTADO = EstadoSolicitud.ACEPTADO
+RECHAZADO = EstadoSolicitud.RECHAZADO
+DISPONIBLE = EstadoConductor.DISPONIBLE
+CONECTADO = EstadoConductor.CONECTADO
+OCUPADO = EstadoConductor.OCUPADO
+
+
+def sembrar_conductor_habilitado_sql(uow, *, estado=DISPONIBLE, dni="30123456", patente="AB123CD"):
+    """Conductor aprobado con vehiculo activo aprobado, listo para aceptar solicitudes."""
+    conductor = Conductor.crear(
+        dni=dni,
+        nombre="Ana",
+        apellido="Perez",
+        telefono="+54 379 4000000",
+        email="ana@example.com",
+    )
+    conductor.habilitacion = EstadoHabilitacion.APROBADA
+    conductor.estado = estado
+    conductor.fecha_ultimo_cambio_estado = ULTIMO_CAMBIO
+
+    vehiculo = Vehiculo.crear(
+        tipo=AUTO,
+        patente=patente,
+        marca="Toyota",
+        modelo="Etios",
+        anio=2019,
+        tipos_servicio=[PASAJEROS],
+    )
+    vehiculo.habilitacion = EstadoHabilitacion.APROBADA
+
+    with uow:
+        conductor = uow.conductores.guardar(conductor)
+        vehiculo.id_conductor = conductor.id
+        vehiculo = uow.vehiculos.guardar(vehiculo)
+        conductor.id_vehiculo_activo = vehiculo.id
+        conductor = uow.conductores.guardar(conductor)
+        uow.commit()
+    return conductor
+
+
+def sembrar_solicitud_sql(uow, id_conductor, *, vence_en=VIGENTE_HASTA):
+    solicitud = Solicitud(id_conductor=id_conductor, vence_en=vence_en)
+    with uow:
+        solicitud = uow.solicitudes.guardar(solicitud)
+        uow.commit()
+    return solicitud
+
+
+def identidad_del_conductor(id_conductor):
+    return Identidad(roles={ROL_CONDUCTOR}, id_conductor=id_conductor)
+
+
+def responder_en_sql(uow, reloj, solicitud, *, respuesta=ACEPTADO, hora_rta=HORA_RTA):
+    return ResponderSolicitud(uow, reloj).ejecutar(
+        id_solicitud=solicitud.id,
+        respuesta=respuesta,
+        hora_rta=hora_rta,
+        identidad=identidad_del_conductor(solicitud.id_conductor),
+    )
+
+
+def test_responder_solicitud_acepta_una_vigente_y_deja_al_conductor_ocupado(uow_sql):
+    conductor = sembrar_conductor_habilitado_sql(uow_sql)
+    solicitud = sembrar_solicitud_sql(uow_sql, conductor.id)
+
+    resultado = responder_en_sql(uow_sql, RelojFijo(AHORA), solicitud)
+
+    assert (resultado.id, resultado.estado, resultado.respuesta, resultado.hora_rta) == (
+        solicitud.id,
+        ACEPTADO,
+        ACEPTADO,
+        HORA_RTA,
+    )
+
+    with uow_sql:
+        guardada = uow_sql.solicitudes.obtener(solicitud.id)
+        guardado = uow_sql.conductores.obtener(conductor.id)
+
+    assert (guardada.estado, guardada.respuesta, guardada.hora_rta) == (
+        ACEPTADO,
+        ACEPTADO,
+        HORA_RTA,
+    )
+    assert (guardado.estado, guardado.fecha_ultimo_cambio_estado) == (OCUPADO, AHORA)
+    assert guardado.id_vehiculo_activo == conductor.id_vehiculo_activo
+
+
+@pytest.mark.parametrize("respuesta", [ACEPTADO, RECHAZADO])
+def test_responder_solicitud_rechaza_una_segunda_respuesta_sin_cambiar_lo_guardado(
+    uow_sql, respuesta
+):
+    conductor = sembrar_conductor_habilitado_sql(uow_sql)
+    solicitud = sembrar_solicitud_sql(uow_sql, conductor.id)
+    responder_en_sql(uow_sql, RelojFijo(AHORA), solicitud)
+
+    with pytest.raises(SolicitudYaRespondida):
+        responder_en_sql(
+            uow_sql,
+            RelojFijo(AHORA),
+            solicitud,
+            respuesta=respuesta,
+            hora_rta=HORA_RTA + timedelta(seconds=10),
+        )
+
+    with uow_sql:
+        guardada = uow_sql.solicitudes.obtener(solicitud.id)
+        guardado = uow_sql.conductores.obtener(conductor.id)
+
+    assert (guardada.estado, guardada.respuesta, guardada.hora_rta) == (
+        ACEPTADO,
+        ACEPTADO,
+        HORA_RTA,
+    )
+    assert (guardado.estado, guardado.fecha_ultimo_cambio_estado) == (OCUPADO, AHORA)
+
+
+def test_aceptar_y_cambiar_estado_a_la_vez_aplican_las_dos_operaciones(uow_sql, fabrica_sesiones):
+    """Una aceptacion y un cambio de estado del mismo conductor, lanzados a la vez.
+
+    Las dos operaciones bloquean primero al conductor, asi que se aplican una tras otra.
+    La ubicacion la escribe solo el cambio de estado: si la aceptacion leyera al conductor
+    antes de que la otra transaccion confirme y despues guardara su copia vieja, la perderia.
+    El par (estado, fecha) final tiene que ser el de la operacion que quedo segunda, nunca
+    una mezcla de las dos.
+    """
+    conductor = sembrar_conductor_habilitado_sql(uow_sql, estado=DISPONIBLE)
+    solicitud = sembrar_solicitud_sql(uow_sql, conductor.id)
+    barrera = Barrier(2)
+
+    def aceptar():
+        barrera.wait()
+        try:
+            responder_en_sql(SqlUnidadDeTrabajo(fabrica_sesiones), RelojFijo(AHORA), solicitud)
+            return "acepto"
+        except Exception as error:  # el test compara el nombre, no el mensaje
+            return type(error).__name__
+
+    def cambiar_estado():
+        barrera.wait()
+        try:
+            ActualizarEstadoConductor(
+                SqlUnidadDeTrabajo(fabrica_sesiones),
+                RelojFijo(HORA_DEL_CAMBIO_DE_ESTADO),
+                latitud_simulada=LATITUD,
+                longitud_simulada=LONGITUD,
+            ).ejecutar(
+                id_conductor=conductor.id,
+                estado=CONECTADO,
+                latitud=LATITUD,
+                longitud=LONGITUD,
+            )
+            return "cambio"
+        except Exception as error:  # el test compara el nombre, no el mensaje
+            return type(error).__name__
+
+    with ThreadPoolExecutor(max_workers=2) as ejecutor:
+        futuros = [ejecutor.submit(aceptar), ejecutor.submit(cambiar_estado)]
+        resultados = [futuro.result() for futuro in futuros]
+
+    assert sorted(resultados) == ["acepto", "cambio"]
+
+    with uow_sql:
+        guardado = uow_sql.conductores.obtener(conductor.id)
+        guardada = uow_sql.solicitudes.obtener(solicitud.id)
+
+    assert guardada.estado is ACEPTADO
+    assert (guardado.estado, guardado.fecha_ultimo_cambio_estado) in {
+        (OCUPADO, AHORA),
+        (CONECTADO, HORA_DEL_CAMBIO_DE_ESTADO),
+    }
+    assert (guardado.latitud, guardado.longitud) == (LATITUD, LONGITUD)
+    assert guardado.fecha_act_ubic == HORA_DEL_CAMBIO_DE_ESTADO
