@@ -24,7 +24,13 @@ Esta guía valida los entregables planificados de Datos y seguridad, Redis y pub
 - Redis no disponible: con el stack levantado, `docker compose stop redis`; las rutas protegidas deben responder `503` fail-closed mientras `/salud` permanece disponible. Restaurar con `docker compose start redis`.
 - La suite automatizada debe cubrir concurrencia con Redis real para verificar atomicidad, más errores de conexión/timeout mediante fake. Las pruebas API ejecutan lifespan y las pruebas de migración, esquema y realm mantienen las validaciones del plan principal.
 
-En CI, el job `test` usa un Redis aislado y configura `RATE_LIMIT_AUTH_REQUESTS=1000`, `RATE_LIMIT_PREAUTH_REQUESTS=1000` y `RATE_LIMIT_ANON_REQUESTS=60`. El job `entorno` usa los mismos límites; no reducirlos en CI, porque las pruebas e2e y de concurrencia de otros grupos comparten las cuotas durante el job.
+## Smoke test
+
+`.github/scripts/humo.sh` levanta el stack y verifica el flujo de operador, el healthcheck de Redis, el `429` con `Retry-After`, el `503` al detener Redis y la disponibilidad de `/salud` durante esa falla. En CI el job `entorno` ejecuta `humo.sh --preparar` antes de los e2e y el smoke completo después de ellos: la ráfaga anónima agota el cupo de la IP y detener Redis deja el stack en 503, por eso esas comprobaciones van al final.
+
+## Límites en CI
+
+Los jobs `test` y `entorno` fijan `RATE_LIMIT_AUTH_REQUESTS=1000`, `RATE_LIMIT_PREAUTH_REQUESTS=1000` y dejan `RATE_LIMIT_ANON_REQUESTS=60`. Los e2e y las pruebas de concurrencia de Testing usan JWT (cuota por `(iss, sub)`) y las pocas llamadas anónimas no alcanzan 60. Bajar esos valores en CI rompe a Testing.
 
 ## Validar publicación Docker Hub
 
