@@ -83,7 +83,7 @@ jobs:
       - name: Comprobar Docker
         run: docker info
       - name: Pruebas completas con cobertura
-        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=65
+        run: uv run pytest --ignore=tests/e2e --cov=app --cov-report=term-missing --cov-fail-under=65
 
   entorno:
     name: Humo del entorno
@@ -108,8 +108,28 @@ jobs:
             .env
       - name: Levantar Compose y ejecutar la prueba de humo
         env:
-          BORRAR_VOLUMENES: "1"
+          CONSERVAR_ENTORNO: "1"
         run: bash .github/scripts/humo.sh
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Instalar dependencias para E2E
+        working-directory: backend
+        run: uv sync --frozen --all-groups
+      - name: Pruebas E2E contra el Compose
+        working-directory: backend
+        run: |
+          set -o pipefail
+          uv run pytest tests/e2e -v -rs | tee /tmp/e2e.log
+          if grep -Eq '[0-9]+ skipped' /tmp/e2e.log; then
+            echo "::error::Las pruebas E2E no pueden omitirse."
+            exit 1
+          fi
+      - name: Bajar Compose
+        if: always()
+        run: docker compose --env-file .env -f docker-compose.yml down --volumes --remove-orphans
 
   frontend:
     name: Frontend
