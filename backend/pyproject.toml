@@ -42,6 +42,7 @@ testpaths = ["tests"]
 addopts = "-ra"
 markers = [
     "integration: requiere Docker/Testcontainers y se omite si el daemon no está disponible",
+    "e2e: requiere la API y Keycloak reales levantados con Docker Compose",
 ]
 
 [tool.ruff]
