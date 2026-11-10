@@ -30,14 +30,14 @@
 
 **Entrega**: demostración repetible de dos altas concurrentes del mismo DNI a través del endpoint HTTP y contra PostgreSQL real.
 
-**Rama**: `001-verificacion-integracion-m3-pr2-concurrencia-real`
+**Rama**: `test/pr2-integracion-concurrencia-real`
 
 **Base**: `dev` con PR 1 integrada. Integrar solo con CI verde.
 
 **Antes de empezar**: revisar qué de esta PR ya cubren `backend/tests/integracion/concurrencia/` y `.github/scripts/humo.sh` (PR #24 y #25 de la Iteración 1) y limitarla a lo que falta.
 
 
-- [ ] T603 [US2] Red: agregar `backend/tests/integracion/concurrencia/test_alta_dni_http_concurrente.py`. Coordinar dos clientes HTTP independientes con una barrera de inicio (sin `sleep` para inducir carrera), autenticarse con token válido, enviar simultáneamente el mismo DNI y afirmar exactamente una respuesta `201`, una `409` con `codigo=DNI_DUPLICADO`, exactamente una fila para ese DNI en PostgreSQL y un solo evento de alta asociado. Generar DNI propio de la prueba; ejecutar y registrar el fallo antes de modificar el manejo de concurrencia.
+- [x] T603 [US2] Red: agregar `backend/tests/integracion/concurrencia/test_alta_dni_http_concurrente.py`. Coordinar dos clientes HTTP independientes con una barrera de inicio (sin `sleep` para inducir carrera), autenticarse con token válido, enviar simultáneamente el mismo DNI y afirmar exactamente una respuesta `201`, una `409` con `codigo=DNI_DUPLICADO`, exactamente una fila para ese DNI en PostgreSQL y un solo evento de alta asociado. Generar DNI propio de la prueba; ejecutar y registrar el fallo antes de modificar el manejo de concurrencia.
 - [ ] T604 [US2] Green: ajustar lo mínimo en `backend/app/infraestructura/repositorios/`, `backend/app/aplicacion/`, `backend/app/api/` y `backend/tests/integracion/conftest.py` para que T603 pase bajo PostgreSQL real. La restricción única de la base sigue siendo la autoridad de exclusión; traducir la colisión concurrente a `409 DNI_DUPLICADO`, asegurar rollback de datos parciales y mantener el aislamiento por prueba. Incorporar el test al jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`) de `.github/workflows/ci.yml`.
 
 **Criterio independiente**: T603 demuestra el par exacto de respuestas y una sola fila en ejecuciones repetidas; no depende del orden de planificación ni de datos ajenos.
