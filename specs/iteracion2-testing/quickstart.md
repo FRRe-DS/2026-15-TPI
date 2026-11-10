@@ -51,14 +51,15 @@ uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=70
 
 ## Ejecutar flujo E2E del Compose
 
-Completar `.env` a partir de `.env.example` usando solo credenciales efímeras de prueba. No versionar `.env`.
+Copiar `.env.example` a `.env` en la raíz y completarlo usando solo credenciales efímeras de prueba. No versionar `.env`.
 
 ```powershell
-docker compose --env-file infra/.env -f docker-compose.yml up --build --wait -d
+Copy-Item .env.example .env
+docker compose --env-file .env -f docker-compose.yml up --build --wait -d
 Set-Location backend
 uv run pytest tests/e2e -v
 Set-Location ..
-docker compose --env-file infra/.env -f docker-compose.yml down
+docker compose --env-file .env -f docker-compose.yml down
 ```
 
 El E2E solicita tokens a Keycloak local del Compose, realiza las altas y aprobaciones contra la API HTTP, valida el historial, reinicia la API sin reiniciar PostgreSQL y vuelve a leer los registros. La validación de eventos en RabbitMQ queda bloqueada hasta la decisión sobre FR-007/FR-013; la persistencia se verifica sin broker.
