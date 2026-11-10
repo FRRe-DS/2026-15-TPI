@@ -5,7 +5,7 @@ Esta guía valida los entregables planificados de Datos y seguridad, Redis y pub
 ## Preparar el entorno local
 
 1. Copiar `.env.example` a `.env` y completar credenciales locales como indica [DESPLIEGUE.md](../../DESPLIEGUE.md). No reutilizar credenciales reales ni añadir `.env` al repositorio.
-2. Generar `REDIS_PASSWORD` (por ejemplo, `openssl rand -hex 32`) y completarlo en `.env`; configurar `REDIS_URL=redis://redis:6379/0`, `RATE_LIMIT_ANON_REQUESTS=60`, `RATE_LIMIT_PREAUTH_REQUESTS=1000`, `RATE_LIMIT_AUTH_REQUESTS=120` y `RATE_LIMIT_WINDOW_SECONDS=60` (o los valores que se quieran probar). La cuota preliminar limita por IP los bearer tokens antes de consultar JWKS o verificar la firma; la cuota autenticada se mantiene por `(iss, sub)`. La contraseña se pasa por separado y no se incluye en la URL. No versionar el `.env`.
+2. Generar `REDIS_PASSWORD` y `RATE_LIMIT_HMAC_SECRET` como valores aleatorios distintos (por ejemplo, `openssl rand -hex 32`) y completarlos en `.env`; configurar `REDIS_URL=redis://redis:6379/0`, `RATE_LIMIT_ANON_REQUESTS=60`, `RATE_LIMIT_PREAUTH_REQUESTS=1000`, `RATE_LIMIT_AUTH_REQUESTS=120` y `RATE_LIMIT_WINDOW_SECONDS=60` (o los valores que se quieran probar). El secreto HMAC debe ser el mismo en todas las instancias de API. La cuota preliminar limita por IP los bearer tokens antes de consultar JWKS o verificar la firma; la cuota autenticada se mantiene por `(iss, sub)`. La contraseña Redis se pasa por separado y no se incluye en la URL. No versionar el `.env`.
 3. Validar la configuración y levantar el stack:
 
    ```sh

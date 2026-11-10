@@ -10,6 +10,7 @@ Los cambios persistentes de Iteración 2 (`conductor`, `solicitud` y `vehiculo_d
 |---|---|---:|---|
 | `REDIS_URL` | URL Redis | `redis://default:${REDIS_PASSWORD}@redis:6379/0` en Compose | Requerida por la API; la contraseña se inyecta por entorno |
 | `REDIS_PASSWORD` | secreto | Generado fuera del repositorio | Obligatorio para Redis y la API; no se registra |
+| `RATE_LIMIT_HMAC_SECRET` | secreto de al menos 32 bytes | Generado fuera del repositorio | Obligatorio y compartido por instancias API; no se guarda en Redis ni se registra |
 | `RATE_LIMIT_ANON_REQUESTS` | entero | `60` | Mayor que cero |
 | `RATE_LIMIT_PREAUTH_REQUESTS` | entero | `1000` | Mayor que cero; limita por IP solicitudes con bearer token antes de consultar JWKS o verificar firma |
 | `RATE_LIMIT_AUTH_REQUESTS` | entero | `120` | Mayor que cero |
@@ -33,8 +34,9 @@ Concepto lógico, no entidad de negocio:
 ### Clave y contenido Redis
 
 - Prefijo: `m3:rate-limit:v1`.
-- Clave lógica: `m3:rate-limit:v1:<scope>:<identity>`.
+- Clave lógica: `m3:rate-limit:v1:<scope>:<hmac-sha256(identity)>`.
 - El contenido es un sorted set; el score es el timestamp en milisegundos obtenido por `TIME` en Redis y el miembro es único por solicitud.
+- El componente de identidad es el digest hexadecimal HMAC-SHA-256 de la identidad, calculado con `RATE_LIMIT_HMAC_SECRET`; no se guarda la identidad original ni se usa un hash sin clave.
 - No guardar JWT, cuerpos, nombres, datos personales ni encabezados. No escribir claves o identidades en logs.
 - Un script Lua ejecuta atómicamente: obtener hora; retirar eventos anteriores a la ventana; consultar cantidad; si el límite ya se alcanzó, devolver denegación y espera; de lo contrario, agregar el evento y aplicar TTL.
 - Un request denegado no agrega un evento ni reinicia el TTL.

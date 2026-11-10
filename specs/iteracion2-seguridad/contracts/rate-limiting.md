@@ -17,7 +17,7 @@ Contrato entre infraestructura de plataforma, la API y Testing. No agrega rutas 
 | Bearer token antes de validar | IP del peer ASGI | 1000 solicitudes | 60 segundos deslizantes |
 | JWT válido | Claim `sub` verificado | 120 solicitudes | 60 segundos deslizantes |
 
-Se configuran mediante `RATE_LIMIT_ANON_REQUESTS`, `RATE_LIMIT_PREAUTH_REQUESTS`, `RATE_LIMIT_AUTH_REQUESTS` y `RATE_LIMIT_WINDOW_SECONDS`. La cuota preliminar evita que una ráfaga desde la misma IP consulte JWKS o verifique firmas sin límite; la cuota autenticada sigue separando usuarios. El almacén compartido se configura mediante `REDIS_URL`; la contraseña se suministra por `REDIS_PASSWORD`, nunca se versiona ni se registra. Redis no publica puerto al host en Compose.
+Se configuran mediante `RATE_LIMIT_ANON_REQUESTS`, `RATE_LIMIT_PREAUTH_REQUESTS`, `RATE_LIMIT_AUTH_REQUESTS` y `RATE_LIMIT_WINDOW_SECONDS`. La cuota preliminar evita que una ráfaga desde la misma IP consulte JWKS o verifique firmas sin límite; la cuota autenticada sigue separando usuarios. El almacén compartido se configura mediante `REDIS_URL`; la contraseña se suministra por `REDIS_PASSWORD`, nunca se versiona ni se registra. `RATE_LIMIT_HMAC_SECRET`, independiente y compartido por las instancias API, se usa para derivar claves Redis con HMAC-SHA-256; no se almacena en Redis. Redis no publica puerto al host en Compose.
 
 ## Respuestas de limitación
 

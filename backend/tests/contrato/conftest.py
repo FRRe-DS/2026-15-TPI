@@ -205,6 +205,7 @@ def configuracion_contrato() -> Settings:
         KEYCLOAK_URL=URL_DEL_CONTRATO,
         KEYCLOAK_REALM=REALM,
         DATABASE_URL=DATABASE_URL_DE_PRUEBA,
+        RATE_LIMIT_HMAC_SECRET="contract-test-hmac-secret-shared-by-instances",
     )
 
 

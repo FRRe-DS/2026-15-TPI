@@ -51,7 +51,10 @@ def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
             socket_connect_timeout=1,
             socket_timeout=1,
         )
-        app.state.rate_limiter = RedisRateLimiter(cliente_redis)
+        app.state.rate_limiter = RedisRateLimiter(
+            cliente_redis,
+            settings.RATE_LIMIT_HMAC_SECRET.get_secret_value(),
+        )
         try:
             yield
         finally:

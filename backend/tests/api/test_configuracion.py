@@ -6,6 +6,7 @@ VARIABLES_REQUERIDAS = [
     "KEYCLOAK_URL",
     "KEYCLOAK_REALM",
     "DATABASE_URL",
+    "RATE_LIMIT_HMAC_SECRET",
 ]
 
 
@@ -15,6 +16,10 @@ def entorno_configuracion(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KEYCLOAK_REALM", "m3")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("REDIS_PASSWORD", "redis-secret-for-tests")
+    monkeypatch.setenv(
+        "RATE_LIMIT_HMAC_SECRET",
+        "test-hmac-secret-shared-by-all-api-tests",
+    )
     monkeypatch.setenv("RATE_LIMIT_ANON_REQUESTS", "60")
     monkeypatch.setenv("RATE_LIMIT_PREAUTH_REQUESTS", "1000")
     monkeypatch.setenv("RATE_LIMIT_AUTH_REQUESTS", "120")
@@ -32,6 +37,10 @@ def test_configuracion_lee_variables_entorno(entorno_configuracion: None) -> Non
     assert settings.KEYCLOAK_REALM == "m3"
     assert settings.REDIS_URL == "redis://localhost:6379/0"
     assert settings.REDIS_PASSWORD.get_secret_value() == "redis-secret-for-tests"
+    assert (
+        settings.RATE_LIMIT_HMAC_SECRET.get_secret_value()
+        == "test-hmac-secret-shared-by-all-api-tests"
+    )
     assert settings.RATE_LIMIT_ANON_REQUESTS == 60
     assert settings.RATE_LIMIT_PREAUTH_REQUESTS == 1000
     assert settings.RATE_LIMIT_AUTH_REQUESTS == 120
@@ -162,3 +171,16 @@ def test_error_de_configuracion_no_revela_password_redis(
         Settings(_env_file=None)
 
     assert "redis-secret-for-tests" not in str(error.value)
+
+
+def test_configuracion_rechaza_secreto_hmac_corto(
+    entorno_configuracion: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("RATE_LIMIT_HMAC_SECRET", "corto")
+
+    with pytest.raises(ValidationError) as error:
+        Settings(_env_file=None)
+
+    assert "RATE_LIMIT_HMAC_SECRET" in str(error.value)
+    assert "corto" not in str(error.value)

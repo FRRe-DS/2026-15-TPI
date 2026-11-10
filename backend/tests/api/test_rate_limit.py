@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 from collections import defaultdict
 from math import ceil
 
@@ -11,6 +13,8 @@ from app.api.seguridad import obtener_cliente_jwks, obtener_rate_limiter
 from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from redis.exceptions import ConnectionError
+
+SECRETO_HMAC_PRUEBAS = "test-hmac-secret-shared-by-all-api-tests"
 
 
 class RedisFalso:
@@ -54,8 +58,11 @@ class LimitadorCaptura:
         self.llamadas.append(argumentos)
 
 
-def _limitar(redis: RedisFalso) -> RedisRateLimiter:
-    return RedisRateLimiter(redis)
+def _limitar(
+    redis: RedisFalso,
+    secreto_hmac: str = SECRETO_HMAC_PRUEBAS,
+) -> RedisRateLimiter:
+    return RedisRateLimiter(redis, secreto_hmac)
 
 
 def _verificar(
@@ -145,6 +152,41 @@ def test_identidad_y_scope_generan_cuotas_separadas() -> None:
     _verificar(limitador, identidad="issuer\0usuario-1", scope="ip", limite=1)
 
     assert len(redis.eventos) == 3
+
+
+def test_clave_redis_usa_hmac_versionado_y_no_expone_la_identidad() -> None:
+    redis = RedisFalso()
+    identidad = "http://issuer/realm\0usuario"
+    digest = hmac.new(
+        SECRETO_HMAC_PRUEBAS.encode("utf-8"),
+        identidad.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+    _verificar(_limitar(redis), identidad=identidad)
+
+    assert list(redis.eventos) == [f"m3:rate-limit:v1:jwt:{digest}"]
+    assert identidad not in next(iter(redis.eventos))
+
+
+def test_secretos_hmac_distintos_generan_cuotas_distintas() -> None:
+    redis = RedisFalso()
+    identidad = "192.0.2.10"
+
+    _verificar(_limitar(redis, SECRETO_HMAC_PRUEBAS), identidad, scope="ip", limite=1)
+    _verificar(
+        _limitar(redis, "different-test-hmac-secret-shared-across-instances"),
+        identidad,
+        scope="ip",
+        limite=1,
+    )
+
+    assert len(redis.eventos) == 2
+
+
+def test_secreto_hmac_debe_tener_al_menos_32_bytes() -> None:
+    with pytest.raises(ValueError, match="al menos 32 bytes"):
+        _limitar(RedisFalso(), "demasiado corto")
 
 
 def test_error_redis_responde_503_sin_exponer_detalles() -> None:

@@ -210,6 +210,10 @@ def headers_operador(crear_token) -> dict[str, str]:
 def entorno(monkeypatch: pytest.MonkeyPatch) -> None:
     for variable, valor in VARIABLES_ENTORNO.items():
         monkeypatch.setenv(variable, valor)
+    monkeypatch.setenv(
+        "RATE_LIMIT_HMAC_SECRET",
+        "test-hmac-secret-shared-by-all-api-tests",
+    )
     monkeypatch.setenv("RATE_LIMIT_ANON_REQUESTS", "60")
     monkeypatch.setenv("RATE_LIMIT_PREAUTH_REQUESTS", "1000")
     monkeypatch.setenv("RATE_LIMIT_AUTH_REQUESTS", "120")

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_PASSWORD: SecretStr = SecretStr("")
+    RATE_LIMIT_HMAC_SECRET: SecretStr = Field(min_length=32)
     RATE_LIMIT_ANON_REQUESTS: int = Field(default=60, gt=0)
     RATE_LIMIT_PREAUTH_REQUESTS: int = Field(default=1000, gt=0)
     RATE_LIMIT_AUTH_REQUESTS: int = Field(default=120, gt=0)
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        hide_input_in_errors=True,
         extra="ignore",
     )
 

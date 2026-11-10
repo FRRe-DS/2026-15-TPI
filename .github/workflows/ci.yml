@@ -84,6 +84,7 @@ jobs:
     env:
       REDIS_URL: redis://localhost:6379/0
       REDIS_PASSWORD: ""
+      RATE_LIMIT_HMAC_SECRET: 0123456789abcdef0123456789abcdef-test-ci
       RATE_LIMIT_TEST_REDIS_URL: redis://localhost:6379/0
       RATE_LIMIT_ANON_REQUESTS: "60"
       RATE_LIMIT_PREAUTH_REQUESTS: "1000"
@@ -124,6 +125,7 @@ jobs:
             -e "s|^M3_SERVICIO_USERNAME=.*|M3_SERVICIO_USERNAME=servicio.m4|" \
             -e "s|^M3_SERVICIO_PASSWORD=.*|M3_SERVICIO_PASSWORD=$(openssl rand -hex 16)|" \
             -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -hex 32)|" \
+            -e "s|^RATE_LIMIT_HMAC_SECRET=.*|RATE_LIMIT_HMAC_SECRET=$(openssl rand -hex 32)|" \
             -e "s|^RATE_LIMIT_ANON_REQUESTS=.*|RATE_LIMIT_ANON_REQUESTS=60|" \
             -e "s|^RATE_LIMIT_PREAUTH_REQUESTS=.*|RATE_LIMIT_PREAUTH_REQUESTS=1000|" \
             -e "s|^RATE_LIMIT_AUTH_REQUESTS=.*|RATE_LIMIT_AUTH_REQUESTS=1000|" \

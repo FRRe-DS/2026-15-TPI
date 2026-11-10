@@ -41,6 +41,7 @@ Completá todos los campos vacíos:
 | `M3_OPERADOR_PASSWORD` | Contraseña del usuario `operador.m3`. |
 | `M3_CONDUCTOR_PASSWORD` | Contraseña del usuario `conductor.m3`. |
 | `REDIS_PASSWORD` | Contraseña obligatoria de Redis. Generá un valor aleatorio y no lo subas al repositorio. |
+| `RATE_LIMIT_HMAC_SECRET` | Clave aleatoria obligatoria para anonimizar las identidades de cuota; usá un secreto distinto de `REDIS_PASSWORD` y no lo versionés. |
 
 Para generar un valor aleatorio hexadecimal:
 
@@ -53,6 +54,7 @@ Genera 64 caracteres. Repetilo para cada contraseña o secreto. Usar hexadecimal
 Conservá los nombres del ejemplo: bases `m3` y `keycloak`, realm `m3`, cliente `m3-api`, usuarios `operador.m3` y `conductor.m3`. Los nombres de los usuarios y del cliente importados están definidos en `infra/keycloak/realm-m3.json`.
 
 Redis es interno al stack y no publica un puerto al host. `REDIS_PASSWORD` debe tener un valor antes de ejecutar `docker compose config` o levantar los servicios. Podés usar el comando de GUID concatenados de arriba para generar una contraseña hexadecimal. No versionés `.env`.
+`RATE_LIMIT_HMAC_SECRET` debe tener al menos 32 caracteres y el mismo valor en todas las instancias de API. Generá un valor independiente con el comando de GUID concatenados y guardalo solo en `.env` o en el gestor de secretos del entorno.
 
 Esta guía usa los puertos del ejemplo: PostgreSQL `5432`, API `8080`, Keycloak `8081` y frontend `3000`. Guardá el archivo sin subir las credenciales al repositorio.
 

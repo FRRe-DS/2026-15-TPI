@@ -13,6 +13,7 @@ from redis import Redis
 from redis.exceptions import RedisError
 
 pytestmark = pytest.mark.integration
+SECRETO_HMAC_PRUEBAS = "integration-hmac-secret-shared-by-all-api-instances"
 
 
 @pytest.fixture
@@ -39,7 +40,9 @@ def clientes_redis() -> Iterator[tuple[Redis, Redis]]:
 
 def test_cuota_se_comparte_entre_clientes_redis(clientes_redis: tuple[Redis, Redis]) -> None:
     identidad = f"compartida-{uuid4().hex}"
-    primero, segundo = (RedisRateLimiter(cliente) for cliente in clientes_redis)
+    primero, segundo = (
+        RedisRateLimiter(cliente, SECRETO_HMAC_PRUEBAS) for cliente in clientes_redis
+    )
     primero.verificar(
         scope="jwt",
         identidad=identidad,
@@ -62,7 +65,9 @@ def test_cuotas_concurrentes_respetan_el_limite_atomico(
     clientes_redis: tuple[Redis, Redis],
 ) -> None:
     identidad = f"concurrente-{uuid4().hex}"
-    limitadores = tuple(RedisRateLimiter(cliente) for cliente in clientes_redis)
+    limitadores = tuple(
+        RedisRateLimiter(cliente, SECRETO_HMAC_PRUEBAS) for cliente in clientes_redis
+    )
 
     def solicitar(indice: int) -> bool:
         try:
@@ -85,7 +90,7 @@ def test_cuotas_concurrentes_respetan_el_limite_atomico(
 
 def test_cuota_se_libera_al_expirar_la_ventana(clientes_redis: tuple[Redis, Redis]) -> None:
     identidad = f"expiracion-{uuid4().hex}"
-    limitador = RedisRateLimiter(clientes_redis[0])
+    limitador = RedisRateLimiter(clientes_redis[0], SECRETO_HMAC_PRUEBAS)
     argumentos = {
         "scope": "jwt",
         "identidad": identidad,

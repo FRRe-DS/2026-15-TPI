@@ -104,6 +104,7 @@ def configuracion_concurrencia() -> Settings:
         KEYCLOAK_URL=URL_DE_PRUEBA,
         KEYCLOAK_REALM=REALM,
         DATABASE_URL=DATABASE_URL_DE_PRUEBA,
+        RATE_LIMIT_HMAC_SECRET="concurrency-test-hmac-secret-shared-by-instances",
     )
 
 

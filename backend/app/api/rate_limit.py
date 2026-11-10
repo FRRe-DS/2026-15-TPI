@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import logging
 from typing import Protocol
 from uuid import uuid4
@@ -46,8 +47,11 @@ return {1, 0}
 class RedisRateLimiter:
     """Evalúa cuotas compartidas sin almacenar la identidad en claro."""
 
-    def __init__(self, cliente: RedisEvalClient) -> None:
+    def __init__(self, cliente: RedisEvalClient, secreto_hmac: str) -> None:
         self._cliente = cliente
+        self._secreto_hmac = secreto_hmac.encode("utf-8")
+        if len(self._secreto_hmac) < 32:
+            raise ValueError("El secreto HMAC de rate limiting debe tener al menos 32 bytes")
 
     def verificar(
         self,
@@ -57,8 +61,12 @@ class RedisRateLimiter:
         limite: int,
         ventana_segundos: int,
     ) -> None:
-        digest = hashlib.sha256(identidad.encode("utf-8")).hexdigest()
-        clave = f"m3:rate-limit:{scope}:{digest}"
+        digest = hmac.new(
+            self._secreto_hmac,
+            identidad.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        clave = f"m3:rate-limit:v1:{scope}:{digest}"
 
         try:
             resultado = self._cliente.eval(
