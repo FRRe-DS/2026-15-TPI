@@ -8,6 +8,7 @@
 #
 # Uso:
 #   .github/scripts/humo.sh
+#   .github/scripts/humo.sh --preparar
 #
 # Variables opcionales:
 #   COMPOSE_ENV_FILE       archivo .env (por defecto .env)
@@ -16,6 +17,12 @@
 #   BORRAR_VOLUMENES=1     elimina tambien los volumenes al bajar el stack
 
 set -euo pipefail
+
+MODO="${1:-}"
+if [[ -n "$MODO" && "$MODO" != "--preparar" ]]; then
+    echo "Uso: $0 [--preparar]" >&2
+    exit 2
+fi
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ARCHIVO_ENV="${COMPOSE_ENV_FILE:-$RAIZ/.env}"
@@ -331,6 +338,11 @@ esperar_http \
     "Keycloak"
 esperar_http "$API_BASE/salud" "API"
 esperar_http "$FRONTEND_BASE" "Frontend"
+
+if [[ "$MODO" == "--preparar" ]]; then
+    echo "OK: entorno Compose preparado"
+    exit 0
+fi
 
 echo "==> Solicitando token de operador"
 TOKEN="$(obtener_token)"
