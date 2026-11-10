@@ -14,7 +14,6 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -70,23 +69,20 @@ def _dos_altas_simultaneas(
 
 
 def test_dos_altas_http_simultaneas_con_el_mismo_dni_dejan_un_solo_conductor_y_evento(
-    app_concurrencia: FastAPI,
+    clientes_independientes: tuple[TestClient, TestClient],
     headers_operador: dict[str, str],
     sesion_bd: Session,
 ) -> None:
     dni = _dni_unico()
     datos = _datos_del_conductor(dni)
+    primer_cliente, segundo_cliente = clientes_independientes
 
-    with (
-        TestClient(app_concurrencia) as primer_cliente,
-        TestClient(app_concurrencia) as segundo_cliente,
-    ):
-        respuestas = _dos_altas_simultaneas(
-            primer_cliente,
-            segundo_cliente,
-            headers_operador,
-            datos,
-        )
+    respuestas = _dos_altas_simultaneas(
+        primer_cliente,
+        segundo_cliente,
+        headers_operador,
+        datos,
+    )
 
     estados = Counter(respuesta.status_code for respuesta in respuestas)
     assert estados == Counter({201: 1, 409: 1})

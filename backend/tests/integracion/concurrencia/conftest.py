@@ -132,6 +132,18 @@ def cliente(app_concurrencia: FastAPI) -> Iterator[TestClient]:
 
 
 @pytest.fixture
+def clientes_independientes(
+    app_concurrencia: FastAPI,
+) -> Iterator[tuple[TestClient, TestClient]]:
+    """Dos clientes HTTP con portales independientes para pruebas de carrera."""
+    with (
+        TestClient(app_concurrencia) as primer_cliente,
+        TestClient(app_concurrencia) as segundo_cliente,
+    ):
+        yield primer_cliente, segundo_cliente
+
+
+@pytest.fixture
 def peticiones_simultaneas() -> Callable[..., list[httpx.Response]]:
     """Ejecuta peticiones que esperan juntas en una barrera antes de salir."""
 
