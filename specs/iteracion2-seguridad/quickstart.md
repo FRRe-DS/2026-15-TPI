@@ -36,9 +36,9 @@ Los jobs `test` y `entorno` fijan `RATE_LIMIT_AUTH_REQUESTS=1000`, `RATE_LIMIT_P
 
 La publicación automatizada se valida en GitHub Actions, no desde un pull request:
 
-1. Configurar `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` como secretos del repositorio y `DOCKERHUB_IMAGE` como variable del repositorio.
+1. Configurar `DOCKER_USERNAME` y `DOCKER_PASSWORD` como secretos del repositorio; `DOCKER_PASSWORD` debe contener un access token de Docker Hub. Configurar también el secreto `DOCKER_IMAGE` con el nombre `usuario/repositorio`, sin tag.
 2. Confirmar que el job de publicación depende de CI verde y solo se ejecuta en `push` a `dev` o `main`.
 3. Tras un push aceptado, comprobar que existe la etiqueta basada en SHA y la etiqueta de rama (`dev` o `main`).
-4. Para probar una etiqueta publicada localmente, configurar `M3_API_IMAGE` con su referencia y ejecutar `docker compose pull` y `docker compose up -d`. El valor predeterminado local conserva `m3-backend:local` y el build desde `backend/Dockerfile`.
+4. Para probar una etiqueta publicada localmente, configurar `M3_API_IMAGE` en `.env` con su referencia, construir el frontend (no se publica en Docker Hub) con `docker compose build frontend`, ejecutar `docker compose pull api migraciones seed` y luego `docker compose up -d --no-build`. El valor predeterminado local conserva `m3-backend:local` y el build desde `backend/Dockerfile`.
 
 La imagen propia publicada es solo la API/Backend M3, que también contiene las migraciones y el seed para el Compose existente. Redis, PostgreSQL, Keycloak y frontend usan sus imágenes respectivas y no se suben a Docker Hub desde este job.

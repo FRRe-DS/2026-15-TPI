@@ -42,8 +42,13 @@ Completá todos los campos vacíos:
 | `M3_CONDUCTOR_PASSWORD` | Contraseña del usuario `conductor.m3`. |
 | `M3_SERVICIO_USERNAME` | Usuario técnico de M4 con rol `servicio`; conservá el nombre de ejemplo `servicio.m4`. |
 | `M3_SERVICIO_PASSWORD` | Contraseña del usuario técnico `servicio.m4`. |
+| `REDIS_URL` | Dirección interna de Redis; conservá `redis://redis:6379/0` para Compose. |
 | `REDIS_PASSWORD` | Contraseña obligatoria de Redis. Generá un valor aleatorio y no lo subas al repositorio. |
 | `RATE_LIMIT_HMAC_SECRET` | Clave aleatoria obligatoria para anonimizar las identidades de cuota; usá un secreto distinto de `REDIS_PASSWORD` y no lo versionés. |
+| `RATE_LIMIT_ANON_REQUESTS` | Límite por IP para requests sin token válido; valor predeterminado: 60 por ventana. |
+| `RATE_LIMIT_PREAUTH_REQUESTS` | Límite por IP antes de verificar un token presentado; valor predeterminado: 1000 por ventana. |
+| `RATE_LIMIT_AUTH_REQUESTS` | Límite por identidad `(iss, sub)` autenticada; valor predeterminado: 120 por ventana. |
+| `RATE_LIMIT_WINDOW_SECONDS` | Duración de la ventana para los límites; valor predeterminado: 60 segundos. |
 
 Para generar un valor aleatorio hexadecimal:
 
@@ -196,13 +201,13 @@ Este recorrido es local: el Compose utiliza Keycloak en modo `start-dev`, usuari
 
 ## 8. Publicar y desplegar una imagen de la API
 
-La publicación la ejecuta GitHub Actions solo en `push` a `dev` o `main`, después de que CI esté verde; nunca en un pull request. Configurá en el repositorio:
+La publicación la ejecuta GitHub Actions solo en `push` a `dev` o `main`, después de que CI esté verde; nunca en un pull request. Configurá en los secretos del repositorio:
 
-| Tipo | Nombre | Uso |
-|---|---|---|
-| Secreto | `DOCKERHUB_USERNAME` | Usuario de Docker Hub. |
-| Secreto | `DOCKERHUB_TOKEN` | Token de acceso de Docker Hub. |
-| Variable | `DOCKERHUB_IMAGE` | Repositorio de la imagen, por ejemplo `usuario/m3-backend`. |
+| Nombre | Uso |
+|---|---|
+| `DOCKER_USERNAME` | Usuario de Docker Hub. |
+| `DOCKER_PASSWORD` | Access token de Docker Hub con permiso de escritura. |
+| `DOCKER_IMAGE` | Repositorio de la imagen, por ejemplo `usuario/m3-backend` (sin tag). |
 
 El job publica la imagen de Backend con dos etiquetas: el SHA completo del commit y el nombre de la rama (`dev` o `main`). No publica Redis, PostgreSQL, Keycloak ni frontend.
 
@@ -212,15 +217,15 @@ Para seguir usando el build local, dejá `M3_API_IMAGE=m3-backend:local` en `.en
 docker compose up --build -d
 ```
 
-Para desplegar una imagen publicada, elegí preferentemente la etiqueta SHA para que el despliegue sea reproducible:
+Para desplegar una imagen publicada, elegí preferentemente la etiqueta SHA para que el despliegue sea reproducible. Definí en `.env` `M3_API_IMAGE=usuario/m3-backend:<sha-completo>` y ejecutá:
 
 ```powershell
-# En .env: M3_API_IMAGE=usuario/m3-backend:<sha-completo>
-docker compose pull
+docker compose build frontend
+docker compose pull api migraciones seed
 docker compose up -d --no-build
 ```
 
-`api`, `migraciones` y `seed` usan la misma imagen, por eso el cambio de `M3_API_IMAGE` aplica a los tres servicios. La etiqueta de rama (`dev` o `main`) es mutable; usala solo para pruebas.
+`api`, `migraciones` y `seed` usan la misma imagen, por eso el cambio de `M3_API_IMAGE` aplica a los tres servicios. La etiqueta de rama (`dev` o `main`) es mutable; usala solo para pruebas. No agregues credenciales de Docker Hub a `.env` ni al repositorio.
 
 ## 9. Cuando el puerto 5432 u otro ya está ocupado
 
