@@ -100,6 +100,13 @@ def upgrade() -> None:
         "conductor",
         "cantidad_calificaciones > 0 OR suma_puntajes = 0",
     )
+    op.create_check_constraint(
+        op.f("ck_conductor_promedio_puntajes_rango"),
+        "conductor",
+        "cantidad_calificaciones = 0 OR "
+        "(suma_puntajes >= cantidad_calificaciones "
+        "AND suma_puntajes <= 5 * cantidad_calificaciones)",
+    )
     op.create_index("ix_conductor_id_vehiculo_activo", "conductor", ["id_vehiculo_activo"])
 
     # 3. Sincronizar el flag de los tipos de servicio con la habilitación del vehículo.
@@ -218,6 +225,9 @@ def downgrade() -> None:
     op.drop_table("solicitud")
 
     op.drop_index("ix_conductor_id_vehiculo_activo", table_name="conductor")
+    op.drop_constraint(
+        op.f("ck_conductor_promedio_puntajes_rango"), "conductor", type_="check"
+    )
     op.drop_constraint(op.f("ck_conductor_puntajes_coherentes"), "conductor", type_="check")
     op.drop_constraint(
         op.f("ck_conductor_cantidad_calificaciones_no_negativa"),

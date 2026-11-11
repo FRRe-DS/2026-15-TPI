@@ -40,6 +40,8 @@ Completá todos los campos vacíos:
 | `KEYCLOAK_M3_CLIENT_SECRET` | Secreto del cliente `m3-api`. |
 | `M3_OPERADOR_PASSWORD` | Contraseña del usuario `operador.m3`. |
 | `M3_CONDUCTOR_PASSWORD` | Contraseña del usuario `conductor.m3`. |
+| `M3_SERVICIO_USERNAME` | Usuario de la cuenta técnica de M4; conservá `servicio.m4`. |
+| `M3_SERVICIO_PASSWORD` | Contraseña de la cuenta técnica `servicio.m4`. |
 | `REDIS_PASSWORD` | Contraseña obligatoria de Redis. Generá un valor aleatorio y no lo subas al repositorio. |
 | `RATE_LIMIT_HMAC_SECRET` | Clave aleatoria obligatoria para anonimizar las identidades de cuota; usá un secreto distinto de `REDIS_PASSWORD` y no lo versionés. |
 
@@ -51,7 +53,16 @@ Para generar un valor aleatorio hexadecimal:
 
 Genera 64 caracteres. Repetilo para cada contraseña o secreto. Usar hexadecimal evita problemas con caracteres especiales en la URL de PostgreSQL.
 
-Conservá los nombres del ejemplo: bases `m3` y `keycloak`, realm `m3`, cliente `m3-api`, usuarios `operador.m3` y `conductor.m3`. Los nombres de los usuarios y del cliente importados están definidos en `infra/keycloak/realm-m3.json`.
+Conservá los nombres del ejemplo: bases `m3` y `keycloak`, realm `m3`, cliente `m3-api`, usuarios `operador.m3`, `conductor.m3` y `servicio.m4`. Los nombres de los usuarios y del cliente importados están definidos en `infra/keycloak/realm-m3.json`.
+
+Si tu `.env` es anterior a la incorporación del rol `servicio`, puede no tener `M3_SERVICIO_USERNAME` ni `M3_SERVICIO_PASSWORD`: Compose los tomaría vacíos y la cuenta técnica no se crearía. Copiá esas dos variables desde `.env.example`, completá la contraseña y recreá Keycloak con el volumen vacío, porque el realm solo se importa la primera vez. Con datos descartables:
+
+```powershell
+docker compose down -v
+docker compose up --build -d
+```
+
+`down -v` también borra los datos de M3; si hay datos que conservar, eliminá o vaciá solo la base de Keycloak y volvé a importar el realm.
 
 Redis es interno al stack y no publica un puerto al host. `REDIS_PASSWORD` debe tener un valor antes de ejecutar `docker compose config` o levantar los servicios. Podés usar el comando de GUID concatenados de arriba para generar una contraseña hexadecimal. No versionés `.env`.
 `RATE_LIMIT_HMAC_SECRET` debe tener al menos 32 caracteres y el mismo valor en todas las instancias de API. Generá un valor independiente con el comando de GUID concatenados y guardalo solo en `.env` o en el gestor de secretos del entorno.
@@ -219,6 +230,7 @@ docker compose up --build -d
 | Frontend no muestra conductores | Revisar `docker compose logs frontend` y que `api` esté saludable. |
 | API devuelve `401` | Obtener un token nuevo y verificar que corresponda al realm `m3` local. |
 | Seed y migraciones detenidos | Si terminaron con código `0`, es normal. |
+| Falta el usuario `servicio.m4` en Keycloak | Completar `M3_SERVICIO_USERNAME` y `M3_SERVICIO_PASSWORD` en `.env` y recrear Keycloak con el volumen vacío (paso 2), porque el realm solo se importa la primera vez. |
 | Cambié contraseñas y ahora falla | Las bases existentes y el realm importado conservan sus credenciales. Editar `.env` no las actualiza. Restaurar los valores originales o modificarlas en los servicios; para datos descartables, usar el borrado del paso 10. |
 
 ## Comandos rápidos para uso diario
