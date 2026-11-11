@@ -65,13 +65,12 @@ def _aprobar(cliente: TestClient, headers: dict[str, str], id_conductor: int) ->
 
 def test_dos_acciones_simultaneas_sobre_el_mismo_conductor_dejan_un_solo_evento_nuevo(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
     headers_operador: dict[str, str],
     peticiones_simultaneas: Callable[..., list[httpx.Response]],
     sesion_bd: Session,
 ) -> None:
-    id_conductor = _crear_conductor(cliente, headers_conductor)
-    licencia = _registrar_licencia(cliente, headers_conductor, id_conductor)
+    id_conductor = _crear_conductor(cliente, headers_operador)
+    licencia = _registrar_licencia(cliente, headers_operador, id_conductor)
     assert licencia.status_code == 201, licencia.text
 
     respuestas = peticiones_simultaneas(
@@ -112,13 +111,12 @@ def test_dos_acciones_simultaneas_sobre_el_mismo_conductor_dejan_un_solo_evento_
 
 def test_aprobar_espera_el_bloqueo_de_fila_del_conductor(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
     headers_operador: dict[str, str],
     fabrica_sesiones: sessionmaker[Session],
     sesion_bd: Session,
 ) -> None:
-    id_conductor = _crear_conductor(cliente, headers_conductor)
-    licencia = _registrar_licencia(cliente, headers_conductor, id_conductor)
+    id_conductor = _crear_conductor(cliente, headers_operador)
+    licencia = _registrar_licencia(cliente, headers_operador, id_conductor)
     assert licencia.status_code == 201, licencia.text
 
     sesion_bloqueo = fabrica_sesiones()

@@ -64,30 +64,30 @@ def test_conductor_no_puede_accionar_habilitacion_responde_403(
 
 def test_recurso_inexistente_responde_404(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    conductores = cliente.get("/api/v1/conductores/999999", headers=headers_conductor)
+    conductores = cliente.get("/api/v1/conductores/999999", headers=headers_operador)
     _verificar_error(conductores, 404, "NO_ENCONTRADO", validar_contrato)
 
     conductor = crear_conductor()
     vehiculo = cliente.get(
         f"/api/v1/conductores/{conductor['id']}/vehiculos/999999",
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     _verificar_error(vehiculo, 404, "NO_ENCONTRADO", validar_contrato)
 
 
 def test_dni_duplicado_responde_409(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    primera = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers_conductor)
+    primera = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers_operador)
     assert primera.status_code == 201, primera.text
 
-    segunda = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers_conductor)
+    segunda = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers_operador)
 
     _verificar_error(segunda, 409, "DNI_DUPLICADO", validar_contrato)
 
