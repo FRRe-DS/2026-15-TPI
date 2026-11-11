@@ -40,8 +40,8 @@ Completá todos los campos vacíos:
 | `KEYCLOAK_M3_CLIENT_SECRET` | Secreto del cliente `m3-api`. |
 | `M3_OPERADOR_PASSWORD` | Contraseña del usuario `operador.m3`. |
 | `M3_CONDUCTOR_PASSWORD` | Contraseña del usuario `conductor.m3`. |
-| `M3_SERVICIO_USERNAME` | Usuario de la cuenta técnica de M4; conservá `servicio.m4`. |
-| `M3_SERVICIO_PASSWORD` | Contraseña de la cuenta técnica `servicio.m4`. |
+| `M3_SERVICIO_USERNAME` | Usuario técnico de M4 con rol `servicio`; conservá el nombre de ejemplo `servicio.m4`. |
+| `M3_SERVICIO_PASSWORD` | Contraseña del usuario técnico `servicio.m4`. |
 | `REDIS_PASSWORD` | Contraseña obligatoria de Redis. Generá un valor aleatorio y no lo subas al repositorio. |
 | `RATE_LIMIT_HMAC_SECRET` | Clave aleatoria obligatoria para anonimizar las identidades de cuota; usá un secreto distinto de `REDIS_PASSWORD` y no lo versionés. |
 
@@ -194,11 +194,39 @@ Inicia los servicios usando las imágenes existentes y conserva los datos del vo
 
 Este recorrido es local: el Compose utiliza Keycloak en modo `start-dev`, usuarios de prueba y URLs `localhost`. Publicar en un servidor requiere adaptar dominios, HTTPS y autenticación.
 
-## 8. Cuando el puerto 5432 u otro ya está ocupado
+## 8. Publicar y desplegar una imagen de la API
+
+La publicación la ejecuta GitHub Actions solo en `push` a `dev` o `main`, después de que CI esté verde; nunca en un pull request. Configurá en el repositorio:
+
+| Tipo | Nombre | Uso |
+|---|---|---|
+| Secreto | `DOCKERHUB_USERNAME` | Usuario de Docker Hub. |
+| Secreto | `DOCKERHUB_TOKEN` | Token de acceso de Docker Hub. |
+| Variable | `DOCKERHUB_IMAGE` | Repositorio de la imagen, por ejemplo `usuario/m3-backend`. |
+
+El job publica la imagen de Backend con dos etiquetas: el SHA completo del commit y el nombre de la rama (`dev` o `main`). No publica Redis, PostgreSQL, Keycloak ni frontend.
+
+Para seguir usando el build local, dejá `M3_API_IMAGE=m3-backend:local` en `.env` y ejecutá:
+
+```powershell
+docker compose up --build -d
+```
+
+Para desplegar una imagen publicada, elegí preferentemente la etiqueta SHA para que el despliegue sea reproducible:
+
+```powershell
+# En .env: M3_API_IMAGE=usuario/m3-backend:<sha-completo>
+docker compose pull
+docker compose up -d --no-build
+```
+
+`api`, `migraciones` y `seed` usan la misma imagen, por eso el cambio de `M3_API_IMAGE` aplica a los tres servicios. La etiqueta de rama (`dev` o `main`) es mutable; usala solo para pruebas.
+
+## 9. Cuando el puerto 5432 u otro ya está ocupado
 
 Definí otro valor en `.env` (`POSTGRES_PORT`, `API_PORT`, `KEYCLOAK_PORT` o `FRONTEND_PORT`) y volvé a ejecutar `docker compose up -d`.
 
-## 9. Detener la aplicación
+## 10. Detener la aplicación
 
 Desde la raíz:
 
@@ -208,7 +236,7 @@ docker compose down
 
 Detiene y elimina los contenedores y la red del proyecto, conservando los datos de PostgreSQL.
 
-## 10. Borrar los datos y empezar de cero
+## 11. Borrar los datos y empezar de cero
 
 **Solo para datos descartables:** este comando elimina los datos de M3 y de Keycloak.
 
@@ -224,14 +252,14 @@ docker compose up --build -d
 | Problema | Qué revisar |
 |---|---|
 | Docker no conecta | Abrir Docker Desktop y verificar con `docker info`. |
-| Puerto ocupado | Liberarlo o cambiar el puerto en `.env` (paso 8). |
+| Puerto ocupado | Liberarlo o cambiar el puerto en `.env` (paso 9). |
 | API no inicia | Consultar `ps -a` y los logs de migraciones, seed, Keycloak y API. |
 | Frontend no obtiene token | Comparar el secreto, usuario y contraseña con los del realm y comprobar que Keycloak funcione. |
 | Frontend no muestra conductores | Revisar `docker compose logs frontend` y que `api` esté saludable. |
 | API devuelve `401` | Obtener un token nuevo y verificar que corresponda al realm `m3` local. |
 | Seed y migraciones detenidos | Si terminaron con código `0`, es normal. |
 | Falta el usuario `servicio.m4` en Keycloak | Completar `M3_SERVICIO_USERNAME` y `M3_SERVICIO_PASSWORD` en `.env` y recrear Keycloak con el volumen vacío (paso 2), porque el realm solo se importa la primera vez. |
-| Cambié contraseñas y ahora falla | Las bases existentes y el realm importado conservan sus credenciales. Editar `.env` no las actualiza. Restaurar los valores originales o modificarlas en los servicios; para datos descartables, usar el borrado del paso 10. |
+| Cambié contraseñas y ahora falla | Las bases existentes y el realm importado conservan sus credenciales. Editar `.env` no las actualiza. Restaurar los valores originales o modificarlas en los servicios; para datos descartables, usar el borrado del paso 11. |
 
 ## Comandos rápidos para uso diario
 

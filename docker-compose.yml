@@ -80,7 +80,7 @@ services:
 
   migraciones:
     build: *backend-build
-    image: m3-backend:local
+    image: ${M3_API_IMAGE:-m3-backend:local}
     command:
       - alembic
       - -c
@@ -98,7 +98,7 @@ services:
 
   seed:
     build: *backend-build
-    image: m3-backend:local
+    image: ${M3_API_IMAGE:-m3-backend:local}
     command: ["python", "/app/infra/seed/cargar_datos.py"]
     environment:
       DATABASE_URL: *database-url
@@ -130,7 +130,7 @@ services:
 
   api:
     build: *backend-build
-    image: m3-backend:local
+    image: ${M3_API_IMAGE:-m3-backend:local}
     environment:
       DATABASE_URL: *database-url
       KEYCLOAK_URL: http://keycloak:8080
