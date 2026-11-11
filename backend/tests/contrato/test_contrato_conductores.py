@@ -30,10 +30,10 @@ def _crear_conductor(
 
 def test_crear_conductor_cumple_el_contrato(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    respuesta = _crear_conductor(cliente, headers_conductor)
+    respuesta = _crear_conductor(cliente, headers_operador)
     assert respuesta.status_code == 201, respuesta.text
     validar_contrato(respuesta)
 
@@ -57,12 +57,12 @@ def test_crear_conductor_cumple_el_contrato(
 
 def test_listar_conductores_cumple_el_contrato(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    creado = _crear_conductor(cliente, headers_conductor).json()
+    creado = _crear_conductor(cliente, headers_operador).json()
 
-    respuesta = cliente.get("/api/v1/conductores", headers=headers_conductor)
+    respuesta = cliente.get("/api/v1/conductores", headers=headers_operador)
     assert respuesta.status_code == 200, respuesta.text
     validar_contrato(respuesta)
 
@@ -79,15 +79,15 @@ def test_listar_conductores_cumple_el_contrato(
 
 def test_listar_conductores_filtra_por_habilitacion(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    creado = _crear_conductor(cliente, headers_conductor).json()
+    creado = _crear_conductor(cliente, headers_operador).json()
 
     habilitados = cliente.get(
         "/api/v1/conductores",
         params={"habilitado": "true"},
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     assert habilitados.status_code == 200, habilitados.text
     validar_contrato(habilitados)
@@ -96,7 +96,7 @@ def test_listar_conductores_filtra_por_habilitacion(
     pendientes = cliente.get(
         "/api/v1/conductores",
         params={"habilitado": "false"},
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     assert pendientes.status_code == 200, pendientes.text
     validar_contrato(pendientes)
@@ -105,14 +105,14 @@ def test_listar_conductores_filtra_por_habilitacion(
 
 def test_obtener_conductor_cumple_el_contrato(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    creado = _crear_conductor(cliente, headers_conductor).json()
+    creado = _crear_conductor(cliente, headers_operador).json()
 
     respuesta = cliente.get(
         f"/api/v1/conductores/{creado['id']}",
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     assert respuesta.status_code == 200, respuesta.text
     validar_contrato(respuesta)
@@ -129,15 +129,15 @@ def test_obtener_conductor_cumple_el_contrato(
 
 def test_listar_conductores_filtra_por_estado_y_tipo_servicio(
     cliente: TestClient,
-    headers_conductor: dict[str, str],
+    headers_operador: dict[str, str],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    creado = _crear_conductor(cliente, headers_conductor).json()
+    creado = _crear_conductor(cliente, headers_operador).json()
 
     desconectados = cliente.get(
         "/api/v1/conductores",
         params={"estado": "DESCONECTADO"},
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     assert desconectados.status_code == 200, desconectados.text
     validar_contrato(desconectados)
@@ -147,7 +147,7 @@ def test_listar_conductores_filtra_por_estado_y_tipo_servicio(
     disponibles = cliente.get(
         "/api/v1/conductores",
         params={"estado": "DISPONIBLE", "tipo_servicio": "PASAJEROS"},
-        headers=headers_conductor,
+        headers=headers_operador,
     )
     assert disponibles.status_code == 200, disponibles.text
     validar_contrato(disponibles)
