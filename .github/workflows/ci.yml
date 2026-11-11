@@ -53,6 +53,8 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - name: Instalar dependencias
         run: uv sync --frozen --all-groups
+      - name: Comprobar Docker
+        run: docker info
       - name: Validar openapi.yaml
         run: |
           uv run python - <<'PY'
@@ -63,7 +65,13 @@ jobs:
               validate(yaml.safe_load(archivo))
           PY
       - name: Pruebas de contrato
-        run: uv run pytest tests/contrato -v
+        run: |
+          set -o pipefail
+          uv run pytest tests/contrato -v -rs | tee /tmp/contrato.log
+          if grep -Eq '[0-9]+ skipped' /tmp/contrato.log; then
+            echo "::error::Las pruebas de contrato no pueden omitirse."
+            exit 1
+          fi
 
   test:
     name: Suite completa con PostgreSQL y Keycloak
@@ -101,8 +109,15 @@ jobs:
         run: uv sync --frozen --all-groups
       - name: Comprobar Docker
         run: docker info
-      - name: Pruebas completas con cobertura
-        run: uv run pytest --ignore=tests/e2e --cov=app --cov-report=term-missing --cov-fail-under=65
+      - name: Pruebas completas con cobertura (incluye concurrencia T603)
+        run: |
+          set -o pipefail
+          uv run pytest --ignore=tests/e2e --cov=app --cov-report=term-missing \
+            --cov-fail-under=65 -rs | tee /tmp/test.log
+          if grep -Eq '[0-9]+ skipped' /tmp/test.log; then
+            echo "::error::La suite no puede omitir pruebas."
+            exit 1
+          fi
 
   entorno:
     name: Humo del entorno
