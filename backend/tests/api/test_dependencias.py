@@ -85,6 +85,7 @@ def test_proveedor_de_actualizar_estado_usa_la_ubicacion_simulada_de_la_configur
         KEYCLOAK_URL="http://localhost:8080",
         KEYCLOAK_REALM="m3",
         DATABASE_URL="postgresql+psycopg://test:test@localhost:5432/test",
+        RATE_LIMIT_HMAC_SECRET="test-hmac-secret-shared-by-all-api-tests",
         UBICACION_SIMULADA_LATITUD=-31.4,
         UBICACION_SIMULADA_LONGITUD=-64.2,
     )

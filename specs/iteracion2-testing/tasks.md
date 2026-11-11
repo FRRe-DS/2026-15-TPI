@@ -21,8 +21,8 @@
 **Antes de empezar**: revisar qué de esta PR ya cubren `backend/tests/integracion/concurrencia/` y `.github/scripts/humo.sh` (PR #24 y #25 de la Iteración 1) y limitarla a lo que falta.
 
 
-- [ ] T601 [US1] Red: agregar `backend/tests/e2e/test_flujo_habilitacion.py` contra la API y Keycloak reales de Docker Compose. Obtener tokens mediante el endpoint OIDC del realm `m3`; probar alta, licencia vigente, vehículo, aprobación de conductor y vehículo, respuestas de historial con eventos `ALTA` y aprobación, denegación de acción de operador con token de conductor y rechazo de aprobación sin licencia vigente sin cambios de estado/historial. Usar DNI y patente exclusivos por ejecución. Ejecutar contra el stack actual y registrar los fallos observados antes de implementar.
-- [ ] T602 [US1] Green: hacer pasar T601 con los cambios mínimos a `backend/tests/e2e/conftest.py`, `backend/app/` y `.github/workflows/ci.yml`. Agregar al job existente `entorno` («Humo del entorno», que ya levanta el Compose unificado de la raíz, espera salud y limpia con `if: always()`) un paso que ejecute `backend/tests/e2e` sin permitir skips. Si hacen falta variables nuevas, agregarlas en `.env.example` y en el paso «Preparar variables de entorno» del job. No crear un job paralelo. Mantener imágenes con versión fija, sin `latest`. No reemplazar Keycloak por tokens firmados en el test.
+- [x] T601 [US1] Red: agregar `backend/tests/e2e/test_flujo_habilitacion.py` contra la API y Keycloak reales de Docker Compose. Obtener tokens mediante el endpoint OIDC del realm `m3`; probar alta, licencia vigente, vehículo, aprobación de conductor y vehículo, respuestas de historial con eventos `ALTA` y aprobación, denegación de acción de operador con token de conductor y rechazo de aprobación sin licencia vigente sin cambios de estado/historial. Usar DNI y patente exclusivos por ejecución. Ejecutar contra el stack actual y registrar los fallos observados antes de implementar.
+- [x] T602 [US1] Green: hacer pasar T601 con los cambios mínimos a `backend/tests/e2e/conftest.py`, `backend/app/` y `.github/workflows/ci.yml`. Agregar al job existente `entorno` («Humo del entorno», que ya levanta el Compose unificado de la raíz, espera salud y limpia con `if: always()`) un paso que ejecute `backend/tests/e2e` sin permitir skips. Si hacen falta variables nuevas, agregarlas en `.env.example` y en el paso «Preparar variables de entorno» del job. No crear un job paralelo. Mantener imágenes con versión fija, sin `latest`. No reemplazar Keycloak por tokens firmados en el test.
 
 **Criterio independiente**: T601 pasa en Compose desde entorno limpio; token operador completa flujo; token conductor no puede aprobar; se conservan resultados e historial esperados.
 
@@ -30,15 +30,15 @@
 
 **Entrega**: demostración repetible de dos altas concurrentes del mismo DNI a través del endpoint HTTP y contra PostgreSQL real.
 
-**Rama**: `001-verificacion-integracion-m3-pr2-concurrencia-real`
+**Rama**: `test/pr2-integracion-concurrencia-real`
 
 **Base**: `dev` con PR 1 integrada. Integrar solo con CI verde.
 
 **Antes de empezar**: revisar qué de esta PR ya cubren `backend/tests/integracion/concurrencia/` y `.github/scripts/humo.sh` (PR #24 y #25 de la Iteración 1) y limitarla a lo que falta.
 
 
-- [ ] T603 [US2] Red: agregar `backend/tests/integracion/concurrencia/test_alta_dni_http_concurrente.py`. Coordinar dos clientes HTTP independientes con una barrera de inicio (sin `sleep` para inducir carrera), autenticarse con token válido, enviar simultáneamente el mismo DNI y afirmar exactamente una respuesta `201`, una `409` con `codigo=DNI_DUPLICADO`, exactamente una fila para ese DNI en PostgreSQL y un solo evento de alta asociado. Generar DNI propio de la prueba; ejecutar y registrar el fallo antes de modificar el manejo de concurrencia.
-- [ ] T604 [US2] Green: ajustar lo mínimo en `backend/app/infraestructura/repositorios/`, `backend/app/aplicacion/`, `backend/app/api/` y `backend/tests/integracion/conftest.py` para que T603 pase bajo PostgreSQL real. La restricción única de la base sigue siendo la autoridad de exclusión; traducir la colisión concurrente a `409 DNI_DUPLICADO`, asegurar rollback de datos parciales y mantener el aislamiento por prueba. Incorporar el test al jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`) de `.github/workflows/ci.yml`.
+- [x] T603 [US2] Red: agregar `backend/tests/integracion/concurrencia/test_alta_dni_http_concurrente.py`. Coordinar dos clientes HTTP independientes con una barrera de inicio (sin `sleep` para inducir carrera), autenticarse con token válido, enviar simultáneamente el mismo DNI y afirmar exactamente una respuesta `201`, una `409` con `codigo=DNI_DUPLICADO`, exactamente una fila para ese DNI en PostgreSQL y un solo evento de alta asociado. Generar DNI propio de la prueba; ejecutar y registrar el fallo antes de modificar el manejo de concurrencia.
+- [x] T604 [US2] Green: ajustar lo mínimo en `backend/app/infraestructura/repositorios/`, `backend/app/aplicacion/`, `backend/app/api/` y `backend/tests/integracion/conftest.py` para que T603 pase bajo PostgreSQL real. La restricción única de la base sigue siendo la autoridad de exclusión; traducir la colisión concurrente a `409 DNI_DUPLICADO`, asegurar rollback de datos parciales y mantener el aislamiento por prueba. Incorporar el test al jobs existentes de `ci.yml` (`contrato`, `test` y `entorno`) de `.github/workflows/ci.yml`.
 
 **Criterio independiente**: T603 demuestra el par exacto de respuestas y una sola fila en ejecuciones repetidas; no depende del orden de planificación ni de datos ajenos.
 

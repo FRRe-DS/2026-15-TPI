@@ -20,7 +20,7 @@ from app.dominio.errores import (
 from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from fastapi.testclient import TestClient
 
-from tests.api.conftest import CasoDeUsoFalso, devolver_caso
+from tests.api.conftest import CasoDeUsoFalso, devolver_caso, instalar_limitador_falso
 
 LISTADO = "/api/v1/conductores/{id}/solicitudes"
 RESPONDER = "/api/v1/solicitudes/{id}"
@@ -67,6 +67,7 @@ def client_solicitudes(
 ) -> TestClient:
     app = crear_app()
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     for clave, nombre in PROVEEDORES_V4.items():
         app.dependency_overrides[getattr(dependencias, nombre)] = devolver_caso(
             casos_solicitudes[clave]

@@ -1,5 +1,10 @@
 import pytest
-from app.api.errores import ErrorAPI, registrar_manejadores
+from app.api.errores import (
+    ErrorAPI,
+    limite_de_solicitudes,
+    registrar_manejadores,
+    servicio_temporalmente_no_disponible,
+)
 from app.dominio.errores import (
     AccesoProhibido,
     ConductorNoHabilitado,
@@ -74,6 +79,14 @@ def _app_con_errores() -> FastAPI:
     def error_api() -> None:
         raise ErrorAPI(409, "CONFLICTO", "Conflicto de prueba")
 
+    @app.get("/limite")
+    def limite() -> None:
+        raise limite_de_solicitudes(7)
+
+    @app.get("/redis-no-disponible")
+    def redis_no_disponible() -> None:
+        raise servicio_temporalmente_no_disponible()
+
     @app.post("/validacion")
     def validacion(cuerpo: Cuerpo) -> dict[str, str]:
         return {"nombre": cuerpo.nombre}
@@ -142,6 +155,32 @@ def test_excepcion_inesperada_responde_500_sin_detalles(
         "mensaje": "Ocurrió un error interno",
     }
     assert "detalle interno" not in respuesta.text
+
+
+def test_limite_responde_429_retry_after_y_no_cachea(
+    client_errores: TestClient,
+) -> None:
+    respuesta = client_errores.get("/limite")
+
+    assert respuesta.status_code == 429
+    assert respuesta.json() == {
+        "codigo": "LIMITE_DE_SOLICITUDES",
+        "mensaje": "Se alcanzó el límite de solicitudes; reintente más tarde.",
+    }
+    assert respuesta.headers["Retry-After"] == "7"
+    assert respuesta.headers["Cache-Control"] == "no-store"
+
+
+def test_falla_redis_responde_503_sin_detalles_internos(
+    client_errores: TestClient,
+) -> None:
+    respuesta = client_errores.get("/redis-no-disponible")
+
+    assert respuesta.status_code == 503
+    assert respuesta.json() == {
+        "codigo": "SERVICIO_TEMPORALMENTE_NO_DISPONIBLE",
+        "mensaje": "El servicio no está disponible temporalmente.",
+    }
 
 
 def test_ruta_inexistente_usa_el_formato_de_error(

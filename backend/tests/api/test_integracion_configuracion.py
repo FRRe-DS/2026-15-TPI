@@ -17,7 +17,10 @@ def test_dependencia_construye_la_unidad_sql_real(monkeypatch):
 def test_jwks_usa_la_url_interna(monkeypatch):
     monkeypatch.setenv("KEYCLOAK_PUBLIC_URL", "http://localhost:8081")
     settings = Settings(
-        KEYCLOAK_URL="http://keycloak:8080", KEYCLOAK_REALM="m3", DATABASE_URL="test"
+        KEYCLOAK_URL="http://keycloak:8080",
+        KEYCLOAK_REALM="m3",
+        DATABASE_URL="test",
+        RATE_LIMIT_HMAC_SECRET="test-hmac-secret-shared-by-all-api-tests",
     )
     cliente = obtener_cliente_jwks(settings)
     assert cliente.uri == "http://keycloak:8080/realms/m3/protocol/openid-connect/certs"

@@ -8,6 +8,8 @@ from app.api.seguridad import obtener_cliente_jwks, requerir_usuario
 from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import instalar_limitador_falso
+
 RUTAS_DE_DOCUMENTACION = {
     "/openapi.json",
     "/docs",
@@ -47,12 +49,23 @@ def test_las_rutas_requieren_autenticacion(
 ) -> None:
     app = crear_app(routers=[_router_protegido()])
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
 
     with TestClient(app) as client:
         respuesta = client.get("/api/v1/protegido")
 
     assert respuesta.status_code == 401
     assert respuesta.json()["codigo"] == "NO_AUTENTICADO"
+
+
+def test_salud_y_lifespan_no_requieren_redis_disponible(entorno: None) -> None:
+    app = crear_app(routers=[])
+
+    with TestClient(app) as client:
+        respuesta = client.get("/salud")
+
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"estado": "ok"}
 
 
 def test_con_token_valido_la_ruta_responde(
@@ -62,6 +75,7 @@ def test_con_token_valido_la_ruta_responde(
 ) -> None:
     app = crear_app(routers=[_router_protegido()])
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     token = crear_token(roles=["conductor"])
 
     with TestClient(app) as client:

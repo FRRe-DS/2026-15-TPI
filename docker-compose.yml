@@ -109,6 +109,25 @@ services:
     networks:
       - m3
 
+  redis:
+    image: redis:7.4.3-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD debe estar configurada}
+    command: ["sh", "-c", "exec redis-server --requirepass \"$${REDIS_PASSWORD}\""]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping | grep -q PONG",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - m3
+
   api:
     build: *backend-build
     image: m3-backend:local
@@ -117,7 +136,16 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_URL: http://localhost:${KEYCLOAK_PORT:-8081}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-m3}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD debe estar configurada}
+      RATE_LIMIT_HMAC_SECRET: ${RATE_LIMIT_HMAC_SECRET:?RATE_LIMIT_HMAC_SECRET debe estar configurado}
+      RATE_LIMIT_ANON_REQUESTS: ${RATE_LIMIT_ANON_REQUESTS:-60}
+      RATE_LIMIT_PREAUTH_REQUESTS: ${RATE_LIMIT_PREAUTH_REQUESTS:-1000}
+      RATE_LIMIT_AUTH_REQUESTS: ${RATE_LIMIT_AUTH_REQUESTS:-120}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      UBICACION_SIMULADA_LATITUD: "${UBICACION_SIMULADA_LATITUD:--27.4511}"
+      UBICACION_SIMULADA_LONGITUD: "${UBICACION_SIMULADA_LONGITUD:--58.9867}"
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:

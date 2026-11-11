@@ -12,6 +12,8 @@ from app.infraestructura.db.modelos import Conductor
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import instalar_limitador_falso
+
 FECHA_UBICACION = datetime(2026, 10, 22, 15, 0, tzinfo=UTC)
 
 
@@ -26,6 +28,7 @@ def cliente_m4(monkeypatch, fabrica_sesiones):
     token = jwt.encode(
         {
             "iss": "http://localhost:8081/realms/m3",
+            "sub": "usuario-m4-prueba",
             "exp": datetime.now(UTC) + timedelta(minutes=5),
             # M4 lee con la cuenta de servicio; el conductor solo lee su propio id.
             "realm_access": {"roles": ["servicio"]},
@@ -37,6 +40,7 @@ def cliente_m4(monkeypatch, fabrica_sesiones):
     app.dependency_overrides[obtener_cliente_jwks] = lambda: SimpleNamespace(
         get_signing_key_from_jwt=lambda _: SimpleNamespace(key=clave.public_key())
     )
+    instalar_limitador_falso(app)
     with TestClient(app, headers={"Authorization": f"Bearer {token}"}) as cliente:
         yield cliente
 
