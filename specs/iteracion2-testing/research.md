@@ -101,7 +101,7 @@
 **Decisión**:
 - El rol `servicio` es de solo lectura. Recibe `403` en acciones de operador, `PATCH /conductores/{id}/estado` y `POST /solicitudes/{id}`; puede leer `GET /conductores`, detalle, habilitación, vehículos, tipos de servicio, `/estado` y `/ubicacion`.
 - Un conductor solo opera sobre su propio `id_conductor`: `403` al consultar o modificar datos de otro conductor y `403` en `GET /conductores`. En `POST /solicitudes/{id}`, una solicitud inexistente da `404` y una ajena da `403 ACCESO_PROHIBIDO`.
-- Se agrega un helper para firmar tokens con rol `servicio`, equivalente a `headers_conductor_de` y `headers_operador`; acepta la lista de roles y los claims `id_conductor`/`id_operador` del caso.
+- Se agrega un helper para firmar tokens con rol `servicio`, equivalente a `headers_conductor` y `headers_operador`; acepta la lista de roles y los claims `id_conductor`/`id_operador` del caso.
 
 **Motivo**: sin el helper no se puede cubrir la matriz de roles completa sin Keycloak. La cuenta técnica de servicio la define el grupo de Datos y seguridad; en las pruebas se representa con un token firmado con rol `servicio`.
 

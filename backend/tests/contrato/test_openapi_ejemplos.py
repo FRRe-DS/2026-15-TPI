@@ -47,12 +47,11 @@ IDS_OPERACIONES = [f"{metodo.upper()} {ruta}" for metodo, ruta in OPERACIONES_EN
 # Respuestas de error que T611 exige que tengan ejemplo.
 ERRORES_OBLIGATORIOS = ("400", "401", "403", "404", "409", "410", "422", "429", "503")
 
-# Códigos del catálogo (specs/iteracion1/contracts/errores.md y su ampliación en
-# specs/iteracion2-backend/contracts/errores.md) válidos por estado.
+# Códigos del catálogo (specs/iteracion1/contracts/errores.md) válidos por estado.
 CODIGOS_POR_ESTADO = {
     "400": {"SOLICITUD_INVALIDA"},
     "401": {"NO_AUTENTICADO"},
-    "403": {"SIN_PERMISOS", "ACCESO_PROHIBIDO"},
+    "403": {"SIN_PERMISOS"},
     "404": {"NO_ENCONTRADO"},
     "409": {
         "DNI_DUPLICADO",

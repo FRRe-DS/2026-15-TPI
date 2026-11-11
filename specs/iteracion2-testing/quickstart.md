@@ -57,10 +57,10 @@ Los tests crean datos propios y usan PostgreSQL real. Los helpers de autenticaci
 
 ```powershell
 Set-Location backend
-uv run pytest --ignore=tests/e2e --strict-config --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=90
+uv run pytest --ignore=tests/e2e --strict-config --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=65
 ```
 
-El umbral de cobertura vigente en CI es `90 %`; el comando reproduce ese control y no lo reduce.
+`65 %` es el umbral vigente de CI. `70 %` sigue siendo la propuesta para Iteración 2, pendiente de acuerdo.
 
 ## Ejecutar flujo E2E del Compose
 

@@ -19,7 +19,7 @@ pytestmark = pytest.mark.integration
 
 def test_registrar_licencia_vigente_cumple_el_contrato(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     registrar_licencia: Callable[..., httpx.Response],
     validar_contrato: Callable[[httpx.Response], None],
@@ -41,7 +41,7 @@ def test_registrar_licencia_vigente_cumple_el_contrato(
 
     detalle = cliente.get(
         f"/api/v1/conductores/{conductor['id']}",
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert detalle.status_code == 200, detalle.text
     validar_contrato(detalle)
@@ -75,7 +75,7 @@ def test_registrar_licencia_vencida_cumple_el_contrato(
 
 def test_registrar_varias_licencias_cumple_el_contrato(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     registrar_licencia: Callable[..., httpx.Response],
     validar_contrato: Callable[[httpx.Response], None],
@@ -97,7 +97,7 @@ def test_registrar_varias_licencias_cumple_el_contrato(
 
     detalle = cliente.get(
         f"/api/v1/conductores/{conductor['id']}",
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert detalle.status_code == 200, detalle.text
     validar_contrato(detalle)

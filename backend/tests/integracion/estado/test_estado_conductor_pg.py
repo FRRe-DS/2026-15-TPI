@@ -15,6 +15,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.api.conftest import instalar_limitador_falso
+
 URL_ESTADO = "/api/v1/conductores/{id_conductor}/estado"
 URL_UBICACION = "/api/v1/conductores/{id_conductor}/ubicacion"
 LATITUD_SIMULADA = -27.4511
@@ -43,6 +45,7 @@ def cliente_estado(
     monkeypatch.setattr(dependencias, "_fabrica_de_sesiones", lambda: fabrica_sesiones)
     app = crear_app()
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

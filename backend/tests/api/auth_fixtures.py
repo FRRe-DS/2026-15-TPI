@@ -15,6 +15,7 @@ VARIABLES_ENTORNO = {
     "KEYCLOAK_URL": "http://localhost:8080",
     "KEYCLOAK_PUBLIC_URL": "http://localhost:8080",
     "KEYCLOAK_REALM": "m3",
+    "RATE_LIMIT_HMAC_SECRET": "test-hmac-secret-shared-by-all-api-tests",
     "DATABASE_URL": "postgresql+psycopg://test:test@localhost:5432/test",
 }
 
