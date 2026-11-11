@@ -86,9 +86,9 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 **Prueba independiente**: Revisar condiciones y permisos del workflow y verificar que una etiqueta publicada puede seleccionarse en Compose mediante `M3_API_IMAGE`.
 
-- [ ] T524 [US5] Parametrizar `image` de `api`, `migraciones` y `seed` en `docker-compose.yml` con `${M3_API_IMAGE:-m3-backend:local}`, conservar el build local desde `backend/Dockerfile` y permitir levantar una imagen descargada sin build.
-- [ ] T525 [US5] Agregar a `.github/workflows/ci.yml` un job de publicación dependiente de `ci`, limitado a eventos `push` en `dev`/`main`; autenticarse con secretos `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` y variable `DOCKERHUB_IMAGE`, publicar solo Backend con tag SHA completo y tag de rama, fijar acciones externas por SHA, usar permisos mínimos y no publicar en PR.
-- [ ] T526 [US5] Actualizar `DESPLIEGUE.md` (una sola vez, incluyendo `REDIS_*`, límites y las cuentas `M3_SERVICIO_*` que agregan T514 y T520) para documentar configuración de secretos/variable de Docker Hub, build local, `docker compose pull` y despliegue por tag SHA usando `M3_API_IMAGE`, sin incluir credenciales en texto plano.
+- [x] T524 [US5] Parametrizar `image` de `api`, `migraciones` y `seed` en `docker-compose.yml` con `${M3_API_IMAGE:-m3-backend:local}`, conservar el build local desde `backend/Dockerfile` y permitir levantar una imagen descargada sin build.
+- [x] T525 [US5] Agregar a `.github/workflows/ci.yml` un job de publicación dependiente de `ci`, limitado a eventos `push` en `dev`/`main`; autenticarse con secretos `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` y variable `DOCKERHUB_IMAGE`, publicar solo Backend con tag SHA completo y tag de rama, fijar acciones externas por SHA, usar permisos mínimos y no publicar en PR.
+- [x] T526 [US5] Actualizar `DESPLIEGUE.md` (una sola vez, incluyendo `REDIS_*`, límites y las cuentas `M3_SERVICIO_*` que agregan T514 y T520) para documentar configuración de secretos/variable de Docker Hub, build local, `docker compose pull` y despliegue por tag SHA usando `M3_API_IMAGE`, sin incluir credenciales en texto plano.
 
 ## Fase 8: Pulido y coordinación transversal
 
