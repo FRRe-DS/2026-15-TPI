@@ -92,7 +92,7 @@ US1 se integra antes de los repositorios SQL L9/L10 de Backend. US2 depende del 
 
 ## Fase 8: Pulido y coordinación transversal
 
-- [ ] T527 Actualizar `specs/iteracion2-seguridad/quickstart.md` para que preparación de entorno, comandos Compose y resultados esperados coincidan con la configuración Redis, migración, seed, realm, rate limiting, smoke test y publicación de imagen.
+- [x] T527 Actualizar `specs/iteracion2-seguridad/quickstart.md` para que preparación de entorno, comandos Compose y resultados esperados coincidan con la configuración Redis, migración, seed, realm, rate limiting, smoke test y publicación de imagen.
 - [ ] T528 Ejecutar las validaciones de `specs/iteracion2-seguridad/quickstart.md`, migración/esquema/seed/realm, pruebas de rate limiting y contrato, `docker compose config` y smoke test; confirmar que `/salud` sigue disponible ante una falla Redis y que el workflow nunca publica en `pull_request`.
 
 ## Dependencias
