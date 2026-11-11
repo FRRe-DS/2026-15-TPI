@@ -203,6 +203,7 @@ def headers_operador(crear_token) -> dict[str, str]:
 def configuracion_contrato() -> Settings:
     return Settings(
         KEYCLOAK_URL=URL_DEL_CONTRATO,
+        KEYCLOAK_PUBLIC_URL=URL_DEL_CONTRATO,
         KEYCLOAK_REALM=REALM,
         DATABASE_URL=DATABASE_URL_DE_PRUEBA,
         RATE_LIMIT_HMAC_SECRET="contract-test-hmac-secret-shared-by-instances",

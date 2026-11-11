@@ -29,6 +29,8 @@ uv run pytest tests/contrato/test_openapi_ejemplos.py -v
 
 El test debe validar las 17 operaciones de `OPERACIONES_EN_ALCANCE`, el `410` y los códigos nuevos de `CODIGOS_POR_ESTADO`, y las respuestas reales de los 7 endpoints contra `docs/contract/openapi.yaml` con `openapi-core`. Si la copia local del YAML todavía no está en 1.2.0 o el backend de la Iteración 2 no está integrado, la prueba debe fallar; no se relaja el esquema para obtener verde.
 
+También se exigen las respuestas comunes `429 LIMITE_DE_SOLICITUDES` con `Retry-After` y `503 SERVICIO_TEMPORALMENTE_NO_DISPONIBLE` en las 17 operaciones autenticadas. Se validan como componentes reutilizables del OpenAPI, sin cambiar la versión `1.2.0`.
+
 ## Ejecutar pruebas de T612: roles con Keycloak real
 
 Requiere Docker Compose y el realm de prueba configurado desde `.env.example`.

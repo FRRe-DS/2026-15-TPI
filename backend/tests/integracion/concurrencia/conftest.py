@@ -63,7 +63,11 @@ def cliente_jwks(clave_rsa: rsa.RSAPrivateKey) -> SimpleNamespace:
 def crear_token(clave_rsa: rsa.RSAPrivateKey):
     """Crea un JWT firmado con la clave de prueba, con emisor y expiracion validos."""
 
-    def _crear_token(roles: list[str] | None = None, id_operador: Any = None) -> str:
+    def _crear_token(
+        roles: list[str] | None = None,
+        id_operador: Any = None,
+        id_conductor: Any = None,
+    ) -> str:
         ahora = datetime.now(UTC)
         payload: dict[str, Any] = {
             "iss": EMISOR,
@@ -76,6 +80,8 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         }
         if id_operador is not None:
             payload["id_operador"] = id_operador
+        if id_conductor is not None:
+            payload["id_conductor"] = id_conductor
         return jwt.encode(payload, clave_rsa, algorithm="RS256", headers={"kid": KID_PRUEBA})
 
     return _crear_token
@@ -102,6 +108,7 @@ def headers_operador(crear_token) -> dict[str, str]:
 def configuracion_concurrencia() -> Settings:
     return Settings(
         KEYCLOAK_URL=URL_DE_PRUEBA,
+        KEYCLOAK_PUBLIC_URL=URL_DE_PRUEBA,
         KEYCLOAK_REALM=REALM,
         DATABASE_URL=DATABASE_URL_DE_PRUEBA,
         RATE_LIMIT_HMAC_SECRET="concurrency-test-hmac-secret-shared-by-instances",

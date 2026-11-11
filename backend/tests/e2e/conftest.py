@@ -1,4 +1,4 @@
-"""Fixtures E2E (T601): API y Keycloak reales levantados por Docker Compose.
+"""Fixtures E2E (T601, T612): API y Keycloak reales levantados por Docker Compose.
 
 No se firman tokens de prueba: cada token se obtiene con password grant del
 cliente confidencial del realm ``m3``. Las variables se leen del entorno y, si
@@ -46,6 +46,8 @@ class ConfiguracionE2E:
     operador_password: str = field(repr=False)
     conductor_username: str
     conductor_password: str = field(repr=False)
+    servicio_username: str
+    servicio_password: str = field(repr=False)
 
 
 def _url_base(nombre: str, puerto: str, por_defecto: str) -> str:
@@ -65,6 +67,7 @@ def configuracion_e2e() -> ConfiguracionE2E:
             "KEYCLOAK_M3_CLIENT_SECRET",
             "M3_OPERADOR_PASSWORD",
             "M3_CONDUCTOR_PASSWORD",
+            "M3_SERVICIO_PASSWORD",
         )
         if not os.getenv(nombre)
     ]
@@ -85,6 +88,8 @@ def configuracion_e2e() -> ConfiguracionE2E:
         operador_password=os.environ["M3_OPERADOR_PASSWORD"],
         conductor_username=os.getenv("M3_CONDUCTOR_USERNAME", "conductor.m3"),
         conductor_password=os.environ["M3_CONDUCTOR_PASSWORD"],
+        servicio_username=os.getenv("M3_SERVICIO_USERNAME", "servicio.m4"),
+        servicio_password=os.environ["M3_SERVICIO_PASSWORD"],
     )
 
 
@@ -134,5 +139,15 @@ def headers_conductor(configuracion_e2e: ConfiguracionE2E) -> dict[str, str]:
         configuracion_e2e,
         username=configuracion_e2e.conductor_username,
         password=configuracion_e2e.conductor_password,
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="session")
+def headers_servicio(configuracion_e2e: ConfiguracionE2E) -> dict[str, str]:
+    token = _obtener_token(
+        configuracion_e2e,
+        username=configuracion_e2e.servicio_username,
+        password=configuracion_e2e.servicio_password,
     )
     return {"Authorization": f"Bearer {token}"}
