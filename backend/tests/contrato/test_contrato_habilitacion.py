@@ -18,7 +18,7 @@ def _url_habilitacion(id_conductor: int) -> str:
 
 def test_consultar_habilitacion_inicial_cumple_el_contrato(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
@@ -26,7 +26,7 @@ def test_consultar_habilitacion_inicial_cumple_el_contrato(
 
     respuesta = cliente.get(
         _url_habilitacion(conductor["id"]),
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert respuesta.status_code == 200, respuesta.text
     validar_contrato(respuesta)
