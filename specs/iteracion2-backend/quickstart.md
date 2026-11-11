@@ -26,7 +26,7 @@ uv run pytest tests/integracion/repositorios
 
 ## 2. Obtener un token de cada rol (entorno real)
 
-Como en la Iteración 1, con las credenciales de `infra/.env`:
+Como en la Iteración 1, con las credenciales de `.env` en la raíz:
 
 ```bash
 curl -s -X POST "http://localhost:8081/realms/m3/protocol/openid-connect/token" \
@@ -120,7 +120,7 @@ Resultado esperado: la API genera las 17 operaciones del contrato 1.2.0 con sus 
 
 Se levantó Compose desde `dev` (con L9, L10, la migración 0002 y el seed) y se recorrieron las secciones 3 a 6 con los tokens de operador y de conductor (`conductor.m3`, `id_conductor` 1). Todo respondió como dice esta guía, con estas diferencias:
 
-- **No se pudo comprobar con el rol `servicio` en vivo.** El `infra/.env` local es anterior a la cuenta técnica de M4 y no tiene `M3_SERVICIO_USERNAME` ni `M3_SERVICIO_PASSWORD`; hay que sumarlos desde `.env.example` y recrear Keycloak (el realm solo se importa con el volumen vacío). Los permisos del servicio quedan cubiertos por las pruebas de integración (`test_lectura_m4`) y de API.
+- **No se pudo comprobar con el rol `servicio` en vivo.** El `.env` local es anterior a la cuenta técnica de M4 y no tiene `M3_SERVICIO_USERNAME` ni `M3_SERVICIO_PASSWORD`; hay que sumarlos desde `.env.example` y recrear Keycloak (el realm solo se importa con el volumen vacío). Los permisos del servicio quedan cubiertos por las pruebas de integración (`test_lectura_m4`) y de API.
 - El seed trae 7 conductores, 5 vehículos, 3 documentos de vehículo y 5 solicitudes. El conductor 1 tiene una solicitud `PENDIENTE` y otra `VENCIDA`: aceptar la primera da `200` y lo deja `OCUPADO`, reaceptarla da `409`, y la vencida da `410`.
 - `GET /conductores?disponible=true` responde `400` con el aviso de que se reemplazó por `estado`.
 - Los mensajes de error salen con tildes en UTF-8; en la consola de Windows hay que fijar la codificación para leerlos bien.

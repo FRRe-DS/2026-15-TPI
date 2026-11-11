@@ -15,7 +15,7 @@ from app.dominio.disponibilidad import NO_INFORMADO
 from app.dominio.errores import ConductorNoHabilitado, NoEncontrado
 from fastapi.testclient import TestClient
 
-from tests.api.conftest import CasoDeUsoFalso, devolver_caso
+from tests.api.conftest import CasoDeUsoFalso, devolver_caso, instalar_limitador_falso
 
 ESTADO = "/api/v1/conductores/{id}/estado"
 UBICACION = "/api/v1/conductores/{id}/ubicacion"
@@ -54,6 +54,7 @@ def client_estado(
 ) -> TestClient:
     app = crear_app()
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     for clave, nombre in PROVEEDORES_V3.items():
         app.dependency_overrides[getattr(dependencias, nombre)] = devolver_caso(casos_estado[clave])
     with TestClient(app) as test_client:

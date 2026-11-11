@@ -8,7 +8,7 @@ import jwt
 import pytest
 from app.api import dependencias
 from app.api.main import crear_app
-from app.api.seguridad import obtener_cliente_jwks
+from app.api.seguridad import obtener_cliente_jwks, obtener_rate_limiter
 from app.aplicacion.casos_de_uso.resultados import (
     ConductorDetalle,
     DocumentoDeConductor,
@@ -27,6 +27,7 @@ from app.dominio.vehiculo import (
     Vehiculo,
 )
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 EMISOR_VALIDO = "http://localhost:8080/realms/m3"
@@ -53,6 +54,15 @@ class CasoDeUsoFalso:
         if self.error is not None:
             raise self.error
         return self.resultado
+
+
+class LimitadorSinCuota:
+    def verificar(self, **_kwargs: Any) -> None:
+        return None
+
+
+def instalar_limitador_falso(app: FastAPI) -> None:
+    app.dependency_overrides[obtener_rate_limiter] = LimitadorSinCuota
 
 
 def conductor_de_prueba(**cambios: Any) -> Conductor:
@@ -200,6 +210,14 @@ def headers_operador(crear_token) -> dict[str, str]:
 def entorno(monkeypatch: pytest.MonkeyPatch) -> None:
     for variable, valor in VARIABLES_ENTORNO.items():
         monkeypatch.setenv(variable, valor)
+    monkeypatch.setenv(
+        "RATE_LIMIT_HMAC_SECRET",
+        "test-hmac-secret-shared-by-all-api-tests",
+    )
+    monkeypatch.setenv("RATE_LIMIT_ANON_REQUESTS", "60")
+    monkeypatch.setenv("RATE_LIMIT_PREAUTH_REQUESTS", "1000")
+    monkeypatch.setenv("RATE_LIMIT_AUTH_REQUESTS", "120")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
 
 
 @pytest.fixture
@@ -288,6 +306,7 @@ def client(
     """Cliente HTTP con JWT de prueba y casos de uso simulados."""
     app = crear_app()
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     for nombre, proveedor in PROVEEDORES:
         # Sin argumentos: FastAPI copia los valores por defecto de los
         # parámetros y devolvería una copia del caso de uso.
