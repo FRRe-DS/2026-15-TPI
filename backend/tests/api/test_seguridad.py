@@ -10,6 +10,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import instalar_limitador_falso
+
 URL_COMUN = "/api/v1/comun"
 URL_ACCION = "/api/v1/habilitacion"
 
@@ -36,6 +38,7 @@ def client_protegido(
 
     app = crear_app(routers=[router])
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

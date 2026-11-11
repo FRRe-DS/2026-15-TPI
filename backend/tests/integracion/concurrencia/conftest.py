@@ -28,6 +28,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.api.conftest import instalar_limitador_falso
+
 URL_DE_PRUEBA = "http://localhost:8080"
 REALM = "m3"
 EMISOR = f"{URL_DE_PRUEBA}/realms/{REALM}"
@@ -65,6 +67,7 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
         ahora = datetime.now(UTC)
         payload: dict[str, Any] = {
             "iss": EMISOR,
+            "sub": "usuario-concurrencia",
             "iat": int(ahora.timestamp()),
             "exp": ahora + timedelta(minutes=15),
             "realm_access": {
@@ -101,6 +104,7 @@ def configuracion_concurrencia() -> Settings:
         KEYCLOAK_URL=URL_DE_PRUEBA,
         KEYCLOAK_REALM=REALM,
         DATABASE_URL=DATABASE_URL_DE_PRUEBA,
+        RATE_LIMIT_HMAC_SECRET="concurrency-test-hmac-secret-shared-by-instances",
     )
 
 
@@ -112,6 +116,7 @@ def app_concurrencia(
 ) -> Iterator[FastAPI]:
     """Aplicacion real con repositorios SQL y autenticacion de prueba."""
     app = crear_app()
+    app.state.settings = configuracion_concurrencia
 
     def obtener_unidad_de_trabajo() -> Iterator[SqlUnidadDeTrabajo]:
         yield SqlUnidadDeTrabajo(fabrica_sesiones)
@@ -119,6 +124,7 @@ def app_concurrencia(
     app.dependency_overrides[dependencias.obtener_unidad_de_trabajo] = obtener_unidad_de_trabajo
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
     app.dependency_overrides[obtener_configuracion] = lambda: configuracion_concurrencia
+    instalar_limitador_falso(app)
     try:
         yield app
     finally:
