@@ -51,14 +51,14 @@ def _crear_vehiculo(
 
 def test_veinte_solicitudes_simultaneas_con_la_misma_patente_dan_un_201_y_diecinueve_409(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     peticiones_simultaneas: Callable[..., list[httpx.Response]],
     sesion_bd: Session,
 ) -> None:
-    id_conductor = _crear_conductor(cliente, headers_operador)
+    id_conductor = _crear_conductor(cliente, headers_conductor)
 
     respuestas = peticiones_simultaneas(
-        lambda: _crear_vehiculo(cliente, headers_operador, id_conductor)
+        lambda: _crear_vehiculo(cliente, headers_conductor, id_conductor)
     )
 
     estados = Counter(respuesta.status_code for respuesta in respuestas)

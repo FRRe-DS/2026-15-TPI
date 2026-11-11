@@ -38,7 +38,7 @@ Set-Location backend
 uv run pytest tests/integracion/estado tests/integracion/solicitudes tests/integracion/concurrencia tests/api/test_roles_servicio.py -v
 ```
 
-Los tests crean datos propios, usan PostgreSQL real y tokens firmados para los roles `operador`, `conductor` y `servicio` (helper equivalente a `headers_conductor_de`/`headers_operador`). No se ejecutan contra `dev` mientras existan `conectado` y `disponible` en lugar de `estado`.
+Los tests crean datos propios, usan PostgreSQL real y tokens firmados para los roles `operador`, `conductor` y `servicio` (helper equivalente a `headers_conductor`/`headers_operador`). No se ejecutan contra `dev` mientras existan `conectado` y `disponible` en lugar de `estado`.
 
 ## Ejecutar cobertura
 

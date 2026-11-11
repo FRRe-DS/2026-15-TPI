@@ -45,7 +45,7 @@ def test_crear_vehiculo_cumple_el_contrato(
 
 def test_listar_vehiculos_cumple_el_contrato(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     crear_vehiculo: Callable[..., httpx.Response],
     validar_contrato: Callable[[httpx.Response], None],
@@ -65,7 +65,7 @@ def test_listar_vehiculos_cumple_el_contrato(
     )
     assert segundo.status_code == 201, segundo.text
 
-    respuesta = cliente.get(_url_vehiculos(conductor["id"]), headers=headers_operador)
+    respuesta = cliente.get(_url_vehiculos(conductor["id"]), headers=headers_conductor)
     assert respuesta.status_code == 200, respuesta.text
     validar_contrato(respuesta)
 
@@ -80,7 +80,7 @@ def test_listar_vehiculos_cumple_el_contrato(
     motos = cliente.get(
         _url_vehiculos(conductor["id"]),
         params={"tipo": "MOTO"},
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert motos.status_code == 200, motos.text
     validar_contrato(motos)
@@ -89,7 +89,7 @@ def test_listar_vehiculos_cumple_el_contrato(
     pendientes = cliente.get(
         _url_vehiculos(conductor["id"]),
         params={"habilitacion": "PENDIENTE"},
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert pendientes.status_code == 200, pendientes.text
     validar_contrato(pendientes)
@@ -101,7 +101,7 @@ def test_listar_vehiculos_cumple_el_contrato(
 
 def test_obtener_vehiculo_cumple_el_contrato(
     cliente: TestClient,
-    headers_operador: dict[str, str],
+    headers_conductor: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     crear_vehiculo: Callable[..., httpx.Response],
     validar_contrato: Callable[[httpx.Response], None],
@@ -113,7 +113,7 @@ def test_obtener_vehiculo_cumple_el_contrato(
 
     respuesta = cliente.get(
         f"{_url_vehiculos(conductor['id'])}/{id_vehiculo}",
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert respuesta.status_code == 200, respuesta.text
     validar_contrato(respuesta)
@@ -130,6 +130,7 @@ def test_obtener_vehiculo_cumple_el_contrato(
 
 def test_habilitar_vehiculo_cumple_el_contrato(
     cliente: TestClient,
+    headers_conductor: dict[str, str],
     headers_operador: dict[str, str],
     crear_conductor: Callable[..., dict[str, Any]],
     crear_vehiculo: Callable[..., httpx.Response],
@@ -172,7 +173,7 @@ def test_habilitar_vehiculo_cumple_el_contrato(
 
     detalle = cliente.get(
         f"{_url_vehiculos(conductor['id'])}/{id_vehiculo}",
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert detalle.status_code == 200, detalle.text
     validar_contrato(detalle)
@@ -181,7 +182,7 @@ def test_habilitar_vehiculo_cumple_el_contrato(
     aprobados = cliente.get(
         _url_vehiculos(conductor["id"]),
         params={"habilitacion": "APROBADA"},
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert aprobados.status_code == 200, aprobados.text
     validar_contrato(aprobados)
@@ -190,7 +191,7 @@ def test_habilitar_vehiculo_cumple_el_contrato(
     pendientes = cliente.get(
         _url_vehiculos(conductor["id"]),
         params={"habilitacion": "PENDIENTE"},
-        headers=headers_operador,
+        headers=headers_conductor,
     )
     assert pendientes.status_code == 200, pendientes.text
     validar_contrato(pendientes)

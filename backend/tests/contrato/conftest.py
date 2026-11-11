@@ -172,6 +172,17 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 
 @pytest.fixture
+def headers_conductor(crear_token) -> dict[str, str]:
+    """Headers de quien opera sobre cualquier conductor (token de operador).
+
+    Con la matriz de acceso de la Iteración 2 un token de conductor solo opera sobre su
+    propio `id_conductor`, y estas pruebas operan sobre conductores recién creados, cuyo id
+    se conoce recién después del alta. El nombre se conserva para no tocar las pruebas.
+    """
+    return {"Authorization": f"Bearer {crear_token(roles=['operador'], id_operador=7)}"}
+
+
+@pytest.fixture
 def headers_conductor_de(crear_token):
     """Fabrica los headers de un conductor con el `id_conductor` indicado."""
 
@@ -184,11 +195,6 @@ def headers_conductor_de(crear_token):
 
 @pytest.fixture
 def headers_operador(crear_token) -> dict[str, str]:
-    """Headers de operador para operar sobre cualquier conductor.
-
-    Las pruebas de contrato crean conductores cuyo id se conoce recién después del alta,
-    por eso usan un token de operador y no uno de conductor.
-    """
     token = crear_token(roles=["operador"], id_operador=7)
     return {"Authorization": f"Bearer {token}"}
 
@@ -272,12 +278,12 @@ VEHICULO_DE_PRUEBA = {
 
 
 @pytest.fixture
-def crear_conductor(cliente: TestClient, headers_operador: dict[str, str]):
+def crear_conductor(cliente: TestClient, headers_conductor: dict[str, str]):
     """Crea un conductor por la API y devuelve su representación."""
 
     def _crear_conductor(**cambios: str) -> dict[str, Any]:
         datos = {**CONDUCTOR_DE_PRUEBA, **cambios}
-        respuesta = cliente.post("/api/v1/conductores", json=datos, headers=headers_operador)
+        respuesta = cliente.post("/api/v1/conductores", json=datos, headers=headers_conductor)
         assert respuesta.status_code == 201, respuesta.text
         return respuesta.json()
 
@@ -285,7 +291,7 @@ def crear_conductor(cliente: TestClient, headers_operador: dict[str, str]):
 
 
 @pytest.fixture
-def registrar_licencia(cliente: TestClient, headers_operador: dict[str, str]):
+def registrar_licencia(cliente: TestClient, headers_conductor: dict[str, str]):
     """Registra una licencia por la API y devuelve la respuesta HTTP."""
 
     def _registrar_licencia(id_conductor: int, **cambios: Any) -> httpx.Response:
@@ -293,14 +299,14 @@ def registrar_licencia(cliente: TestClient, headers_operador: dict[str, str]):
         return cliente.post(
             f"/api/v1/conductores/{id_conductor}/documentacion",
             json=datos,
-            headers=headers_operador,
+            headers=headers_conductor,
         )
 
     return _registrar_licencia
 
 
 @pytest.fixture
-def crear_vehiculo(cliente: TestClient, headers_operador: dict[str, str]):
+def crear_vehiculo(cliente: TestClient, headers_conductor: dict[str, str]):
     """Registra un vehículo por la API y devuelve la respuesta HTTP."""
 
     def _crear_vehiculo(id_conductor: int, **cambios: Any) -> httpx.Response:
@@ -308,7 +314,7 @@ def crear_vehiculo(cliente: TestClient, headers_operador: dict[str, str]):
         return cliente.post(
             f"/api/v1/conductores/{id_conductor}/vehiculos",
             json=datos,
-            headers=headers_operador,
+            headers=headers_conductor,
         )
 
     return _crear_vehiculo
