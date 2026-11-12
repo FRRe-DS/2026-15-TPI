@@ -24,8 +24,8 @@
 
 **Stack A · sesión del conductor** (apilada sobre T706)
 
-- [ ] T711 [Test] `src/lib/sesion.test.ts`: la cookie es `httpOnly`; `id_conductor` se lee del claim del token; un token vencido o ausente cuenta como sin sesión; las credenciales nunca se devuelven al cliente.
-- [ ] T712 [Impl] `src/lib/sesion.ts` y `src/app/api/sesion/route.ts` (login y logout contra Keycloak, realm `m3`) hasta que pase T711.
+- [x] T711 [Test] `src/lib/sesion.test.ts`: la cookie es `httpOnly`; `id_conductor` se lee del claim del token; un token vencido o ausente cuenta como sin sesión; las credenciales nunca se devuelven al cliente.
+- [x] T712 [Impl] `src/lib/sesion.ts` y `src/app/api/sesion/route.ts` (login y logout contra Keycloak, realm `m3`) hasta que pase T711.
 
 **Stack B · estados de pantalla**
 
