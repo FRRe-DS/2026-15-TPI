@@ -16,8 +16,6 @@ const pantallas = [
 export function Navegacion() {
   const pathname = usePathname();
 
-  if (pathname === "/login") return null;
-
   return (
     <nav className={styles.navegacion} aria-label="Navegación principal">
       <ul className={styles.lista}>

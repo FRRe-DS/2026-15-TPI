@@ -50,8 +50,8 @@
 
 Una sola PR desde `dev`, después de T704.
 
-- [x] T719 [Test] [US6] En `src/components/ListadoConductores.test.tsx`, verificar el renderizado de badges y colores por estado de habilitación (`APROBADA`, `PENDIENTE`, `OBSERVADA`, `SUSPENDIDA`, `RECHAZADA`).
-- [x] T720 [Impl] [US6] Mostrar los badges con colores diferenciados (verde, amarillo, rojo) en `src/components/ListadoConductores.tsx`. Va en la misma PR que T719.
+- [ ] T719 [Test] [US6] En `src/components/ListadoConductores.test.tsx`, verificar el renderizado de badges y colores por estado de habilitación (`APROBADA`, `PENDIENTE`, `OBSERVADA`, `SUSPENDIDA`, `RECHAZADA`).
+- [ ] T720 [Impl] [US6] Mostrar los badges con colores diferenciados (verde, amarillo, rojo) en `src/components/ListadoConductores.tsx`. Va en la misma PR que T719.
 
 ## Fase 5: Pantallas del conductor
 
