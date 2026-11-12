@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ListadoConductores } from "./ListadoConductores";
-import type { ConductorConUbicacion } from "../lib/tipos";
+import styles from "./ListadoConductores.module.css";
+import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
 
 describe("ListadoConductores", () => {
   const conductorEjemplo: ConductorConUbicacion = {
@@ -17,6 +18,30 @@ describe("ListadoConductores", () => {
     documentos: [],
     vehiculos: [],
   };
+
+  it("muestra un badge con el color correspondiente a cada estado de habilitación", () => {
+    const casos: Array<[EstadoHabilitacion, string]> = [
+      ["APROBADA", styles.aprobada],
+      ["PENDIENTE", styles.pendiente],
+      ["OBSERVADA", styles.observada],
+      ["SUSPENDIDA", styles.rechazada],
+      ["RECHAZADA", styles.rechazada],
+    ];
+
+    render(
+      <ListadoConductores
+        conductores={casos.map(([habilitacion], id) => ({
+          ...conductorEjemplo,
+          id: id + 1,
+          habilitacion,
+        }))}
+      />,
+    );
+
+    casos.forEach(([habilitacion, color]) => {
+      expect(screen.getByText(habilitacion)).toHaveClass(styles.badge, color);
+    });
+  });
 
   it("muestra nombre, apellido, DNI y habilitación de cada conductor", () => {
     render(<ListadoConductores conductores={[conductorEjemplo]} />);

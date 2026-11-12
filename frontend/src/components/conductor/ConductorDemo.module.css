@@ -1,0 +1,55 @@
+.pagina, .login { width: min(100% - 2rem, 920px); margin: 0 auto; padding: 3.5rem 0 5rem; }
+.encabezado { max-width: 650px; margin-bottom: 2rem; }
+.etiqueta { margin: 0 0 .45rem; color: var(--green); font-size: .73rem; font-weight: 800; letter-spacing: .12em; }
+.encabezado h1, .login h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; letter-spacing: -.045em; }
+.descripcion, .texto { color: var(--muted); }
+.descripcion { margin: .8rem 0 0; font-size: 1.05rem; }
+.tarjeta { padding: clamp(1.2rem, 4vw, 2rem); background: var(--surface); border: 1px solid var(--line); border-radius: 1.25rem; box-shadow: var(--shadow); }
+.fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.fila h2, .tarjeta h2 { margin: 0; font-size: 1.2rem; }
+.fila .etiqueta { margin-bottom: .2rem; }
+.texto { margin: 1.25rem 0; }
+.pill { display: inline-flex; padding: .35rem .7rem; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: .75rem; font-weight: 800; letter-spacing: .03em; }
+.desconectado, .rechazado { background: var(--red-soft); color: var(--red); }
+.conectado, .disponible { background: var(--green-soft); color: var(--green); }
+.ocupado { background: var(--amber-soft); color: var(--amber); }
+.pendiente { background: var(--amber-soft); color: var(--amber); }
+.estados, .acciones { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; }
+.estados button, .botonPrimario, .botonSecundario, .seleccionado { min-height: 2.8rem; padding: .7rem 1rem; border: 0; border-radius: .75rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: transform 120ms ease, opacity 120ms ease; }
+.estados button:hover, .botonPrimario:hover, .botonSecundario:hover { transform: translateY(-1px); }
+.estados button:disabled, button:disabled { cursor: not-allowed; opacity: .55; }
+.botonPrimario, .seleccionado { background: var(--green); color: white; }
+.botonSecundario { background: #edf1ed; color: var(--ink); }
+.linkSiguiente { display: inline-flex; gap: .6rem; margin-top: 1.2rem; color: var(--green); font-weight: 700; text-decoration: none; }
+.recorrido { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+.recorrido div { padding: .9rem; background: var(--paper); border-radius: .8rem; }
+.recorrido dt, .recorrido dd { margin: 0; }
+.recorrido dt { color: var(--muted); font-size: .78rem; }
+.recorrido dd { margin-top: .25rem; font-weight: 700; }
+.temporizador { padding: .8rem 1rem; background: var(--amber-soft); border-radius: .7rem; color: var(--amber); }
+.nota, .loginPie { color: var(--muted); font-size: .88rem; }
+.pasos { display: grid; gap: .8rem; margin: 1.5rem 0; padding: 0; list-style: none; counter-reset: paso; }
+.pasos li { display: flex; align-items: center; gap: .75rem; color: var(--muted); counter-increment: paso; }
+.pasos li::before { content: counter(paso); display: grid; width: 1.8rem; height: 1.8rem; place-items: center; border: 1px solid var(--line); border-radius: 50%; font-size: .8rem; font-weight: 700; }
+.pasos .completado { color: var(--green); font-weight: 700; }
+.pasos .completado::before { background: var(--green-soft); border-color: var(--green-soft); }
+.coordenada { display: grid; gap: .3rem; padding: 1rem 0; }
+.coordenada strong { font-size: clamp(1.4rem, 4vw, 2rem); letter-spacing: -.03em; }
+.coordenada span { color: var(--muted); font-size: .9rem; }
+.login { display: grid; min-height: 100vh; align-content: center; max-width: 480px; padding: 2rem 0; }
+.loginMarca { margin-bottom: 2rem; color: var(--green); font-size: 1.1rem; font-weight: 900; }
+.loginMarca span { color: var(--muted); font-size: .7rem; letter-spacing: .12em; }
+.login h1 { margin-top: .2rem; font-size: 2rem; }
+.formulario { display: grid; gap: .55rem; margin-top: 1.5rem; }
+.formulario label { margin-top: .5rem; font-size: .9rem; font-weight: 700; }
+.formulario input { width: 100%; min-height: 2.8rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: .65rem; background: white; color: var(--ink); }
+.formulario input:focus { outline: 3px solid rgb(23 107 74 / 18%); border-color: var(--green); }
+.formulario button { margin-top: .75rem; }
+.login .botonSecundario { display: block; margin-top: .75rem; text-align: center; }
+.loginPie { text-align: center; }
+
+@media (max-width: 620px) {
+  .pagina { padding-top: 2.3rem; }
+  .recorrido { grid-template-columns: 1fr; gap: .55rem; }
+  .fila { align-items: flex-start; }
+}

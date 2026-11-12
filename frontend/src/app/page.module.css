@@ -1,0 +1,5 @@
+.pagina { width: min(100% - 2rem, 1040px); margin: 0 auto; padding: 3rem 0 5rem; }
+.encabezado { margin-bottom: 2rem; }
+.encabezado h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; letter-spacing: -.045em; }
+.encabezado p:last-child { margin: .7rem 0 0; color: var(--muted); }
+.etiqueta { margin: 0 0 .45rem; color: var(--green); font-size: .73rem; font-weight: 800; letter-spacing: .12em; }

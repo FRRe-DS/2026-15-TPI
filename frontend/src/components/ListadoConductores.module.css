@@ -1,0 +1,11 @@
+.tablaScroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); box-shadow: var(--shadow); }
+.tabla { width: 100%; border-collapse: collapse; text-align: left; }
+.tabla th, .tabla td { padding: .9rem 1rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.tabla th { background: #edf2ed; color: var(--muted); font-size: .73rem; letter-spacing: .08em; text-transform: uppercase; }
+.tabla tr:last-child td { border-bottom: 0; }
+.tabla tbody tr:hover { background: #f9fbf8; }
+.badge { display: inline-flex; padding: .3rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 800; }
+.aprobada { background: var(--green-soft); color: var(--green); }
+.pendiente, .observada { background: var(--amber-soft); color: var(--amber); }
+.rechazada { background: var(--red-soft); color: var(--red); }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
