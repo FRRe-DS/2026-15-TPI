@@ -64,8 +64,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US2 · Ponerse en línea**
 
-- [ ] T723 [Test] [US2] `src/components/ControlEstado.test.tsx`: botones para `DESCONECTADO`, `CONECTADO` y `DISPONIBLE`; no ofrece `OCUPADO`; muestra el error `CONDUCTOR_NO_HABILITADO` (422); estados de carga y error.
-- [ ] T724 [Impl] [US2] `src/components/ControlEstado.tsx` y `src/app/estado/page.tsx` hasta que pase T723.
+- [x] T723 [Test] [US2] `src/components/ControlEstado.test.tsx`: botones para `DESCONECTADO`, `CONECTADO` y `DISPONIBLE`; no ofrece `OCUPADO`; muestra el error `CONDUCTOR_NO_HABILITADO` (422); estados de carga y error.
+- [x] T724 [Impl] [US2] `src/components/ControlEstado.tsx` y `src/app/estado/page.tsx` hasta que pase T723.
 
 **US3 · Pedidos entrantes**
 
