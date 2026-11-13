@@ -7,11 +7,12 @@ from typing import Any
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
+
 from conftest import (
     FECHA_EMISION_LICENCIA_VIGENTE,
     FECHA_VENCIMIENTO_LICENCIA_VIGENTE,
 )
-from fastapi.testclient import TestClient
 
 pytestmark = pytest.mark.integration
 

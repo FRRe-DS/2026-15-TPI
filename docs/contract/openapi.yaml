@@ -47,6 +47,10 @@ paths:
               telefono: "+5491176543210"
               email: ana.gomez@example.com
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '201':
           description: Conductor creado
           headers:
@@ -128,6 +132,10 @@ paths:
           schema:
             $ref: '#/components/schemas/TipoServicio'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Lista de conductores
           content:
@@ -167,6 +175,10 @@ paths:
       summary: Obtener conductor
       operationId: obtenerConductor
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Conductor encontrado
           content:
@@ -204,6 +216,10 @@ paths:
       summary: Consultar habilitación del conductor
       operationId: obtenerHabilitacionConductor
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Estado e historial
           content:
@@ -245,6 +261,10 @@ paths:
               accion: APROBAR
               motivo: Licencia vigente y documentación completa
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Acción aplicada
           content:
@@ -312,6 +332,10 @@ paths:
               fecha_vencimiento: "2028-05-10"
               url_archivo: https://storage.example.com/licencias/1.pdf
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '201':
           description: Documento registrado
           content:
@@ -362,6 +386,10 @@ paths:
               anio: 2022
               tipos_serv: [PASAJEROS]
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '201':
           description: Vehículo registrado
           headers:
@@ -421,6 +449,10 @@ paths:
           schema:
             $ref: '#/components/schemas/EstadoHabilitacion'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Lista de vehículos
           content:
@@ -455,6 +487,10 @@ paths:
       summary: Obtener vehículo
       operationId: obtenerVehiculo
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Vehículo encontrado
           content:
@@ -492,6 +528,10 @@ paths:
       summary: Tipos de servicio del vehículo
       operationId: listarTiposServicioVehiculo
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Tipos de servicio y su habilitación
           content:
@@ -500,6 +540,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TipoServicioHabilitado'
+              example:
+                - tipo: PASAJEROS
+                  habilitado: true
+                - tipo: ENVIOS
+                  habilitado: false
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -523,13 +568,33 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DocumentoVehiculoCreate'
+            example:
+              tipo: SEGURO
+              numero: POL-123456
+              entidad_emisora: Aseguradora de prueba
+              fecha_emision: '2026-01-01'
+              fecha_vencimiento: '2027-01-01'
+              url_archivo: https://storage.example.com/seguro.pdf
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '201':
           description: Documento registrado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DocumentoVehiculo'
+              example:
+                id_vehiculo: 7
+                tipo: SEGURO
+                numero: POL-123456
+                entidad_emisora: Aseguradora de prueba
+                fecha_emision: '2026-01-01'
+                fecha_vencimiento: '2027-01-01'
+                url_archivo: https://storage.example.com/seguro.pdf
+                estado: VIGENTE
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -564,6 +629,10 @@ paths:
               accion: APROBAR
               motivo: Documentación del vehículo validada
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Acción aplicada
           content:
@@ -612,6 +681,10 @@ paths:
       description: Devuelve el estado del conductor (DESCONECTADO, CONECTADO, DISPONIBLE u OCUPADO) y el vehículo activo. La ubicación se consulta aparte en `GET /conductores/{id_conductor}/ubicacion`. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
       operationId: obtenerEstadoConductor
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Estado vigente del conductor
           content:
@@ -650,13 +723,24 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EstadoConductorRequest'
+            example:
+              estado: CONECTADO
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Estado actualizado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EstadoConductor'
+              example:
+                id_conductor: 15
+                estado: CONECTADO
+                id_vehiculo_activo: 7
+                actualizado: '2026-11-02T01:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -688,6 +772,10 @@ paths:
       description: Devuelve la última ubicación registrada y su fecha. Si todavía no hay ninguna, responde 200 con los tres campos en null, que debe tratarse como ubicación desconocida y nunca como (0, 0). No aplica vencimiento de ubicación. Lo consulta M4. Roles `conductor`, `operador` y `servicio`.
       operationId: obtenerUbicacionConductor
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Última ubicación registrada
           content:
@@ -721,6 +809,10 @@ paths:
           schema:
             $ref: '#/components/schemas/EstadoSolicitud'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Lista de solicitudes
           content:
@@ -729,6 +821,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Solicitud'
+              example:
+                - id: 340
+                  id_conductor: 15
+                  id_viaje: 5521
+                  estado: PENDIENTE
+                  vence_en: '2026-10-03T18:45:30Z'
+                  respuesta: null
+                  hora_rta: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -759,13 +859,28 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RespuestaSolicitudRequest'
+            example:
+              respuesta: RECHAZADO
+              hora_rta: '2026-10-03T18:44:10Z'
       responses:
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
         '200':
           description: Respuesta registrada
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Solicitud'
+              example:
+                id: 340
+                id_conductor: 15
+                id_viaje: 5521
+                estado: RECHAZADO
+                vence_en: '2026-10-03T18:45:30Z'
+                respuesta: RECHAZADO
+                hora_rta: '2026-10-03T18:44:10Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -864,6 +979,9 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          example:
+            codigo: SOLICITUD_VENCIDA
+            mensaje: La solicitud ya venció.
     UnprocessableEntity:
       description: Incumple una regla de negocio
       content:
@@ -873,6 +991,35 @@ components:
           example:
             codigo: DATOS_INVALIDOS
             mensaje: Los datos enviados no son válidos.
+    TooManyRequests:
+      description: Se alcanzó el límite de solicitudes; reintente más tarde.
+      headers:
+        Retry-After:
+          description: Segundos enteros hasta la próxima solicitud permitida.
+          schema:
+            type: string
+            pattern: '^[0-9]+$'
+        Cache-Control:
+          description: Evita almacenar en caché la respuesta de limitación.
+          schema:
+            type: string
+            enum: [no-store]
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: LIMITE_DE_SOLICITUDES
+            mensaje: Se alcanzó el límite de solicitudes; reintente más tarde.
+    ServiceUnavailable:
+      description: El servicio no está disponible temporalmente.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            codigo: SERVICIO_TEMPORALMENTE_NO_DISPONIBLE
+            mensaje: El servicio no está disponible temporalmente.
     InternalError:
       description: Error interno
       content:
@@ -1363,7 +1510,7 @@ components:
           description: Límite para responder
         respuesta:
           type: string
-          enum: [ACEPTADO, RECHAZADO]
+          enum: [ACEPTADO, RECHAZADO, null]
           nullable: true
         hora_rta:
           type: string

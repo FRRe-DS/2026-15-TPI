@@ -67,14 +67,15 @@ jobs:
       - name: Pruebas de contrato
         run: |
           set -o pipefail
-          uv run pytest tests/contrato -v -rs | tee /tmp/contrato.log
+          uv run pytest tests/contrato --strict-config --strict-markers -v -rs \
+            | tee /tmp/contrato.log
           if grep -Eq '[0-9]+ skipped' /tmp/contrato.log; then
             echo "::error::Las pruebas de contrato no pueden omitirse."
             exit 1
           fi
 
   test:
-    name: Suite completa con PostgreSQL y Keycloak
+    name: Suite API y PostgreSQL (T611-T615)
     runs-on: ubuntu-latest
     services:
       redis:
@@ -109,10 +110,11 @@ jobs:
         run: uv sync --frozen --all-groups
       - name: Comprobar Docker
         run: docker info
-      - name: Pruebas completas con cobertura (incluye concurrencia T603)
+      - name: Pruebas API, contrato e integración PostgreSQL con cobertura
         run: |
           set -o pipefail
-          uv run pytest --ignore=tests/e2e --cov=app --cov-report=term-missing \
+          uv run pytest --ignore=tests/e2e --strict-config --strict-markers \
+            --cov=app --cov-report=term-missing \
             --cov-fail-under=65 -rs | tee /tmp/test.log
           if grep -Eq '[0-9]+ skipped' /tmp/test.log; then
             echo "::error::La suite no puede omitir pruebas."
@@ -162,7 +164,8 @@ jobs:
         working-directory: backend
         run: |
           set -o pipefail
-          uv run pytest tests/e2e -v -rs | tee /tmp/e2e.log
+          uv run pytest tests/e2e --strict-config --strict-markers -v -rs \
+            | tee /tmp/e2e.log
           if grep -Eq '[0-9]+ skipped' /tmp/e2e.log; then
             echo "::error::Las pruebas E2E no pueden omitirse."
             exit 1

@@ -29,25 +29,38 @@ uv run pytest tests/contrato/test_openapi_ejemplos.py -v
 
 El test debe validar las 17 operaciones de `OPERACIONES_EN_ALCANCE`, el `410` y los códigos nuevos de `CODIGOS_POR_ESTADO`, y las respuestas reales de los 7 endpoints contra `docs/contract/openapi.yaml` con `openapi-core`. Si la copia local del YAML todavía no está en 1.2.0 o el backend de la Iteración 2 no está integrado, la prueba debe fallar; no se relaja el esquema para obtener verde.
 
-## Ejecutar pruebas de los 7 endpoints de la Iteración 2
+También se exigen las respuestas comunes `429 LIMITE_DE_SOLICITUDES` con `Retry-After` y `503 SERVICIO_TEMPORALMENTE_NO_DISPONIBLE` en las 17 operaciones autenticadas. Se validan como componentes reutilizables del OpenAPI, sin cambiar la versión `1.2.0`.
 
-Requiere la migración `0002` y el backend de la Iteración 2 integrados.
+## Ejecutar pruebas de T612: roles con Keycloak real
+
+Requiere Docker Compose y el realm de prueba configurado desde `.env.example`.
 
 ```powershell
 Set-Location backend
-uv run pytest tests/integracion/estado tests/integracion/solicitudes tests/integracion/concurrencia tests/api/test_roles_servicio.py -v
+uv run pytest tests/e2e/test_roles_servicio.py -v
 ```
 
-Los tests crean datos propios, usan PostgreSQL real y tokens firmados para los roles `operador`, `conductor` y `servicio` (helper equivalente a `headers_conductor`/`headers_operador`). No se ejecutan contra `dev` mientras existan `conectado` y `disponible` en lugar de `estado`.
+## Ejecutar pruebas PostgreSQL de T613-T614
+
+Requiere la migración `0002`, el backend de la Iteración 2 y Docker para Testcontainers.
+
+```powershell
+Set-Location backend
+uv run pytest tests/integracion/estado/test_estado_conductor_pg.py -v
+uv run pytest tests/integracion/solicitudes/test_solicitudes_pg.py -v
+uv run pytest tests/integracion/concurrencia/test_estado_aceptacion.py -v
+```
+
+Los tests crean datos propios y usan PostgreSQL real. Los helpers de autenticación compartidos se encuentran en `tests/api/auth_fixtures.py`. No se ejecutan contra `dev` mientras existan `conectado` y `disponible` en lugar de `estado`.
 
 ## Ejecutar cobertura
 
 ```powershell
 Set-Location backend
-uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=70
+uv run pytest --ignore=tests/e2e --strict-config --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=65
 ```
 
-`70 %` es el valor propuesto para la Iteración 2. El umbral vigente en `ci.yml` es `65 %` hasta que se acuerde el cambio; no se baja el vigente.
+`65 %` es el umbral vigente de CI. `70 %` sigue siendo la propuesta para Iteración 2, pendiente de acuerdo.
 
 ## Ejecutar flujo E2E del Compose
 
@@ -66,7 +79,7 @@ El E2E solicita tokens a Keycloak local del Compose, realiza las altas y aprobac
 
 ## Ejecución CI
 
-Los jobs `contrato`, `test` y `entorno` de `ci.yml` ejecutan las secciones de contrato, integración y E2E: crea configuración efímera sin secretos de usuario, inicia Compose, ejecuta toda la suite requerida y reporta cobertura con el umbral acordado; la limpieza de contenedores/volúmenes corre siempre al finalizar el job. Las pruebas nuevas de contrato e integración de los 7 endpoints deben estar dentro de este job.
+Los jobs `contrato`, `test` y `entorno` de `ci.yml` ejecutan las secciones de contrato, integración y E2E: `contrato` valida el YAML y los ejemplos/respuestas reales; `test` incluye API, contrato e integración PostgreSQL con cobertura; `entorno` levanta Compose y ejecuta los E2E, incluida la matriz de roles. Los jobs fallan ante skips y la suite de contrato comprueba las 17 operaciones requeridas. La limpieza de contenedores/volúmenes corre siempre al finalizar el job.
 
 ## Resultados esperados
 

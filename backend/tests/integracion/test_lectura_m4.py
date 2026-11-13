@@ -22,6 +22,10 @@ def cliente_m4(monkeypatch, fabrica_sesiones):
     monkeypatch.setenv("KEYCLOAK_URL", "http://keycloak:8080")
     monkeypatch.setenv("KEYCLOAK_REALM", "m3")
     monkeypatch.setenv("KEYCLOAK_PUBLIC_URL", "http://localhost:8081")
+    monkeypatch.setenv(
+        "RATE_LIMIT_HMAC_SECRET",
+        "test-hmac-secret-shared-by-all-api-tests",
+    )
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://prueba:prueba@localhost/m3")
     monkeypatch.setattr(dependencias, "_fabrica_de_sesiones", lambda: fabrica_sesiones)
     clave = rsa.generate_private_key(public_exponent=65537, key_size=2048)
