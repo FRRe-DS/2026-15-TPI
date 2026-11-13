@@ -29,13 +29,13 @@
 
 **Stack B · estados de pantalla**
 
-- [ ] T707 [Test] [P] `src/components/estados/estados.test.tsx`: `EstadoCarga`, `EstadoError` (con `role="alert"`) y `EstadoVacio` muestran su mensaje.
-- [ ] T708 [Impl] `src/components/estados/` hasta que pase T707.
+- [x] T707 [Test] [P] `src/components/estados/estados.test.tsx`: `EstadoCarga`, `EstadoError` (con `role="alert"`) y `EstadoVacio` muestran su mensaje.
+- [x] T708 [Impl] `src/components/estados/` hasta que pase T707.
 
 **Stack B · navegación**
 
-- [ ] T709 [Test] [P] `src/components/Navegacion.test.tsx`: hay un enlace a cada pantalla y se marca la activa.
-- [ ] T710 [Impl] `src/components/Navegacion.tsx` y `src/app/layout.tsx` hasta que pase T709.
+- [x] T709 [Test] [P] `src/components/Navegacion.test.tsx`: hay un enlace a cada pantalla y se marca la activa.
+- [x] T710 [Impl] `src/components/Navegacion.tsx` y `src/app/layout.tsx` hasta que pase T709.
 
 ## Fase 3: Modo mock (stack A)
 
@@ -59,28 +59,28 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US1 · Iniciar sesión**
 
-- [ ] T721 [Test] [US1] `src/components/FormularioLogin.test.tsx` y `src/app/login/page.test.tsx`: campos usuario y contraseña, mensaje ante credenciales inválidas, redirección al autenticarse y redirección al login sin sesión. Las credenciales se procesan en el servidor, nunca en el navegador.
-- [ ] T722 [Impl] [US1] `src/components/FormularioLogin.tsx` y `src/app/login/page.tsx` hasta que pase T721.
+- [x] T721 [Test] [US1] `src/components/FormularioLogin.test.tsx` y `src/app/login/page.test.tsx`: campos usuario y contraseña, mensaje ante credenciales inválidas, redirección al autenticarse y redirección al login sin sesión. Las credenciales se procesan en el servidor, nunca en el navegador.
+- [x] T722 [Impl] [US1] `src/components/FormularioLogin.tsx` y `src/app/login/page.tsx` hasta que pase T721.
 
 **US2 · Ponerse en línea**
 
-- [ ] T723 [Test] [US2] `src/components/ControlEstado.test.tsx`: botones para `DESCONECTADO`, `CONECTADO` y `DISPONIBLE`; no ofrece `OCUPADO`; muestra el error `CONDUCTOR_NO_HABILITADO` (422); estados de carga y error.
-- [ ] T724 [Impl] [US2] `src/components/ControlEstado.tsx` y `src/app/estado/page.tsx` hasta que pase T723.
+- [x] T723 [Test] [US2] `src/components/ControlEstado.test.tsx`: botones para `DESCONECTADO`, `CONECTADO` y `DISPONIBLE`; no ofrece `OCUPADO`; muestra el error `CONDUCTOR_NO_HABILITADO` (422); estados de carga y error.
+- [x] T724 [Impl] [US2] `src/components/ControlEstado.tsx` y `src/app/estado/page.tsx` hasta que pase T723.
 
 **US3 · Pedidos entrantes**
 
-- [ ] T725 [Test] [US3] `src/components/ListadoSolicitudes.test.tsx`: aceptar y rechazar solo en las `PENDIENTE`; cuenta regresiva con `vence_en` y botones deshabilitados al vencer; el cuerpo enviado trae `respuesta` y `hora_rta`; vacío «No hay solicitudes»; 410 muestra «oferta vencida»; 409 muestra el conflicto; carga y error.
-- [ ] T726 [Impl] [US3] `src/components/ListadoSolicitudes.tsx` y `src/app/solicitudes/page.tsx` hasta que pase T725.
+- [x] T725 [Test] [US3] `src/components/ListadoSolicitudes.test.tsx`: aceptar y rechazar solo en las `PENDIENTE`; cuenta regresiva con `vence_en` y botones deshabilitados al vencer; el cuerpo enviado trae `respuesta` y `hora_rta`; vacío «No hay solicitudes»; 410 muestra «oferta vencida»; 409 muestra el conflicto; carga y error.
+- [x] T726 [Impl] [US3] `src/components/ListadoSolicitudes.tsx` y `src/app/solicitudes/page.tsx` hasta que pase T725.
 
 **US4 · Viaje en curso**
 
-- [ ] T727 [Test] [US4] `src/components/ViajeEnCurso.test.tsx`: tras aceptar se muestra el viaje; «Pasajero subió» cambia el paso mostrado; «Finalizar viaje» pide `DISPONIBLE` y vuelve a las solicitudes.
-- [ ] T728 [Impl] [US4] `src/components/ViajeEnCurso.tsx` y `src/app/viaje/page.tsx` hasta que pase T727.
+- [x] T727 [Test] [US4] `src/components/ViajeEnCurso.test.tsx`: tras aceptar se muestra el viaje; «Pasajero subió» cambia el paso mostrado; «Finalizar viaje» pide `DISPONIBLE` y vuelve a las solicitudes.
+- [x] T728 [Impl] [US4] `src/components/ViajeEnCurso.tsx` y `src/app/viaje/page.tsx` hasta que pase T727.
 
 **US5 · Ubicación simulada**
 
-- [ ] T729 [Test] [US5] `src/lib/simuladorUbicacion.test.ts` (timers falsos de Vitest): genera puntos de un recorrido, envía `latitud` y `longitud` juntas cada N segundos mientras el conductor está `OCUPADO` y se detiene al terminar. Más `src/components/UbicacionActual.test.tsx`: muestra la última coordenada y su fecha; `null` se muestra como «desconocida», nunca como (0, 0).
-- [ ] T730 [Impl] [US5] `src/lib/simuladorUbicacion.ts`, `src/components/UbicacionActual.tsx` y `src/app/api/ubicacion/route.ts` hasta que pase T729. Sin mapa.
+- [x] T729 [Test] [US5] `src/lib/simuladorUbicacion.test.ts` (timers falsos de Vitest): genera puntos de un recorrido, envía `latitud` y `longitud` juntas cada N segundos mientras el conductor está `OCUPADO` y se detiene al terminar. Más `src/components/UbicacionActual.test.tsx`: muestra la última coordenada y su fecha; `null` se muestra como «desconocida», nunca como (0, 0).
+- [x] T730 [Impl] [US5] `src/lib/simuladorUbicacion.ts`, `src/components/UbicacionActual.tsx` y `src/app/api/ubicacion/route.ts` hasta que pase T729. Sin mapa.
 
 ## Fase 6: Calidad
 
