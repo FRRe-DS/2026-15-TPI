@@ -53,6 +53,8 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - name: Instalar dependencias
         run: uv sync --frozen --all-groups
+      - name: Comprobar Docker
+        run: docker info
       - name: Validar openapi.yaml
         run: |
           uv run python - <<'PY'
@@ -63,14 +65,40 @@ jobs:
               validate(yaml.safe_load(archivo))
           PY
       - name: Pruebas de contrato
-        run: uv run pytest tests/contrato -v
+        run: |
+          set -o pipefail
+          uv run pytest tests/contrato --strict-config --strict-markers -v -rs \
+            | tee /tmp/contrato.log
+          if grep -Eq '[0-9]+ skipped' /tmp/contrato.log; then
+            echo "::error::Las pruebas de contrato no pueden omitirse."
+            exit 1
+          fi
 
   test:
-    name: Suite completa con PostgreSQL y Keycloak
+    name: Suite API y PostgreSQL (T611-T615)
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4.3-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
     defaults:
       run:
         working-directory: backend
+    env:
+      REDIS_URL: redis://localhost:6379/0
+      REDIS_PASSWORD: ""
+      RATE_LIMIT_HMAC_SECRET: 0123456789abcdef0123456789abcdef-test-ci
+      RATE_LIMIT_TEST_REDIS_URL: redis://localhost:6379/0
+      RATE_LIMIT_ANON_REQUESTS: "60"
+      RATE_LIMIT_PREAUTH_REQUESTS: "1000"
+      RATE_LIMIT_AUTH_REQUESTS: "1000"
+      RATE_LIMIT_WINDOW_SECONDS: "60"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -82,8 +110,16 @@ jobs:
         run: uv sync --frozen --all-groups
       - name: Comprobar Docker
         run: docker info
-      - name: Pruebas completas con cobertura
-        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=65
+      - name: Pruebas API, contrato e integración PostgreSQL con cobertura
+        run: |
+          set -o pipefail
+          uv run pytest --ignore=tests/e2e --strict-config --strict-markers \
+            --cov=app --cov-report=term-missing \
+            --cov-fail-under=65 -rs | tee /tmp/test.log
+          if grep -Eq '[0-9]+ skipped' /tmp/test.log; then
+            echo "::error::La suite no puede omitir pruebas."
+            exit 1
+          fi
 
   entorno:
     name: Humo del entorno
@@ -105,11 +141,40 @@ jobs:
             -e "s|^M3_CONDUCTOR_PASSWORD=.*|M3_CONDUCTOR_PASSWORD=$(openssl rand -hex 16)|" \
             -e "s|^M3_SERVICIO_USERNAME=.*|M3_SERVICIO_USERNAME=servicio.m4|" \
             -e "s|^M3_SERVICIO_PASSWORD=.*|M3_SERVICIO_PASSWORD=$(openssl rand -hex 16)|" \
+            -e "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=$(openssl rand -hex 32)|" \
+            -e "s|^RATE_LIMIT_HMAC_SECRET=.*|RATE_LIMIT_HMAC_SECRET=$(openssl rand -hex 32)|" \
+            -e "s|^RATE_LIMIT_ANON_REQUESTS=.*|RATE_LIMIT_ANON_REQUESTS=60|" \
+            -e "s|^RATE_LIMIT_PREAUTH_REQUESTS=.*|RATE_LIMIT_PREAUTH_REQUESTS=1000|" \
+            -e "s|^RATE_LIMIT_AUTH_REQUESTS=.*|RATE_LIMIT_AUTH_REQUESTS=1000|" \
+            -e "s|^RATE_LIMIT_WINDOW_SECONDS=.*|RATE_LIMIT_WINDOW_SECONDS=60|" \
             .env
-      - name: Levantar Compose y ejecutar la prueba de humo
+      - name: Preparar Compose para las pruebas E2E
         env:
-          BORRAR_VOLUMENES: "1"
+          CONSERVAR_ENTORNO: "1"
+        run: bash .github/scripts/humo.sh --preparar
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Instalar dependencias para E2E
+        working-directory: backend
+        run: uv sync --frozen --all-groups
+      - name: Pruebas E2E contra el Compose
+        working-directory: backend
+        run: |
+          set -o pipefail
+          uv run pytest tests/e2e --strict-config --strict-markers -v -rs \
+            | tee /tmp/e2e.log
+          if grep -Eq '[0-9]+ skipped' /tmp/e2e.log; then
+            echo "::error::Las pruebas E2E no pueden omitirse."
+            exit 1
+          fi
+      - name: Ejecutar prueba de humo del entorno
         run: bash .github/scripts/humo.sh
+      - name: Bajar Compose
+        if: always()
+        run: docker compose --env-file .env -f docker-compose.yml down --volumes --remove-orphans
 
   frontend:
     name: Frontend
@@ -170,3 +235,39 @@ jobs:
           exit 1
       - name: CI en verde
         run: echo "Todos los jobs de CI pasaron."
+
+  publicar:
+    name: Publicar imagen en Docker Hub
+    needs: ci
+    if: needs.ci.result == 'success' && github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Comprobar configuración de Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
+        run: |
+          test -n "$DOCKER_USERNAME" || { echo "::error::Falta el secreto DOCKER_USERNAME"; exit 1; }
+          test -n "$DOCKER_PASSWORD" || { echo "::error::Falta el secreto DOCKER_PASSWORD"; exit 1; }
+          test -n "$DOCKER_IMAGE" || { echo "::error::Falta el secreto DOCKER_IMAGE"; exit 1; }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Iniciar sesión en Docker Hub
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          logout: true
+      - name: Construir y publicar Backend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ secrets.DOCKER_IMAGE }}:${{ github.ref_name }}

@@ -27,7 +27,7 @@
 - **Decisión**: 60 solicitudes en 60 segundos para requests sin JWT válido, usando `request.client.host`; 120 por 60 segundos para JWT verificado, usando el par `(iss, sub)` del payload validado. `sub` debe ser texto no vacío; si falta o no es válido, el token se rechaza como no autenticado tras aplicar la cuota por IP. No usar claims antes de verificar firma, issuer y expiración.
 - **Motivo**: `sub` identifica de forma estable al principal autenticado, mientras que la dirección de conexión es la única identidad disponible antes de autenticar. Se evita confiar en `X-Forwarded-For` enviado directamente por el cliente.
 - **Proxy**: solo aceptar una IP reenviada si la conexión proviene de un proxy configurado como confiable; el despliegue actual no declara un proxy, así que usa el peer de ASGI.
-- **Configuración**: `REDIS_URL`, `REDIS_PASSWORD`, `RATE_LIMIT_ANON_REQUESTS=60`, `RATE_LIMIT_AUTH_REQUESTS=120` y `RATE_LIMIT_WINDOW_SECONDS=60`. Los valores de límite/ventana deben ser enteros positivos. Redis requiere contraseña, está en la red privada de Compose y no publica puerto al host por defecto. La contraseña se documenta vacía en `.env.example`, se genera localmente y en CI, y no se registra.
+- **Configuración**: `REDIS_URL`, `REDIS_PASSWORD`, `RATE_LIMIT_HMAC_SECRET`, `RATE_LIMIT_ANON_REQUESTS=60`, `RATE_LIMIT_PREAUTH_REQUESTS=1000`, `RATE_LIMIT_AUTH_REQUESTS=120` y `RATE_LIMIT_WINDOW_SECONDS=60`. El secreto HMAC es dedicado, compartido por instancias API y de al menos 32 caracteres; permite derivar claves Redis sin exponer identidades de baja entropía ante una copia del almacén. Los valores de límite/ventana deben ser enteros positivos. Redis requiere contraseña, está en la red privada de Compose y no publica puerto al host por defecto. Ambos secretos se generan fuera del repositorio y no se registran.
 
 ### 4. Respuestas y disponibilidad
 
@@ -40,7 +40,7 @@
 ### 5. Publicación de la imagen
 
 - **Decisión**: publicar solo la imagen del backend M3, reutilizable por `api`, `migraciones` y `seed`. GitHub Actions construye y publica solo en `push` a `dev`/`main`, después del job agregado `ci` exitoso. No se publica en `pull_request`.
-- **Autenticación/configuración**: `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` son secretos de GitHub; `DOCKERHUB_IMAGE` es una variable de repositorio. La referencia de imagen para Compose se parametriza como `M3_API_IMAGE`, con `m3-backend:local` como valor local predeterminado.
+- **Autenticación/configuración**: `DOCKER_USERNAME` y `DOCKER_PASSWORD` son secretos de GitHub para iniciar sesión; el segundo almacena un access token de Docker Hub. El secreto `DOCKER_IMAGE` contiene el destino `usuario/repositorio` (sin tag). La referencia de imagen para Compose se parametriza como `M3_API_IMAGE`, con `m3-backend:local` como valor local predeterminado.
 - **Etiquetas**: etiqueta inmutable con el SHA completo y etiqueta de rama (`dev` o `main`). El tag de rama es mutable; los despliegues reproducibles usan el tag SHA.
 - **Seguridad de workflow**: permisos mínimos (`contents: read` para checkout), publicar solo tras CI, no elevar permisos del `GITHUB_TOKEN` para Docker Hub, no revelar secretos y fijar las acciones externas por SHA completo.
 - **Alternativas**: publicar frontend o imágenes de dependencias (fuera de alcance); publicación desde cada PR (riesgo de publicar cambios no aceptados); usar tags mutables como única referencia (no reproducible).
@@ -51,7 +51,7 @@
 - Los fixtures JWT de `backend/tests/api/conftest.py` actualmente no incluyen `sub`; se actualizan para representar tokens emitidos por Keycloak.
 - Crear el cliente Redis en el lifespan de FastAPI y cerrarlo al finalizar. No hacer `PING` requerido en startup; los errores Redis durante una solicitud deben poder traducirse a 503.
 - Probar la atomicidad con Redis real en integración, además de fakes para las pruebas unitarias/API. El `TestClient` se ejecuta en contexto para activar el lifespan.
-- El nombre de usuario/repositorio Docker Hub no está establecido en el repo; se proveerá por `DOCKERHUB_IMAGE` antes de habilitar la publicación.
+- El nombre de usuario/repositorio Docker Hub lo proporciona el secreto `DOCKER_IMAGE`; debe coincidir con la cuenta del secreto `DOCKER_USERNAME`.
 
 ## Fuentes consultadas
 

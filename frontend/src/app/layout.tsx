@@ -1,4 +1,6 @@
 import React from "react";
+import "./globals.css";
+import { Navegacion } from "../components/Navegacion";
 
 export const metadata = {
   title: "Módulo M3 - Conductores y Vehículos",
@@ -12,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <body style={{ margin: 0, padding: 0 }}>
+        <Navegacion />
+        {children}
+      </body>
     </html>
   );
 }

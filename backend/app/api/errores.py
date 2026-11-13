@@ -7,6 +7,7 @@ según ``specs/iteracion1/contracts/errores.md``.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -48,10 +49,17 @@ MAPEO_ERRORES_DOMINIO: tuple[tuple[type[Exception], int, str], ...] = (
 class ErrorAPI(Exception):
     """Error de la capa HTTP con su código del catálogo."""
 
-    def __init__(self, status_code: int, codigo: str, mensaje: str) -> None:
+    def __init__(
+        self,
+        status_code: int,
+        codigo: str,
+        mensaje: str,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
         self.status_code = status_code
         self.codigo = codigo
         self.mensaje = mensaje
+        self.headers = dict(headers) if headers is not None else None
         super().__init__(mensaje)
 
 
@@ -61,6 +69,23 @@ def no_autenticado() -> ErrorAPI:
 
 def sin_permisos(mensaje: str) -> ErrorAPI:
     return ErrorAPI(403, "SIN_PERMISOS", mensaje)
+
+
+def limite_de_solicitudes(retry_after: int) -> ErrorAPI:
+    return ErrorAPI(
+        429,
+        "LIMITE_DE_SOLICITUDES",
+        "Se alcanzó el límite de solicitudes; reintente más tarde.",
+        headers={"Retry-After": str(retry_after), "Cache-Control": "no-store"},
+    )
+
+
+def servicio_temporalmente_no_disponible() -> ErrorAPI:
+    return ErrorAPI(
+        503,
+        "SERVICIO_TEMPORALMENTE_NO_DISPONIBLE",
+        "El servicio no está disponible temporalmente.",
+    )
 
 
 def cuerpo_error(codigo: str, mensaje: str) -> dict[str, str]:
@@ -76,7 +101,11 @@ def respuesta_error(status_code: int, codigo: str, mensaje: str) -> JSONResponse
 
 async def manejar_error_api(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, ErrorAPI)
-    return respuesta_error(exc.status_code, exc.codigo, exc.mensaje)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=cuerpo_error(exc.codigo, exc.mensaje),
+        headers=exc.headers,
+    )
 
 
 def _manejar_error_dominio(status_code: int, codigo: str):

@@ -17,6 +17,8 @@ from app.aplicacion.politicas.acceso import Identidad
 from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import instalar_limitador_falso
+
 URL_USUARIO = "/api/v1/usuario"
 URL_IDENTIDAD = "/api/v1/identidad"
 
@@ -43,6 +45,7 @@ def client_identidad(cliente_jwks: SimpleNamespace, entorno: None) -> TestClient
 
     app = crear_app(routers=[router])
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

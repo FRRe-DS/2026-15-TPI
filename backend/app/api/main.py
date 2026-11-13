@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.routing import APIRouter
+from redis import Redis
 
+from app.api.configuracion import obtener_configuracion
 from app.api.errores import registrar_manejadores
+from app.api.rate_limit import RedisRateLimiter
 from app.api.routers import (
     conductores,
     documentacion,
@@ -33,9 +37,33 @@ ROUTERS: tuple[APIRouter, ...] = (
 
 def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
     """Crea la aplicación con el prefijo, la seguridad y los errores comunes."""
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        settings = getattr(app.state, "settings", None)
+        if settings is None:
+            settings = obtener_configuracion()
+            app.state.settings = settings
+        cliente_redis = Redis.from_url(
+            settings.REDIS_URL,
+            password=settings.REDIS_PASSWORD.get_secret_value() or None,
+            decode_responses=True,
+            socket_connect_timeout=1,
+            socket_timeout=1,
+        )
+        app.state.rate_limiter = RedisRateLimiter(
+            cliente_redis,
+            settings.RATE_LIMIT_HMAC_SECRET.get_secret_value(),
+        )
+        try:
+            yield
+        finally:
+            cliente_redis.close()
+
     app = FastAPI(
         title="API M3 - Conductores y Vehículos",
         version="1.2.0",
+        lifespan=lifespan,
     )
     registrar_manejadores(app)
 

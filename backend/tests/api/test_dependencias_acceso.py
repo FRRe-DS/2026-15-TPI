@@ -19,6 +19,8 @@ from app.aplicacion.politicas.acceso import Identidad
 from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import instalar_limitador_falso
+
 
 @pytest.fixture
 def client_acceso(cliente_jwks: SimpleNamespace, entorno: None) -> TestClient:
@@ -68,6 +70,7 @@ def client_acceso(cliente_jwks: SimpleNamespace, entorno: None) -> TestClient:
 
     app = crear_app(routers=[router])
     app.dependency_overrides[obtener_cliente_jwks] = lambda: cliente_jwks
+    instalar_limitador_falso(app)
     with TestClient(app) as test_client:
         test_client.visitas = visitas  # type: ignore[attr-defined]
         yield test_client

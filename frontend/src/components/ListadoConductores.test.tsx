@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ListadoConductores } from "./ListadoConductores";
-import type { ConductorConUbicacion } from "../lib/tipos";
+import styles from "./ListadoConductores.module.css";
+import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
 
 describe("ListadoConductores", () => {
   const conductorEjemplo: ConductorConUbicacion = {
@@ -12,8 +13,7 @@ describe("ListadoConductores", () => {
     telefono: "1122334455",
     email: "juan@example.com",
     habilitacion: "APROBADA",
-    conectado: true,
-    disponible: true,
+    estado: "DISPONIBLE",
     documentos: [],
     vehiculos: [],
   };
@@ -39,5 +39,31 @@ describe("ListadoConductores", () => {
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText(mensajeError)).toBeInTheDocument();
+  });
+
+  describe("badges de habilitación", () => {
+    const casos: [EstadoHabilitacion, string][] = [
+      ["APROBADA", styles.verde],
+      ["PENDIENTE", styles.amarillo],
+      ["OBSERVADA", styles.amarillo],
+      ["SUSPENDIDA", styles.rojo],
+      ["RECHAZADA", styles.rojo],
+    ];
+
+    it.each(casos)(
+      "muestra la habilitación %s como badge con la clase de color correspondiente",
+      (habilitacion, claseColor) => {
+        render(
+          <ListadoConductores
+            conductores={[{ ...conductorEjemplo, habilitacion }]}
+          />,
+        );
+
+        const badge = screen.getByText(habilitacion);
+
+        expect(badge).toHaveClass(styles.badge);
+        expect(badge).toHaveClass(claseColor);
+      },
+    );
   });
 });

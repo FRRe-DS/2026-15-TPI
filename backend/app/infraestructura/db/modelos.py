@@ -89,6 +89,12 @@ class Conductor(Base):
         CheckConstraint(
             "cantidad_calificaciones > 0 OR suma_puntajes = 0", name="puntajes_coherentes"
         ),
+        CheckConstraint(
+            "cantidad_calificaciones = 0 OR "
+            "(suma_puntajes >= cantidad_calificaciones "
+            "AND suma_puntajes <= 5 * cantidad_calificaciones)",
+            name="promedio_puntajes_rango",
+        ),
         Index("ix_conductor_estado_habilitacion", "estado_habilitacion"),
         Index("ix_conductor_estado", "estado"),
         Index("ix_conductor_id_vehiculo_activo", "id_vehiculo_activo"),

@@ -1,9 +1,24 @@
 import React from "react";
-import type { ConductorConUbicacion } from "../lib/tipos";
+import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
+import styles from "./ListadoConductores.module.css";
 
 export interface ListadoConductoresProps {
   conductores?: ConductorConUbicacion[];
   error?: string | null;
+}
+
+const CLASES_COLOR: Record<EstadoHabilitacion, string> = {
+  APROBADA: styles.verde,
+  PENDIENTE: styles.amarillo,
+  OBSERVADA: styles.amarillo,
+  SUSPENDIDA: styles.rojo,
+  RECHAZADA: styles.rojo,
+};
+
+function BadgeHabilitacion({ estado }: { estado: EstadoHabilitacion }) {
+  return (
+    <span className={`${styles.badge} ${CLASES_COLOR[estado]}`}>{estado}</span>
+  );
 }
 
 export function ListadoConductores({
@@ -59,7 +74,7 @@ export function ListadoConductores({
                 {conductor.dni}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                {conductor.habilitacion}
+                <BadgeHabilitacion estado={conductor.habilitacion} />
               </td>
             </tr>
           ))}
