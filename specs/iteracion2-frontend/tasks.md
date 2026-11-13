@@ -18,14 +18,14 @@
 
 **Stack A · tipos y cliente de API** (una PR desde `dev`)
 
-- [ ] T704 Actualizar `src/lib/tipos.ts` al contrato 1.2.0: `estado` operativo (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) en lugar de `conectado` y `disponible`; sumar `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`; agregar los tipos `EstadoConductor`, `EstadoConductorRequest`, `UbicacionConductor`, `Solicitud` y `RespuestaSolicitudRequest` (`respuesta` y `hora_rta` obligatorios). Ajustar mocks y tests existentes.
-- [ ] T705 [Test] Extender `src/lib/api.test.ts`: `obtenerEstado`, `actualizarEstado` (PATCH con estado, ubicación opcional y `latitud` con `longitud` juntas), `listarSolicitudes` (filtro `estado`), `responderSolicitud` y `obtenerUbicacion` envían `Authorization: Bearer`, usan el método y la URL del contrato y lanzan `ErrorApi` con `{codigo, mensaje}` ante 401, 403, 404, 409, 410 y 422.
-- [ ] T706 [Impl] Implementar esas funciones en `src/lib/api.ts` hasta que pase T705.
+- [x] T704 Actualizar `src/lib/tipos.ts` al contrato 1.2.0: `estado` operativo (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) en lugar de `conectado` y `disponible`; sumar `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`; agregar los tipos `EstadoConductor`, `EstadoConductorRequest`, `UbicacionConductor`, `Solicitud` y `RespuestaSolicitudRequest` (`respuesta` y `hora_rta` obligatorios). Ajustar mocks y tests existentes.
+- [x] T705 [Test] Extender `src/lib/api.conductor.test.ts` y `src/lib/api.filtros.test.ts`: `obtenerEstado`, `actualizarEstado` (PATCH con estado, ubicación opcional y `latitud` con `longitud` juntas), `listarSolicitudes` (filtro `estado`), `responderSolicitud` y `obtenerUbicacion` envían `Authorization: Bearer`, usan el método y la URL del contrato y lanzan `ErrorApi` con `{codigo, mensaje}` ante 401, 403, 404, 409, 410 y 422.
+- [x] T706 [Impl] Implementar esas funciones en `src/lib/api.ts` hasta que pase T705.
 
 **Stack A · sesión del conductor** (apilada sobre T706)
 
-- [ ] T711 [Test] `src/lib/sesion.test.ts`: la cookie es `httpOnly`; `id_conductor` se lee del claim del token; un token vencido o ausente cuenta como sin sesión; las credenciales nunca se devuelven al cliente.
-- [ ] T712 [Impl] `src/lib/sesion.ts` y `src/app/api/sesion/route.ts` (login y logout contra Keycloak, realm `m3`) hasta que pase T711.
+- [x] T711 [Test] `src/lib/sesion.test.ts`: la cookie es `httpOnly`; `id_conductor` se lee del claim del token; un token vencido o ausente cuenta como sin sesión; las credenciales nunca se devuelven al cliente.
+- [x] T712 [Impl] `src/lib/sesion.ts` y `src/app/api/sesion/route.ts` (login y logout contra Keycloak, realm `m3`) hasta que pase T711.
 
 **Stack B · estados de pantalla**
 
@@ -39,12 +39,14 @@
 
 ## Fase 3: Modo mock (stack A)
 
-- [ ] T713 [Test] `src/mocks/conductores.mock.test.ts`: datos variados según el contrato (habilitación `APROBADA`, `PENDIENTE` y `RECHAZADA`; con y sin ubicación).
-- [ ] T714 [Impl] `src/mocks/conductores.mock.ts` hasta que pase T713.
-- [ ] T715 [Test] `src/app/page.test.tsx`: con `USE_MOCK=true` la pantalla usa los mocks y con `USE_MOCK=false` llama a la API.
-- [ ] T716 [Impl] Soporte de `USE_MOCK` en `.env.example` y `src/app/page.tsx` hasta que pase T715. Va apilada sobre T714.
-- [ ] T717 [Test] [P] `src/mocks/conductor.mock.test.ts`: conductor en cada estado operativo; solicitudes en `PENDIENTE`, `ACEPTADO`, `RECHAZADO` y `VENCIDA`; ubicación con valor y con los tres campos en `null`.
-- [ ] T718 [Impl] `src/mocks/conductor.mock.ts` hasta que pase T717, respetando `USE_MOCK`.
+- [x] T713 [Test] `src/mocks/conductores.mock.test.ts`: datos variados según el contrato (habilitación `APROBADA`, `PENDIENTE` y `RECHAZADA`; con y sin ubicación).
+- [x] T714 [Impl] `src/mocks/conductores.mock.ts` hasta que pase T713.
+- [x] T715 [Test] `src/app/page.mock.test.tsx`: con `USE_MOCK=true` la pantalla usa los mocks y con `USE_MOCK=false` llama a la API.
+- [x] T716 [Impl] Soporte de `USE_MOCK` en `.env.example` y `src/app/page.tsx` hasta que pase T715. Va apilada sobre T714.
+- [x] T717 [Test] [P] `src/mocks/conductor.mock.test.ts`: conductor en cada estado operativo; solicitudes en `PENDIENTE`, `ACEPTADO`, `RECHAZADO` y `VENCIDA`; ubicación con valor y con los tres campos en `null`.
+- [x] T718 [Impl] `src/mocks/conductor.mock.ts` hasta que pase T717, respetando `USE_MOCK`.
+
+> Conciliación del release (13/11/2026): T704–T706 se entregaron en #93, T711–T712 en #100, T713–T716 en #95 y T717–T718 en #98. Las pruebas están en las rutas indicadas; el cierre acredita implementación y pruebas aisladas, sin cerrar T733–T740.
 
 ## Fase 4: Listado de conductores con badges (US6)
 
@@ -87,12 +89,12 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 - [x] T731 Validar que pasen en verde `npm run test`, `npm run lint` y `npm run build`.
 - [x] T732 Escribir `frontend/README.md`: cómo correr en modo mock y en modo real, y el recorrido de pantallas.
 
-## Fase 7: Integración con la API real — BLOQUEADA
+## Fase 7: Integración con la API real — PENDIENTE DE VALIDACIÓN
 
-> **Bloqueada** hasta que el backend publique en `dev` `GET` y `PATCH /conductores/{id}/estado`, `GET /conductores/{id}/ubicacion`, `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`. Hoy no están en `backend/`; están planificadas en `specs/iteracion2-backend/`. Cuando se publiquen, desbloquear esta fase y repetir T731.
+> Los endpoints requeridos ya están publicados en `dev`. T733–T740 permanecen abiertas hasta ejecutar y registrar el recorrido integral; las pruebas aisladas de frontend no acreditan esta fase. Repetir T731 después de las correcciones que surjan.
 
 - [ ] T733 Configurar `frontend/.env.local` con `USE_MOCK=false` y las variables de Keycloak y la API (copiar de `.env.example`).
-- [ ] T734 Levantar el stack local con Docker Compose en `infra/` y verificar la salud en `http://localhost:8080/salud`.
+- [ ] T734 Levantar el stack local con Docker Compose desde la raíz del repositorio (`docker-compose.yml`) y verificar la salud en `http://localhost:8080/salud`.
 - [ ] T735 Validar el login del conductor de prueba contra Keycloak y que el token traiga el claim `id_conductor`.
 - [ ] T736 Probar `GET /api/v1/conductores` y validar el formato de respuesta.
 - [ ] T737 Probar `GET` y `PATCH …/estado`, `GET …/ubicacion`, `GET …/solicitudes` y `POST /solicitudes/{id}` contra la API y comparar con los tipos de T704.
