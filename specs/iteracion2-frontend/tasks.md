@@ -84,8 +84,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 ## Fase 6: Calidad
 
-- [ ] T731 Validar que pasen en verde `npm run test`, `npm run lint` y `npm run build`.
-- [ ] T732 Escribir `frontend/README.md`: cómo correr en modo mock y en modo real, y el recorrido de pantallas.
+- [x] T731 Validar que pasen en verde `npm run test`, `npm run lint` y `npm run build`.
+- [x] T732 Escribir `frontend/README.md`: cómo correr en modo mock y en modo real, y el recorrido de pantallas.
 
 ## Fase 7: Integración con la API real — BLOQUEADA
 
