@@ -74,8 +74,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US4 · Viaje en curso**
 
-- [ ] T727 [Test] [US4] `src/components/ViajeEnCurso.test.tsx`: tras aceptar se muestra el viaje; «Pasajero subió» cambia el paso mostrado; «Finalizar viaje» pide `DISPONIBLE` y vuelve a las solicitudes.
-- [ ] T728 [Impl] [US4] `src/components/ViajeEnCurso.tsx` y `src/app/viaje/page.tsx` hasta que pase T727.
+- [x] T727 [Test] [US4] `src/components/ViajeEnCurso.test.tsx`: tras aceptar se muestra el viaje; «Pasajero subió» cambia el paso mostrado; «Finalizar viaje» pide `DISPONIBLE` y vuelve a las solicitudes.
+- [x] T728 [Impl] [US4] `src/components/ViajeEnCurso.tsx` y `src/app/viaje/page.tsx` hasta que pase T727.
 
 **US5 · Ubicación simulada**
 
