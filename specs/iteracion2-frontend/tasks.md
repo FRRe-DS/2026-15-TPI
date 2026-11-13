@@ -79,8 +79,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US5 · Ubicación simulada**
 
-- [ ] T729 [Test] [US5] `src/lib/simuladorUbicacion.test.ts` (timers falsos de Vitest): genera puntos de un recorrido, envía `latitud` y `longitud` juntas cada N segundos mientras el conductor está `OCUPADO` y se detiene al terminar. Más `src/components/UbicacionActual.test.tsx`: muestra la última coordenada y su fecha; `null` se muestra como «desconocida», nunca como (0, 0).
-- [ ] T730 [Impl] [US5] `src/lib/simuladorUbicacion.ts`, `src/components/UbicacionActual.tsx` y `src/app/api/ubicacion/route.ts` hasta que pase T729. Sin mapa.
+- [x] T729 [Test] [US5] `src/lib/simuladorUbicacion.test.ts` (timers falsos de Vitest): genera puntos de un recorrido, envía `latitud` y `longitud` juntas cada N segundos mientras el conductor está `OCUPADO` y se detiene al terminar. Más `src/components/UbicacionActual.test.tsx`: muestra la última coordenada y su fecha; `null` se muestra como «desconocida», nunca como (0, 0).
+- [x] T730 [Impl] [US5] `src/lib/simuladorUbicacion.ts`, `src/components/UbicacionActual.tsx` y `src/app/api/ubicacion/route.ts` hasta que pase T729. Sin mapa.
 
 ## Fase 6: Calidad
 
