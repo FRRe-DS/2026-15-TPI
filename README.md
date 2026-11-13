@@ -21,7 +21,7 @@ Módulo **M3** de la plataforma distribuida de movilidad.
 - Expone una API REST de 17 endpoints ([ver contrato](#contrato-de-la-api)): 10 se construyeron en la Iteración 1 ([ver alcance](#alcance-de-la-iteración-1)) y los 7 restantes en la Iteración 2. Con la Iteración 2 el backend implementa los 17.
 - Cada pedido se autentica con un token JWT emitido por Keycloak, con roles de operador, de conductor y de servicio (cuenta técnica de lectura para M4) ([ver autenticación](#autenticación-y-roles)).
 - Tiene su propia base de datos PostgreSQL y no consulta datos de otros módulos ([ver base de datos](#base-de-datos)).
-- Una pantalla web muestra el listado de conductores ([ver frontend](#frontend)).
+- La web incluye listado de conductores y pantallas de login, estado, solicitudes y viaje ([ver frontend](#frontend)).
 - Todo se levanta con Docker Compose ([ver arranque rápido](#arranque-rápido)), y cada cambio pasa por un CI antes de integrarse.
 - Se integra con los módulos M1, M4, M5 y M6 ([ver integración](#integración-con-otros-módulos)).
 
@@ -368,9 +368,10 @@ Se trabaja con **TDD**: primero un test que falla, después el código mínimo p
 | API | `backend/tests/api/` | Endpoints, seguridad y errores, con casos de uso simulados y tokens de prueba. |
 | Integración | `backend/tests/integracion/` | Repositorios SQL contra PostgreSQL real (Testcontainers). |
 | Infraestructura | `backend/tests/infra/` | Bases, esquema, migraciones, seed y realm de Keycloak. |
-| Contrato | `backend/tests/contrato/` | Validez y ejemplos del OpenAPI. La suite automática contra respuestas reales queda para Iteración 2. |
-| Concurrencia (pendiente) | T104–T106 | Pruebas simultáneas de DNI, patente y habilitación para Iteración 2. |
-| Humo automático (pendiente) | T107 | El Compose se verificó manualmente; falta incorporar la prueba al CI. |
+| Contrato | `backend/tests/contrato/` | Validez, ejemplos y respuestas reales contra OpenAPI; las 17 operaciones están en alcance. |
+| Concurrencia | `backend/tests/integracion/concurrencia/` | Altas simultáneas de DNI y patente, habilitación y coordinación entre estado y aceptación de solicitudes. |
+| E2E | `backend/tests/e2e/` | Flujo de habilitación y permisos por rol contra API y Keycloak reales en Compose. |
+| Humo automático | `.github/scripts/humo.sh` | El job `entorno` levanta Compose y comprueba salud, autenticación y límites de solicitudes. |
 
 ### Comandos
 
@@ -378,24 +379,27 @@ Se trabaja con **TDD**: primero un test que falla, después el código mínimo p
 cd backend
 uv sync --frozen --all-groups                          # instalar todos los stacks
 uv run pytest tests/unitarios --cov=app         # tests unitarios con cobertura
-uv run pytest --cov --cov-fail-under=65                 # toda la suite con cobertura mínima
+uv run pytest --ignore=tests/e2e --cov=app --cov-fail-under=65 # suite con cobertura; E2E en Compose
 ```
 
-**Cobertura:** mínimo **65%** en la API (`fail_under = 65` en `backend/.coveragerc`). El objetivo es estar entre 65% y 70% o más sobre lo implementado.
+**Cobertura:** el umbral vigente es **65 %** (`backend/.coveragerc` y CI). En el CI de `dev` del 13/11/2026 (commit `68be2cd`) pasaron 1392 tests de backend con **98,13 %** de cobertura, 16 E2E y 181 tests de frontend. Estos resultados corresponden a ese commit.
     
 
 ---
 
 ## Frontend
 
-Una sola pantalla que muestra el **listado de conductores** consumiendo la API.
+La interfaz incluye el **listado de conductores** para operador o servicio y las pantallas del conductor: **login, estado operativo, solicitudes y viaje en curso**. El prototipo visual se puede consultar en `/diseno`.
 
 - Stack: Next.js 16.4, React y React DOM 19.3, TypeScript 5.9, Node 24 (`.nvmrc`). Tests con Vitest y Testing Library.
 - La pantalla (`frontend/src/app/page.tsx`) es un **componente de servidor**: el servidor de Next pide el token a Keycloak y llama a la API, así que las credenciales nunca llegan al navegador.
 - El token se pide a `/realms/m3/protocol/openid-connect/token` con concesión de contraseña y se reutiliza hasta su vencimiento.
 - Muestra nombre, apellido, DNI y habilitación de cada conductor. Tiene un estado vacío ("No hay conductores") y un estado de error con un mensaje claro.
+- Las pantallas del conductor usan una sesión en cookie `httpOnly`. El login del conductor es independiente de la cuenta técnica que usa el listado.
+- `USE_MOCK=true` permite recorrer las pantallas con datos simulados. Los componentes y utilidades de ubicación simulada tienen pruebas aisladas; su conexión al recorrido de pantallas y la validación integral siguen pendientes.
+- Ver [frontend/README.md](./frontend/README.md) para los modos de ejecución y el recorrido. T733–T740 mantienen pendiente la validación con los servicios reales.
 
-**Variables de entorno** (`frontend/.env.example`): `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER`, `TEST_PASSWORD`.
+**Variables de entorno** (`frontend/.env.example`): `USE_MOCK`, `API_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `TEST_USER`, `TEST_PASSWORD`. `TEST_USER` debe ser una cuenta con rol operador o servicio para el listado.
 
 **Scripts**
 
@@ -505,8 +509,8 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Usar `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` del `.env` de la raíz. Next protege estas variables en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
+Usar `USE_MOCK=false`, `API_URL=http://localhost:8080/api/v1`, `KEYCLOAK_URL=http://localhost:8081`, `KEYCLOAK_REALM=m3`, `KEYCLOAK_CLIENT_ID=m3-api`, el mismo `KEYCLOAK_M3_CLIENT_SECRET`, `TEST_USER=operador.m3` y la clave `M3_OPERADOR_PASSWORD` del `.env` de la raíz. Para el login del conductor en `/login`, usar `conductor.m3` y `M3_CONDUCTOR_PASSWORD`. Next mantiene los secretos en el servidor. Si el puerto 3000 está ocupado, npm informa el puerto alternativo.
 
 El CI instala todos los grupos de dependencias y ejecuta la suite completa con Docker y cobertura mínima del 65 %, la validación del contrato, lint y formato, más lint, tests y build del frontend.
 
-Quedan para Iteración 2 los tests automáticos de contrato contra la API real (T098–T103), concurrencia (T104–T106), humo de Compose en CI (T107), protección de ramas (T108) y las tareas de cierre que siguen sin marcar. La validación manual no reemplaza esas tareas. No se abre una PR a main en esta integración.
+T098–T108 figuran completadas en el seguimiento de Iteración 1: contrato con respuestas reales, concurrencia, humo en CI y protección de ramas. En Testing de Iteración 2 siguen abiertas T605–T607 (RabbitMQ, bloqueadas por decisión de alcance) y T608–T610 (contratos bilaterales pendientes). En Frontend siguen abiertas T733–T740; las pruebas aisladas no reemplazan ese recorrido integral.
