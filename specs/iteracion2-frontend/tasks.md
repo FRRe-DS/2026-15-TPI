@@ -10,9 +10,9 @@
 
 ## Fase 1: Diseño y estilos (stack B, sin código de lógica)
 
-- [ ] T701 [P] Diseñar en Stitch o Figma las pantallas login, estado, pedidos, viaje en curso y ubicación, cada una con sus estados de carga, error y vacío. Guardar los enlaces y una captura por pantalla en `specs/iteracion2-frontend/diseno.md`.
-- [ ] T702 Sacar del diseño los valores base (colores, tipografías, espaciados y radios de borde) y anotarlos en `specs/iteracion2-frontend/diseno.md`.
-- [ ] T703 Pasar esos valores como variables CSS a `src/app/globals.css`.
+- [x] T701 [P] Crear en `src/app/diseno/` un prototipo visual aislado de las pantallas login, estado, pedidos, viaje en curso y ubicación, cada una con sus estados de carga, error y vacío. Se autorizó esta alternativa en React a Stitch/Figma; documentar cómo abrirla en `specs/iteracion2-frontend/diseno.md`.
+- [x] T702 Documentar en `specs/iteracion2-frontend/diseno.md` los valores base del prototipo (colores, tipografías, espaciados y radios de borde).
+- [x] T703 Pasar esos valores como variables CSS a `src/app/globals.css` e importar la hoja desde el layout de la aplicación.
 
 ## Fase 2: Cimientos (bloquean las pantallas)
 

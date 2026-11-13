@@ -1,4 +1,5 @@
 import React from "react";
+import "./globals.css";
 import { Navegacion } from "../components/Navegacion";
 
 export const metadata = {
