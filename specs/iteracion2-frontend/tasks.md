@@ -59,8 +59,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US1 · Iniciar sesión**
 
-- [ ] T721 [Test] [US1] `src/components/FormularioLogin.test.tsx` y `src/app/login/page.test.tsx`: campos usuario y contraseña, mensaje ante credenciales inválidas, redirección al autenticarse y redirección al login sin sesión. Las credenciales se procesan en el servidor, nunca en el navegador.
-- [ ] T722 [Impl] [US1] `src/components/FormularioLogin.tsx` y `src/app/login/page.tsx` hasta que pase T721.
+- [x] T721 [Test] [US1] `src/components/FormularioLogin.test.tsx` y `src/app/login/page.test.tsx`: campos usuario y contraseña, mensaje ante credenciales inválidas, redirección al autenticarse y redirección al login sin sesión. Las credenciales se procesan en el servidor, nunca en el navegador.
+- [x] T722 [Impl] [US1] `src/components/FormularioLogin.tsx` y `src/app/login/page.tsx` hasta que pase T721.
 
 **US2 · Ponerse en línea**
 
