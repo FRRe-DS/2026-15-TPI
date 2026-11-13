@@ -29,13 +29,13 @@
 
 **Stack B · estados de pantalla**
 
-- [ ] T707 [Test] [P] `src/components/estados/estados.test.tsx`: `EstadoCarga`, `EstadoError` (con `role="alert"`) y `EstadoVacio` muestran su mensaje.
-- [ ] T708 [Impl] `src/components/estados/` hasta que pase T707.
+- [x] T707 [Test] [P] `src/components/estados/estados.test.tsx`: `EstadoCarga`, `EstadoError` (con `role="alert"`) y `EstadoVacio` muestran su mensaje.
+- [x] T708 [Impl] `src/components/estados/` hasta que pase T707.
 
 **Stack B · navegación**
 
-- [ ] T709 [Test] [P] `src/components/Navegacion.test.tsx`: hay un enlace a cada pantalla y se marca la activa.
-- [ ] T710 [Impl] `src/components/Navegacion.tsx` y `src/app/layout.tsx` hasta que pase T709.
+- [x] T709 [Test] [P] `src/components/Navegacion.test.tsx`: hay un enlace a cada pantalla y se marca la activa.
+- [x] T710 [Impl] `src/components/Navegacion.tsx` y `src/app/layout.tsx` hasta que pase T709.
 
 ## Fase 3: Modo mock (stack A)
 
