@@ -69,8 +69,8 @@ Una PR por pantalla, cada una con mocks primero y según su diseño de T701. Dep
 
 **US3 · Pedidos entrantes**
 
-- [ ] T725 [Test] [US3] `src/components/ListadoSolicitudes.test.tsx`: aceptar y rechazar solo en las `PENDIENTE`; cuenta regresiva con `vence_en` y botones deshabilitados al vencer; el cuerpo enviado trae `respuesta` y `hora_rta`; vacío «No hay solicitudes»; 410 muestra «oferta vencida»; 409 muestra el conflicto; carga y error.
-- [ ] T726 [Impl] [US3] `src/components/ListadoSolicitudes.tsx` y `src/app/solicitudes/page.tsx` hasta que pase T725.
+- [x] T725 [Test] [US3] `src/components/ListadoSolicitudes.test.tsx`: aceptar y rechazar solo en las `PENDIENTE`; cuenta regresiva con `vence_en` y botones deshabilitados al vencer; el cuerpo enviado trae `respuesta` y `hora_rta`; vacío «No hay solicitudes»; 410 muestra «oferta vencida»; 409 muestra el conflicto; carga y error.
+- [x] T726 [Impl] [US3] `src/components/ListadoSolicitudes.tsx` y `src/app/solicitudes/page.tsx` hasta que pase T725.
 
 **US4 · Viaje en curso**
 
