@@ -2,6 +2,8 @@
 
 **Fuentes**: [spec.md](./spec.md), [plan.md](./plan.md) y `docs/contract/openapi.yaml` (1.2.0).
 
+**Review previa al release**: [hallazgos-review.md](./docs/hallazgos-review.md). Los hallazgos funcionales quedan pendientes; este cierre concilia documentación y tareas entregadas, sin corregirlos.
+
 **Numeración**: T701–T799, reservada para Frontend. Las numeraciones anteriores (`M-xx`, `F-xx`, `T242`–`T249`) se reemplazan por esta.
 
 **Formato**: `- [ ] Txxx [P] [USn] Descripción con ruta`. `[P]` indica que se puede hacer en paralelo. Cada `[Test]` va antes de su `[Impl]` y los dos van en la misma PR. Las rutas son `frontend/…`.
