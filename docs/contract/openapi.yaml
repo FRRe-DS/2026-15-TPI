@@ -10,8 +10,10 @@ info:
     | Módulo | Sentido | Operación |
     |---|---|---|
     | M4 | M4 → M3 | `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`: lectura de estado y ubicación |
+    | M5 | M5 → M3 | `POST /conductores/{id_conductor}/solicitudes`: M5 envía un viaje, M3 lo guarda como `PENDIENTE` y lo expone en `GET /conductores/{id_conductor}/solicitudes`. Al aceptar, M3 envía la aceptación a M5 de forma síncrona y solo con el OK pasa el conductor a `OCUPADO`. |
+    | M6 | M6 → M3 | `POST /conductores/{id_conductor}/calificaciones`: M6 registra la valoración del conductor al finalizar un viaje. |
 
-    M3 no expone operaciones de escritura para otros módulos: el estado y la ubicación del conductor los informa el propio conductor con `PATCH /conductores/{id_conductor}/estado`, y M3 marca `OCUPADO` al aceptar una solicitud.
+    El estado y la ubicación del conductor los informa el propio conductor con `PATCH /conductores/{id_conductor}/estado`. `OCUPADO` lo asigna M3 únicamente después de que M5 confirme la aceptación de una solicitud.
 
     Todas las fechas y horas están en UTC (ISO 8601 con `Z`).
 servers:
@@ -26,6 +28,7 @@ tags:
   - name: Habilitación
   - name: Disponibilidad
   - name: Solicitudes
+  - name: Calificación
 
 paths:
   /conductores:
@@ -803,9 +806,9 @@ paths:
       tags: [Calificación]
       summary: Registrar calificación hacia el conductor
       description: |
-                   Registra el puntaje otorgado por un pasajero tras finalizar un viaje. 
-                   Evita calificaciones duplicadas para un mismo viaje (RF-2.5).
-                   Roles permitidos: servicio.
+        Registra el puntaje otorgado por un pasajero tras finalizar un viaje.
+        Evita calificaciones duplicadas para un mismo viaje (RF-2.5).
+        Roles permitidos: servicio (M6).
       operationId: calificarConductor
       requestBody:
         required: true
@@ -813,6 +816,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CalificacionConductorRequest'
+            example:
+              id_viaje: '7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11'
+              puntaje: 5
       responses:
         '201':
           description: Calificación registrada exitosamente
@@ -820,6 +826,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CalificacionConductor'
+              example:
+                id: 104
+                id_viaje: '7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11'
+                id_conductor: 15
+                puntaje: 5
+                fecha: '2026-11-20T22:10:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -832,8 +844,12 @@ paths:
           $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /conductores/{id_conductor}/solicitudes:
     parameters:
@@ -841,6 +857,9 @@ paths:
     get:
       tags: [Solicitudes]
       summary: Listar solicitudes del conductor
+      description: |
+        Devuelve las ofertas que M5 envió y M3 guardó para el conductor. Permite filtrar
+        por `estado` para elegir una oferta `PENDIENTE` y responderla con `POST /solicitudes/{id_solicitud}`.
       operationId: listarSolicitudesConductor
       parameters:
         - name: estado
@@ -863,9 +882,18 @@ paths:
               example:
                 - id: 340
                   id_conductor: 15
-                  id_viaje: 5521
+                  id_solicitud_m5: '0c6a4f0e-8f43-4d3b-a3b7-6a1f2c8e9d10'
+                  tipo_servicio: PASAJEROS
+                  origen:
+                    latitud: -27.4511
+                    longitud: -58.9867
+                    direccion: 'Av. 9 de Julio 500'
+                  destino:
+                    latitud: -27.4698
+                    longitud: -58.8306
+                    direccion: 'Av. Sarmiento 1200'
                   estado: PENDIENTE
-                  vence_en: '2026-10-03T18:45:30Z'
+                  vence_en: '2026-11-21T23:59:00Z'
                   respuesta: null
                   hora_rta: null
         '400':
@@ -882,7 +910,8 @@ paths:
       tags: [Solicitudes]
       summary: Recibir oferta de viaje desde M5
       description: |
-        Lo invoca **M5** (rol `servicio`) para enviar una solicitud de viaje a un conductor candidato.
+        Lo invoca **M5** (rol `servicio`) para enviar una oferta de viaje a un conductor candidato.
+        M3 la guarda como `PENDIENTE` y la expone en `GET /conductores/{id_conductor}/solicitudes`.
         El conductor debe estar habilitado (`APROBADA`) y `DISPONIBLE`; de lo contrario responde `422`.
       operationId: crearSolicitudConductor
       requestBody:
@@ -902,7 +931,7 @@ paths:
                 latitud: -27.4698
                 longitud: -58.8306
                 direccion: "Av. Sarmiento 1200"
-              vence_en: "2026-11-21T00:35:00Z"
+              vence_en: "2026-11-22T00:35:00Z"
       responses:
         '201':
           description: Oferta de solicitud registrada para el conductor
@@ -940,7 +969,12 @@ paths:
     post:
       tags: [Solicitudes]
       summary: Aceptar o rechazar una solicitud
-      description: Solo mientras la oferta esté vigente; vencida devuelve 410. Al aceptar, el conductor pasa a estado OCUPADO.
+      description: |
+        El conductor acepta o rechaza una oferta `PENDIENTE` mientras esté vigente; vencida devuelve `410`.
+        Si `respuesta` es `RECHAZADO`, M3 guarda el rechazo sin consultar a M5.
+        Si es `ACEPTADO`, M3 envía la aceptación a M5 de forma síncrona: con el OK de M5 guarda
+        `ACEPTADO` y pasa al conductor a `OCUPADO`; si M5 no valida la aceptación, devuelve
+        `409 TRANSICION_INVALIDA` y el conductor permanece `DISPONIBLE`.
       operationId: responderSolicitud
       requestBody:
         required: true
@@ -957,7 +991,7 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
         '200':
-          description: Respuesta registrada
+          description: Respuesta registrada; si fue aceptada, M5 la validó y el conductor quedó OCUPADO
           content:
             application/json:
               schema:
@@ -965,11 +999,20 @@ paths:
               example:
                 id: 340
                 id_conductor: 15
-                id_viaje: 5521
-                estado: RECHAZADO
-                vence_en: '2026-10-03T18:45:30Z'
-                respuesta: RECHAZADO
-                hora_rta: '2026-10-03T18:44:10Z'
+                id_solicitud_m5: '0c6a4f0e-8f43-4d3b-a3b7-6a1f2c8e9d10'
+                tipo_servicio: PASAJEROS
+                origen:
+                  latitud: -27.4511
+                  longitud: -58.9867
+                  direccion: 'Av. 9 de Julio 500'
+                destino:
+                  latitud: -27.4698
+                  longitud: -58.8306
+                  direccion: 'Av. Sarmiento 1200'
+                estado: ACEPTADO
+                vence_en: '2026-11-21T23:59:00Z'
+                respuesta: ACEPTADO
+                hora_rta: '2026-11-21T18:44:10Z'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -986,10 +1029,6 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalError'
-        '503':
-          $ref: '#/components/responses/ServiceUnavailable'
-
-
 
 components:
   securitySchemes:
@@ -1002,7 +1041,7 @@ components:
 
         - `operador`: acciones de habilitación. El token trae el claim entero `id_operador`.
         - `conductor`: opera sobre sus propios datos. El token trae el claim entero `id_conductor`; si pide datos de otro conductor recibe `403 ACCESO_PROHIBIDO`. No puede listar conductores (`GET /conductores`).
-        - `servicio`: cuenta técnica de otros módulos (M4). Solo puede leer conductores, vehículos, estado y ubicación.
+        - `servicio`: cuenta técnica de otros módulos (M4, M5 y M6). Puede leer conductores, vehículos, estado y ubicación; M5 envía ofertas de viaje y M6 registra calificaciones.
 
   parameters:
     IdConductor:
@@ -1150,7 +1189,7 @@ components:
       type: string
       description: Según fecha_vencimiento.
       enum: [VIGENTE, VENCIDO]
-    
+
     EstadoOperativo:
       type: string
       description: |
@@ -1159,9 +1198,9 @@ components:
         - `DESCONECTADO`: no tiene la app activa.
         - `CONECTADO`: está activo pero no recibe viajes (en pausa).
         - `DISPONIBLE`: puede recibir viajes. Exige habilitación APROBADA y un vehículo activo APROBADA.
-        - `OCUPADO`: está en un viaje. Lo asigna M3 al aceptar una solicitud; no se puede pedir en `PATCH /conductores/{id_conductor}/estado`.
+        - `OCUPADO`: está en un viaje. Lo asigna M3 cuando M5 confirma la aceptación de una solicitud; no se puede pedir en `PATCH /conductores/{id_conductor}/estado`.
       enum: [DESCONECTADO, CONECTADO, DISPONIBLE, OCUPADO]
-  
+
     EstadoSolicitud:
       type: string
       enum: [PENDIENTE, ACEPTADO, RECHAZADO, VENCIDA]
@@ -1592,12 +1631,15 @@ components:
 
     SolicitudCreate:
       type: object
-      required: [id_solicitud_m5, tipo_servicio, origen, destino, vence_en]
+      required: [id_solicitud_m5, id_viaje, tipo_servicio, origen, destino, vence_en]
       properties:
         id_solicitud_m5:
           type: string
           format: uuid
           description: Identificador de la solicitud en M5 (requestId)
+        id_viaje:
+          type: string
+          format: uuid
         tipo_servicio:
           $ref: '#/components/schemas/TipoServicio'
         origen:
@@ -1611,7 +1653,7 @@ components:
 
     Solicitud:
       type: object
-      required: [id, id_conductor, id_solicitud_m5, tipo_servicio, origen, destino, estado, vence_en]
+      required: [id, id_conductor, id_viaje, id_solicitud_m5, tipo_servicio, origen, destino, estado, vence_en]
       properties:
         id:
           type: integer
@@ -1620,6 +1662,9 @@ components:
         id_conductor:
           type: integer
           format: int64
+        id_viaje:
+          type: string
+          format: uuid
         id_solicitud_m5:
           type: string
           format: uuid
@@ -1673,7 +1718,7 @@ components:
 
     CalificacionConductor:
       type: object
-      required: [id, id_viaje, id_conductor, id_cliente, puntaje, fecha]
+      required: [id, id_viaje, id_conductor, puntaje, fecha]
       properties:
         id:
           type: integer
@@ -1684,9 +1729,9 @@ components:
           format: uuid
           example: "7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11"
         id_conductor:
-          type: string
-          format: uuid
-          example: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+          type: integer
+          format: int64
+          example: 15
         puntaje:
           type: integer
           minimum: 1
