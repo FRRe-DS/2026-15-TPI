@@ -796,6 +796,45 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /conductores/{id_conductor}/calificaciones:
+    parameters:
+      - $ref: '#/components/parameters/IdConductor'
+    post:
+      tags: [Calificación]
+      summary: Registrar calificación hacia el conductor
+      description: |
+                   Registra el puntaje otorgado por un pasajero tras finalizar un viaje. 
+                   Evita calificaciones duplicadas para un mismo viaje (RF-2.5).
+                   Roles permitidos: servicio.
+      operationId: calificarConductor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalificacionConductorRequest'
+      responses:
+        '201':
+          description: Calificación registrada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalificacionConductor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /conductores/{id_conductor}/solicitudes:
     parameters:
       - $ref: '#/components/parameters/IdConductor'
@@ -839,6 +878,56 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Solicitudes]
+      summary: Recibir oferta de viaje desde M5
+      description: |
+        Lo invoca **M5** (rol `servicio`) para enviar una solicitud de viaje a un conductor candidato.
+        El conductor debe estar habilitado (`APROBADA`) y `DISPONIBLE`; de lo contrario responde `422`.
+      operationId: crearSolicitudConductor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudCreate'
+            example:
+              id_solicitud_m5: "0c6a4f0e-8f43-4d3b-a3b7-6a1f2c8e9d10"
+              tipo_servicio: PASAJEROS
+              origen:
+                latitud: -27.4511
+                longitud: -58.9867
+                direccion: "Av. 9 de Julio 500"
+              destino:
+                latitud: -27.4698
+                longitud: -58.8306
+                direccion: "Av. Sarmiento 1200"
+              vence_en: "2026-11-21T00:35:00Z"
+      responses:
+        '201':
+          description: Oferta de solicitud registrada para el conductor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Solicitud'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 
   /solicitudes/{id_solicitud}:
     parameters:
@@ -897,6 +986,10 @@ paths:
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+
 
 components:
   securitySchemes:
@@ -1057,9 +1150,7 @@ components:
       type: string
       description: Según fecha_vencimiento.
       enum: [VIGENTE, VENCIDO]
-    # Pendiente de acordar con M4 y M6: M3 pasa al conductor a OCUPADO al aceptar una solicitud y
-    # vuelve a DISPONIBLE cuando el conductor lo pide. Ningún otro módulo escribe este estado. Si M4 o M6
-    # necesitan marcarlo (por ejemplo al terminar un viaje), habría que sumar una operación de escritura.
+    
     EstadoOperativo:
       type: string
       description: |
@@ -1070,7 +1161,7 @@ components:
         - `DISPONIBLE`: puede recibir viajes. Exige habilitación APROBADA y un vehículo activo APROBADA.
         - `OCUPADO`: está en un viaje. Lo asigna M3 al aceptar una solicitud; no se puede pedir en `PATCH /conductores/{id_conductor}/estado`.
       enum: [DESCONECTADO, CONECTADO, DISPONIBLE, OCUPADO]
-    # TODO confirmar estados con M5
+  
     EstadoSolicitud:
       type: string
       enum: [PENDIENTE, ACEPTADO, RECHAZADO, VENCIDA]
@@ -1479,38 +1570,73 @@ components:
           items:
             $ref: '#/components/schemas/HabilitacionEvento'
 
-    # TODO confirmar campos con M5
+    # Integración con M5
+    PuntoViaje:
+      type: object
+      required: [latitud, longitud]
+      properties:
+        latitud:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitud:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        direccion:
+          type: string
+          maxLength: 300
+          nullable: true
+
+    SolicitudCreate:
+      type: object
+      required: [id_solicitud_m5, tipo_servicio, origen, destino, vence_en]
+      properties:
+        id_solicitud_m5:
+          type: string
+          format: uuid
+          description: Identificador de la solicitud en M5 (requestId)
+        tipo_servicio:
+          $ref: '#/components/schemas/TipoServicio'
+        origen:
+          $ref: '#/components/schemas/PuntoViaje'
+        destino:
+          $ref: '#/components/schemas/PuntoViaje'
+        vence_en:
+          type: string
+          format: date-time
+          description: Fecha y hora límite en UTC para que el conductor acepte
+
     Solicitud:
       type: object
-      required: [id, id_conductor, estado, vence_en]
-      example:
-        id: 340
-        id_conductor: 15
-        id_viaje: 5521
-        estado: ACEPTADO
-        vence_en: '2026-10-03T18:45:30Z'
-        respuesta: ACEPTADO
-        hora_rta: '2026-10-03T18:44:10Z'
+      required: [id, id_conductor, id_solicitud_m5, tipo_servicio, origen, destino, estado, vence_en]
       properties:
         id:
           type: integer
           format: int64
+          description: ID interno de la oferta en M3
         id_conductor:
           type: integer
           format: int64
-        id_viaje:
-          type: integer
-          format: int64
-          nullable: true
+        id_solicitud_m5:
+          type: string
+          format: uuid
+        tipo_servicio:
+          $ref: '#/components/schemas/TipoServicio'
+        origen:
+          $ref: '#/components/schemas/PuntoViaje'
+        destino:
+          $ref: '#/components/schemas/PuntoViaje'
         estado:
           $ref: '#/components/schemas/EstadoSolicitud'
         vence_en:
           type: string
           format: date-time
-          description: Límite para responder
         respuesta:
           type: string
-          enum: [ACEPTADO, RECHAZADO, null]
+          enum: [ACEPTADO, RECHAZADO]
           nullable: true
         hora_rta:
           type: string
@@ -1527,3 +1653,46 @@ components:
         hora_rta:
           type: string
           format: date-time
+
+    # Integración con M6
+    CalificacionConductorRequest:
+      type: object
+      required: [id_viaje, puntaje]
+      properties:
+        id_viaje:
+          type: string
+          format: uuid
+          description: UUID del viaje en M6 (debe estar en estado COMPLETED y no haber sido calificado aún)
+          example: "7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11"
+        puntaje:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Puntuación otorgada al conductor (1 a 5)
+          example: 5
+
+    CalificacionConductor:
+      type: object
+      required: [id, id_viaje, id_conductor, id_cliente, puntaje, fecha]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 104
+        id_viaje:
+          type: string
+          format: uuid
+          example: "7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11"
+        id_conductor:
+          type: string
+          format: uuid
+          example: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+        puntaje:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        fecha:
+          type: string
+          format: date-time
+          example: "2026-11-20T22:10:00Z"
