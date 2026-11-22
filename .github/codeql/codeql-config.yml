@@ -1,0 +1,12 @@
+name: "CodeQL config"
+
+queries:
+  - uses: security-extended
+
+paths-ignore:
+  - docs/**
+  - specs/**
+  - backend/tests/**
+  - frontend/src/**/*.test.ts
+  - frontend/src/**/*.test.tsx
+  - frontend/vitest.setup.ts
