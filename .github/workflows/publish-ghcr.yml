@@ -1,0 +1,99 @@
+name: Publicar imagen del backend en GHCR
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: frre-ds/conductores-grupo15
+  PYTHON_VERSION: "3.12"
+  REDIS_URL: redis://localhost:6379/0
+  REDIS_PASSWORD: ""
+  RATE_LIMIT_HMAC_SECRET: 0123456789abcdef0123456789abcdef-test-ghcr
+  RATE_LIMIT_ANON_REQUESTS: "60"
+  RATE_LIMIT_PREAUTH_REQUESTS: "1000"
+  RATE_LIMIT_AUTH_REQUESTS: "1000"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+
+jobs:
+  probar-construir-publicar:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7.4.3-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python y uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Instalar dependencias de pruebas
+        working-directory: backend
+        run: uv sync --frozen --all-groups
+
+      - name: Verificar formato y lint
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Ejecutar pruebas de backend
+        working-directory: backend
+        run: >-
+          uv run pytest --ignore=tests/e2e
+          --strict-config --strict-markers
+          --cov=app --cov-report=term-missing
+          --cov-fail-under=65 -rs
+
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Iniciar sesión en GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preparar etiquetas de la imagen
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Construir y publicar imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
