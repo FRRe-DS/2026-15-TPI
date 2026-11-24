@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { listarConductores, ErrorApi } from "./api";
 import * as tokenModule from "./token";
 import type { ConductorConUbicacion } from "./tipos";
+import { uid } from "../mocks/ids.mock";
 
 describe("listarConductores", () => {
   const originalEnv = process.env;
@@ -23,7 +24,7 @@ describe("listarConductores", () => {
   it("envía Authorization: Bearer, llama a GET {API_URL}/conductores y devuelve el listado", async () => {
     const mockConductores: ConductorConUbicacion[] = [
       {
-        id: 1,
+        id: uid(1),
         dni: "12345678",
         nombre: "Juan",
         apellido: "Pérez",
@@ -34,7 +35,7 @@ describe("listarConductores", () => {
         documentos: [],
         vehiculos: [
           {
-            id: 10,
+            id: uid(10),
             tipo: "AUTO",
             patente: "AB123CD",
             marca: "Toyota",

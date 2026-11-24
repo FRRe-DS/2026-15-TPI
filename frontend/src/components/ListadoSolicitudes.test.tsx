@@ -10,20 +10,21 @@ import {
 import { ListadoSolicitudes, type ResponderSolicitud } from "./ListadoSolicitudes";
 import { ErrorApi } from "../lib/api";
 import type { EstadoSolicitud, Solicitud } from "../lib/tipos";
+import { uid } from "../mocks/ids.mock";
 
 function enSegundos(segundos: number): string {
   return new Date(Date.now() + segundos * 1000).toISOString();
 }
 
 function crearSolicitud(
-  id: number,
+  id: string,
   estado: EstadoSolicitud,
   venceEn: string,
 ): Solicitud {
   return {
     id,
-    id_conductor: 1,
-    id_viaje: 5000 + id,
+    id_conductor: uid(1),
+    id_viaje: uid(5000 + Number.parseInt(id.slice(0, 8), 10)),
     estado,
     vence_en: venceEn,
     respuesta:
@@ -47,10 +48,10 @@ afterEach(() => {
 describe("ListadoSolicitudes", () => {
   it("muestra aceptar y rechazar solo en las solicitudes PENDIENTE", () => {
     const solicitudes = [
-      crearSolicitud(341, "PENDIENTE", enSegundos(120)),
-      crearSolicitud(342, "ACEPTADO", "2026-11-13T11:00:00Z"),
-      crearSolicitud(343, "RECHAZADO", "2026-11-13T10:00:00Z"),
-      crearSolicitud(344, "VENCIDA", "2026-11-13T09:00:00Z"),
+      crearSolicitud(uid(341), "PENDIENTE", enSegundos(120)),
+      crearSolicitud(uid(342), "ACEPTADO", "2026-11-13T11:00:00Z"),
+      crearSolicitud(uid(343), "RECHAZADO", "2026-11-13T10:00:00Z"),
+      crearSolicitud(uid(344), "VENCIDA", "2026-11-13T09:00:00Z"),
     ];
 
     render(
@@ -61,8 +62,9 @@ describe("ListadoSolicitudes", () => {
     );
 
     const pendiente = screen.getByRole("listitem", {
-      name: /solicitud 341/i,
+      name: /solicitud 00000341/i,
     });
+    expect(within(pendiente).getByText("Viaje #00005341")).toBeInTheDocument();
     expect(
       within(pendiente).getByRole("button", { name: /aceptar/i }),
     ).toBeInTheDocument();
@@ -84,7 +86,7 @@ describe("ListadoSolicitudes", () => {
     render(
       <ListadoSolicitudes
         solicitudes={[
-          crearSolicitud(341, "PENDIENTE", "2026-11-13T12:00:30Z"),
+          crearSolicitud(uid(341), "PENDIENTE", "2026-11-13T12:00:30Z"),
         ]}
         responder={crearResponder()}
       />,
@@ -123,7 +125,7 @@ describe("ListadoSolicitudes", () => {
       render(
         <ListadoSolicitudes
           solicitudes={[
-            crearSolicitud(341, "PENDIENTE", enSegundos(120)),
+            crearSolicitud(uid(341), "PENDIENTE", enSegundos(120)),
           ]}
           responder={responder}
         />,
@@ -134,7 +136,7 @@ describe("ListadoSolicitudes", () => {
       await waitFor(() => expect(responder).toHaveBeenCalledTimes(1));
 
       const [id, cuerpo] = responder.mock.calls[0];
-      expect(id).toBe(341);
+      expect(id).toBe(uid(341));
       expect(cuerpo.respuesta).toBe(respuesta);
       expect(typeof cuerpo.hora_rta).toBe("string");
       expect(new Date(cuerpo.hora_rta).toISOString()).toBe(cuerpo.hora_rta);
@@ -155,7 +157,7 @@ describe("ListadoSolicitudes", () => {
     render(
       <ListadoSolicitudes
         solicitudes={[
-          crearSolicitud(341, "PENDIENTE", enSegundos(120)),
+          crearSolicitud(uid(341), "PENDIENTE", enSegundos(120)),
         ]}
         responder={responder}
       />,
@@ -174,7 +176,7 @@ describe("ListadoSolicitudes", () => {
     render(
       <ListadoSolicitudes
         solicitudes={[
-          crearSolicitud(341, "PENDIENTE", enSegundos(120)),
+          crearSolicitud(uid(341), "PENDIENTE", enSegundos(120)),
         ]}
         responder={responder}
       />,

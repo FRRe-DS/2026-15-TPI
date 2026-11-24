@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
 import * as api from "../../../lib/api";
 import { NOMBRE_COOKIE_SESION } from "../../../lib/sesion";
+import { uid } from "../../../mocks/ids.mock";
 
 vi.mock("../../../lib/api", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../../lib/api")>();
@@ -15,7 +16,7 @@ function crearToken(payload: Record<string, unknown>): string {
   const parte = (objeto: unknown) =>
     Buffer.from(JSON.stringify(objeto)).toString("base64url");
   return `${parte({ alg: "none", typ: "JWT" })}.${parte(
-    { id_conductor: 7, exp: AHORA + 300, ...payload }
+    { id_conductor: uid(7), exp: AHORA + 300, ...payload }
   )}.firma`;
 }
 
@@ -37,9 +38,9 @@ afterEach(() => {
 describe("POST /api/ubicacion", () => {
   it("envía latitud y longitud juntas al conductor de la sesión", async () => {
     vi.mocked(api.actualizarEstado).mockResolvedValue({
-      id_conductor: 7,
+      id_conductor: uid(7),
       estado: "OCUPADO",
-      id_vehiculo_activo: 1,
+      id_vehiculo_activo: uid(1),
       actualizado: "2026-11-10T18:50:00Z",
     });
     const token = crearToken({});
@@ -48,7 +49,7 @@ describe("POST /api/ubicacion", () => {
 
     expect(respuesta.status).toBe(200);
     expect(api.actualizarEstado).toHaveBeenCalledWith(
-      7,
+      uid(7),
       { latitud: -34.6037, longitud: -58.3816 },
       { token }
     );

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FormularioLogin } from "./FormularioLogin";
+import { uid } from "../mocks/ids.mock";
 
 const { replaceMock } = vi.hoisted(() => ({
   replaceMock: vi.fn(),
@@ -61,7 +62,7 @@ describe("FormularioLogin", () => {
 
   it("envía las credenciales al servidor de Next, nunca directo a Keycloak", async () => {
     const fetchSimulado = simularEnvio(
-      respuesta(200, { idConductor: 1 })
+      respuesta(200, { idConductor: uid(1) })
     );
 
     render(<FormularioLogin />);
@@ -101,7 +102,7 @@ describe("FormularioLogin", () => {
   });
 
   it("con credenciales válidas redirige al estado y no guarda el token en el navegador", async () => {
-    simularEnvio(respuesta(200, { idConductor: 1 }));
+    simularEnvio(respuesta(200, { idConductor: uid(1) }));
 
     render(<FormularioLogin />);
     await completarFormulario();
@@ -128,7 +129,7 @@ describe("FormularioLogin", () => {
     expect(screen.getByLabelText("Usuario")).toBeDisabled();
     expect(screen.getByLabelText("Contraseña")).toBeDisabled();
 
-    resolver(respuesta(200, { idConductor: 1 }));
+    resolver(respuesta(200, { idConductor: uid(1) }));
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/estado"));
   });
 
