@@ -18,7 +18,8 @@ describe("esUuid", () => {
 });
 
 describe("idCorto", () => {
-  it("devuelve los primeros 8 caracteres del UUID", () => {
-    expect(idCorto(UUID)).toBe("7b0e3a8e");
+  it("devuelve los últimos 8 caracteres del UUID (los primeros pueden repetirse entre ids)", () => {
+    expect(idCorto(UUID)).toBe("2f9d6b11");
+    expect(idCorto("00000000-0000-4000-8000-000000001001")).toBe("00001001");
   });
 });

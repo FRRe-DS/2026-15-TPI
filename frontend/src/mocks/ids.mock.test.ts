@@ -9,7 +9,7 @@ describe("uid", () => {
     expect(uid(1)).not.toBe(uid(2));
   });
 
-  it.each([-1, 1.5, Number.NaN, 100_000_000])("rechaza el número fuera de rango %s", (numero) => {
+  it.each([-1, 1.5, Number.NaN, 1_000_000_000_000])("rechaza el número fuera de rango %s", (numero) => {
     expect(() => uid(numero)).toThrow(RangeError);
   });
 });

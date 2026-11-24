@@ -24,7 +24,7 @@ function crearSolicitud(
   return {
     id,
     id_conductor: uid(1),
-    id_viaje: uid(5000 + Number.parseInt(id.slice(0, 8), 10)),
+    id_viaje: uid(5000 + Number.parseInt(id.slice(-8), 10)),
     estado,
     vence_en: venceEn,
     respuesta:

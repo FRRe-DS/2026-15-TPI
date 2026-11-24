@@ -5,7 +5,7 @@ export function esUuid(valor: unknown): valor is string {
   return typeof valor === "string" && PATRON_UUID.test(valor);
 }
 
-/** Forma abreviada para mostrar en pantalla (el id completo no entra en un título). Solo es visual: nunca identifica ni se manda a la API. */
+/** Últimos 8 caracteres, para mostrar en pantalla (el id completo no entra en un título). Solo es visual: nunca identifica ni se manda a la API. */
 export function idCorto(id: string): string {
-  return id.slice(0, 8);
+  return id.slice(-8);
 }
