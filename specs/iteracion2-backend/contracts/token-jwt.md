@@ -21,10 +21,10 @@ Punto de sincronización entre el **Stack 3** (emite, vía Keycloak), el **Stack
 1. Sin encabezado `Authorization: Bearer ...`, firma inválida, token vencido o emisor distinto → `401`.
 2. Un token sin ningún rol reconocido (`operador`, `conductor`, `servicio`) → `403`.
 3. Cada operación admite ciertos roles (matriz de abajo). Un rol que no está admitido → `403` `SIN_PERMISOS`. El rol `servicio` solo puede leer: cualquier escritura → `403`.
-4. Un token de conductor sin `id_conductor` numérico → `403` `ACCESO_PROHIBIDO` en cualquier operación sobre un conductor.
+4. Un token de conductor sin `id_conductor` UUID (claim de texto) → `403` `ACCESO_PROHIBIDO` en cualquier operación sobre un conductor.
 5. Un conductor que opera sobre el `id_conductor` de otro → `403` `ACCESO_PROHIBIDO`. Esto se evalúa **antes** de buscar el recurso: aunque el otro conductor no exista, la respuesta es `403` y no `404`.
 6. Con varios roles en el token, vale lo que permita cualquiera de ellos. Si un token es de conductor y de operador, el acceso de operador no queda limitado por el `id_conductor`.
-7. Las acciones de habilitación exigen además un `id_operador` numérico (sin cambios).
+7. Las acciones de habilitación exigen además un `id_operador` UUID (claim de texto).
 
 ## Matriz de acceso por operación
 
