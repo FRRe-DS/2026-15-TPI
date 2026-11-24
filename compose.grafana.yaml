@@ -1,0 +1,11 @@
+services:
+  otel-collector:
+    command:
+      - --config=/etc/otelcol/config.yaml
+      - --config=/etc/otelcol/sql.yaml
+      - --config=/etc/otelcol/grafana.yaml
+    environment:
+      GRAFANA_OTLP_ENDPOINT: ${GRAFANA_OTLP_ENDPOINT:?Configurar endpoint privado}
+      GRAFANA_OTLP_AUTH: ${GRAFANA_OTLP_AUTH:?Configurar autenticacion privada}
+    volumes:
+      - ./observability/collector-grafana.yaml:/etc/otelcol/grafana.yaml:ro

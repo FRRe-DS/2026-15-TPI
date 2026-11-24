@@ -20,7 +20,7 @@ COPY --from=uv /uv /uvx /bin/
 COPY backend/pyproject.toml backend/uv.lock ./
 
 # Solo dependencias de ejecución: API (FastAPI, Uvicorn, PyJWT) y base de datos.
-RUN uv sync --frozen --no-dev --group api --group db
+RUN uv sync --frozen --no-dev --group api --group db --group observability
 
 COPY backend/app ./app
 COPY infra/migraciones /app/infra/migraciones

@@ -1,0 +1,35 @@
+services:
+  redis:
+    ports:
+      - "127.0.0.1:16379:6379"
+  api:
+    environment:
+      M3_OTEL_ENABLED: "true"
+      OTEL_SERVICE_NAME: m3-conductores-grupo15
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
+    depends_on:
+      redis:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+  frontend:
+    image: m3-grupo15-frontend:observability
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.140.0
+    command:
+      - --config=/etc/otelcol/config.yaml
+      - --config=/etc/otelcol/sql.yaml
+    environment:
+      OTEL_SQL_PASSWORD: ${OTEL_SQL_PASSWORD:?Crear el entorno privado de observabilidad}
+    volumes:
+      - ./observability/collector-local.yaml:/etc/otelcol/config.yaml:ro
+      - ./observability/collector-sql.yaml:/etc/otelcol/sql.yaml:ro
+    ports:
+      - "127.0.0.1:19464:9464"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [m3]
+    restart: unless-stopped

@@ -12,6 +12,7 @@ from app.api.esquemas.solicitud import (
     Solicitud,
     solicitud_desde_dominio,
 )
+from app.api.observabilidad import medir_operacion
 from app.api.seguridad import (
     requerir_conductor_propio_u_operador,
     requerir_operador_o_conductor,
@@ -55,10 +56,11 @@ def responder_solicitud(
     identidad: Annotated[Identidad, Depends(requerir_operador_o_conductor)],
     caso: Annotated[ResponderSolicitud, Depends(obtener_caso_responder_solicitud)],
 ) -> Solicitud:
-    solicitud = caso.ejecutar(
-        id_solicitud=id_solicitud,
-        respuesta=EstadoSolicitudDominio(datos.respuesta.value),
-        hora_rta=datos.hora_rta,
-        identidad=identidad,
-    )
+    with medir_operacion("operational_state.update", enabled=datos.respuesta.value == "ACEPTADO"):
+        solicitud = caso.ejecutar(
+            id_solicitud=id_solicitud,
+            respuesta=EstadoSolicitudDominio(datos.respuesta.value),
+            hora_rta=datos.hora_rta,
+            identidad=identidad,
+        )
     return solicitud_desde_dominio(solicitud)

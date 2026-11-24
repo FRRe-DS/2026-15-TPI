@@ -1,0 +1,25 @@
+exporters:
+  otlphttp/grafana:
+    # OTLP HTTP/protobuf. El endpoint BASE agrega /v1/metrics y /v1/traces.
+    endpoint: ${env:GRAFANA_OTLP_ENDPOINT}
+    headers:
+      Authorization: ${env:GRAFANA_OTLP_AUTH}
+    compression: gzip
+    timeout: 15s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    sending_queue:
+      enabled: true
+      queue_size: 1000
+
+service:
+  pipelines:
+    traces:
+      exporters: [otlphttp/grafana]
+    metrics:
+      exporters: [otlphttp/grafana, prometheus]
+    metrics/business:
+      exporters: [otlphttp/grafana, prometheus]
