@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -31,7 +32,7 @@ router = APIRouter(tags=["Solicitudes"])
     dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def listar_solicitudes(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[ListarSolicitudesConductor, Depends(obtener_caso_listar_solicitudes_conductor)],
     estado: EstadoSolicitud | None = None,
 ) -> list[Solicitud]:
@@ -48,7 +49,7 @@ def listar_solicitudes(
     operation_id="responderSolicitud",
 )
 def responder_solicitud(
-    id_solicitud: int,
+    id_solicitud: UUID,
     datos: RespuestaSolicitudRequest,
     # El dueño de la solicitud se conoce al leerla: el caso de uso verifica que el
     # conductor sea el dueño. Acá solo se descarta al rol servicio, que no escribe.

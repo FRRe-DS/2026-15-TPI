@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from enum import Enum
+from uuid import UUID
 
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -31,11 +32,11 @@ class Conductor:
     email: str
     habilitacion: EstadoHabilitacion = EstadoHabilitacion.PENDIENTE
     estado: EstadoConductor = EstadoConductor.DESCONECTADO
-    id_vehiculo_activo: int | None = None
+    id_vehiculo_activo: UUID | None = None
     fecha_ultimo_cambio_estado: datetime | None = None
     suma_puntajes: int = 0
     cantidad_calificaciones: int = 0
-    id: int | None = None
+    id: UUID | None = None
     latitud: float | None = None
     longitud: float | None = None
     fecha_act_ubic: datetime | None = None

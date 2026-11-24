@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from uuid import UUID
 
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.documento import Documento, EstadoDocumento
@@ -23,21 +24,21 @@ class ConductorDetalle:
 
 @dataclass
 class HabilitacionResumen:
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoHabilitacion
     historial: list[EventoHabilitacion]
 
 
 @dataclass
 class HabilitacionEventos:
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoHabilitacion
     eventos: list[EventoHabilitacion]
 
 
 @dataclass
 class DocumentoDeConductor:
-    id_conductor: int
+    id_conductor: UUID
     documento: Documento
     estado: EstadoDocumento
 
@@ -50,7 +51,7 @@ class DocumentoVehiculoConEstado:
 
 @dataclass
 class DocumentoDeVehiculo:
-    id_vehiculo: int
+    id_vehiculo: UUID
     documento: DocumentoVehiculo
     estado: EstadoDocumento
 
@@ -63,16 +64,16 @@ class VehiculoDetalle:
 
 @dataclass
 class HabilitacionVehiculoEventos:
-    id_vehiculo: int
+    id_vehiculo: UUID
     estado: EstadoHabilitacion
     eventos: list[EventoHabilitacion]
 
 
 @dataclass
 class EstadoDelConductor:
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoConductor
-    id_vehiculo_activo: int | None
+    id_vehiculo_activo: UUID | None
     actualizado: datetime
 
     @classmethod
@@ -89,7 +90,7 @@ class EstadoDelConductor:
 
 @dataclass
 class UbicacionDelConductor:
-    id_conductor: int
+    id_conductor: UUID
     latitud: float | None
     longitud: float | None
     fecha_act_ubic: datetime | None

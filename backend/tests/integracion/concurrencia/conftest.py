@@ -29,6 +29,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.api.conftest import instalar_limitador_falso
+from tests.ids import como_claim, uid
 
 URL_DE_PRUEBA = "http://localhost:8080"
 REALM = "m3"
@@ -79,9 +80,9 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
             },
         }
         if id_operador is not None:
-            payload["id_operador"] = id_operador
+            payload["id_operador"] = como_claim(id_operador)
         if id_conductor is not None:
-            payload["id_conductor"] = id_conductor
+            payload["id_conductor"] = como_claim(id_conductor)
         return jwt.encode(payload, clave_rsa, algorithm="RS256", headers={"kid": KID_PRUEBA})
 
     return _crear_token
@@ -95,12 +96,12 @@ def headers_conductor(crear_token) -> dict[str, str]:
     propio `id_conductor`, y estas pruebas operan sobre conductores recién creados, cuyo id
     se conoce recién después del alta. El nombre se conserva para no tocar las pruebas.
     """
-    return {"Authorization": f"Bearer {crear_token(roles=['operador'], id_operador=7)}"}
+    return {"Authorization": f"Bearer {crear_token(roles=['operador'], id_operador=uid(7))}"}
 
 
 @pytest.fixture
 def headers_operador(crear_token) -> dict[str, str]:
-    token = crear_token(roles=["operador"], id_operador=7)
+    token = crear_token(roles=["operador"], id_operador=uid(7))
     return {"Authorization": f"Bearer {token}"}
 
 

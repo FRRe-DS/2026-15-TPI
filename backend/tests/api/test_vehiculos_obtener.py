@@ -1,6 +1,8 @@
 from app.dominio.errores import NoEncontrado
 
-URL = "/api/v1/conductores/1/vehiculos/5"
+from tests.ids import uid
+
+URL = f"/api/v1/conductores/{uid(1)}/vehiculos/{uid(5)}"
 
 
 def test_obtiene_vehiculo(client, casos, headers_conductor) -> None:
@@ -8,10 +10,10 @@ def test_obtiene_vehiculo(client, casos, headers_conductor) -> None:
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["id"] == 5
-    assert cuerpo["id_conductor"] == 1
+    assert cuerpo["id"] == str(uid(5))
+    assert cuerpo["id_conductor"] == str(uid(1))
     assert cuerpo["patente"] == "AB123CD"
-    assert casos["obtener_vehiculo"].llamadas == [{"id_conductor": 1, "id_vehiculo": 5}]
+    assert casos["obtener_vehiculo"].llamadas == [{"id_conductor": uid(1), "id_vehiculo": uid(5)}]
 
 
 def test_vehiculo_inexistente_o_de_otro_conductor_responde_404(

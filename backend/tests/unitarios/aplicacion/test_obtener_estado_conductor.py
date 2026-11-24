@@ -17,6 +17,7 @@ from app.aplicacion.casos_de_uso.obtener_estado_conductor import ObtenerEstadoCo
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import NoEncontrado
 
+from tests.ids import uid
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 FECHA_DE_ALTA = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
@@ -105,7 +106,7 @@ def test_el_resultado_no_incluye_la_ubicacion(uow, obtener_estado):
 
 
 def test_conductor_inexistente_lanza_no_encontrado(uow, obtener_estado):
-    conductor = guardar_conductor(uow)
+    guardar_conductor(uow)
 
     with pytest.raises(NoEncontrado):
-        obtener_estado.ejecutar(id_conductor=conductor.id + 1)
+        obtener_estado.ejecutar(id_conductor=uid(999))

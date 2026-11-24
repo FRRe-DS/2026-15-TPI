@@ -1,5 +1,7 @@
 from app.dominio.errores import DniDuplicado
 
+from tests.ids import uid
+
 URL = "/api/v1/conductores"
 
 PAYLOAD = {
@@ -15,10 +17,10 @@ def test_crea_conductor(client, casos, headers_conductor) -> None:
     respuesta = client.post(URL, json=PAYLOAD, headers=headers_conductor)
 
     assert respuesta.status_code == 201
-    assert respuesta.headers["location"] == "/api/v1/conductores/1"
+    assert respuesta.headers["location"] == f"/api/v1/conductores/{uid(1)}"
 
     cuerpo = respuesta.json()
-    assert cuerpo["id"] == 1
+    assert cuerpo["id"] == str(uid(1))
     assert cuerpo["dni"] == PAYLOAD["dni"]
     assert cuerpo["nombre"] == PAYLOAD["nombre"]
     assert cuerpo["habilitacion"] == "APROBADA"

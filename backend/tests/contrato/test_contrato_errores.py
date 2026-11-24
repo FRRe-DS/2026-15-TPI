@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from tests.ids import uid
 
 pytestmark = pytest.mark.integration
 
@@ -68,12 +69,12 @@ def test_recurso_inexistente_responde_404(
     crear_conductor: Callable[..., dict[str, Any]],
     validar_contrato: Callable[[httpx.Response], None],
 ) -> None:
-    conductores = cliente.get("/api/v1/conductores/999999", headers=headers_conductor)
+    conductores = cliente.get(f"/api/v1/conductores/{uid(999999)}", headers=headers_conductor)
     _verificar_error(conductores, 404, "NO_ENCONTRADO", validar_contrato)
 
     conductor = crear_conductor()
     vehiculo = cliente.get(
-        f"/api/v1/conductores/{conductor['id']}/vehiculos/999999",
+        f"/api/v1/conductores/{conductor['id']}/vehiculos/{uid(999999)}",
         headers=headers_conductor,
     )
     _verificar_error(vehiculo, 404, "NO_ENCONTRADO", validar_contrato)

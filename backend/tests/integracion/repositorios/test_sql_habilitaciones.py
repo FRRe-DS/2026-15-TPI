@@ -29,6 +29,8 @@ from app.infraestructura.repositorios.sql_habilitaciones import SqlRepositorioHa
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
+
 PENDIENTE = EstadoHabilitacion.PENDIENTE
 APROBADA = EstadoHabilitacion.APROBADA
 FECHA = datetime(2026, 6, 15, 12, 30, 45, 123456, tzinfo=UTC)
@@ -56,9 +58,10 @@ def repositorio(sesion_bd):
 @pytest.fixture
 def entidades(sesion_bd):
     """Dos conductores (ids 1 y 2) y dos vehiculos (ids 1 y 2) del primer conductor."""
-    for dni in ("30000001", "30000002"):
+    for numero, dni in enumerate(("30000001", "30000002"), start=1):
         sesion_bd.add(
             ConductorOrm(
+                id_conductor=uid(numero),
                 dni=dni,
                 nombre="Ana",
                 apellido="Perez",
@@ -67,10 +70,11 @@ def entidades(sesion_bd):
             )
         )
     sesion_bd.flush()
-    for patente in ("AAA111", "BBB222"):
+    for numero, patente in enumerate(("AAA111", "BBB222"), start=1):
         sesion_bd.add(
             VehiculoOrm(
-                id_conductor=1,
+                id_vehiculo=uid(numero),
+                id_conductor=uid(1),
                 patente=patente,
                 marca="Toyota",
                 modelo="Etios",
@@ -87,7 +91,7 @@ def evento(motivo="Documentacion revisada", fecha=FECHA, **cambios):
         "estado_anterior": PENDIENTE,
         "estado_nuevo": APROBADA,
         "motivo": motivo,
-        "id_operador": 7,
+        "id_operador": uid(7),
         "fecha": fecha,
     }
     datos.update(cambios)
@@ -110,18 +114,18 @@ def test_el_historial_confirmado_devuelve_el_evento_con_todos_sus_campos(
 ):
     en_otra_zona = datetime(2026, 6, 15, 9, 30, 45, 123456, tzinfo=timezone(timedelta(hours=-3)))
     original = evento(fecha=en_otra_zona)
-    getattr(repositorio, registrar)(1, original)
+    getattr(repositorio, registrar)(uid(1), original)
     sesion_bd.commit()
 
     with fabrica_sesiones() as otra_sesion:
-        [leido] = getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(1)
+        [leido] = getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(uid(1))
 
     assert isinstance(leido, EventoHabilitacion)
     assert leido.accion is AccionHabilitacion.APROBAR
     assert leido.estado_anterior is PENDIENTE
     assert leido.estado_nuevo is APROBADA
     assert leido.motivo == "Documentacion revisada"
-    assert leido.id_operador == 7
+    assert leido.id_operador == uid(7)
     assert leido.fecha == original.fecha  # mismo instante, con microsegundos
     assert leido.fecha.utcoffset() == timedelta(0)  # aware y en UTC
 
@@ -130,11 +134,11 @@ def test_el_historial_confirmado_devuelve_el_evento_con_todos_sus_campos(
 def test_el_evento_de_alta_con_valores_nulos_hace_ida_y_vuelta(
     repositorio, entidades, sesion_bd, fabrica_sesiones, registrar, historial
 ):
-    getattr(repositorio, registrar)(1, alta())
+    getattr(repositorio, registrar)(uid(1), alta())
     sesion_bd.commit()
 
     with fabrica_sesiones() as otra_sesion:
-        [leido] = getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(1)
+        [leido] = getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(uid(1))
 
     assert leido.accion is AccionHabilitacion.ALTA
     assert leido.estado_anterior is None
@@ -151,9 +155,9 @@ def test_el_historial_va_en_orden_de_registro_aunque_las_fechas_no_lo_esten(
     primero_en_fecha = evento("Segundo registrado", fecha=FECHA)
     medio_en_fecha = evento("Tercero registrado", fecha=FECHA + timedelta(days=1))
     for e in (tercero_en_fecha, primero_en_fecha, medio_en_fecha):
-        getattr(repositorio, registrar)(1, e)
+        getattr(repositorio, registrar)(uid(1), e)
 
-    motivos = [e.motivo for e in getattr(repositorio, historial)(1)]
+    motivos = [e.motivo for e in getattr(repositorio, historial)(uid(1))]
 
     assert motivos == ["Primero registrado", "Segundo registrado", "Tercero registrado"]
 
@@ -161,32 +165,32 @@ def test_el_historial_va_en_orden_de_registro_aunque_las_fechas_no_lo_esten(
 def test_los_historiales_de_conductor_y_de_vehiculo_son_independientes_con_el_mismo_id(
     repositorio, entidades
 ):
-    repositorio.registrar_evento_conductor(1, evento("Del conductor 1"))
-    repositorio.registrar_evento_vehiculo(1, evento("Del vehiculo 1"))
+    repositorio.registrar_evento_conductor(uid(1), evento("Del conductor 1"))
+    repositorio.registrar_evento_vehiculo(uid(1), evento("Del vehiculo 1"))
 
-    assert [e.motivo for e in repositorio.historial_conductor(1)] == ["Del conductor 1"]
-    assert [e.motivo for e in repositorio.historial_vehiculo(1)] == ["Del vehiculo 1"]
+    assert [e.motivo for e in repositorio.historial_conductor(uid(1))] == ["Del conductor 1"]
+    assert [e.motivo for e in repositorio.historial_vehiculo(uid(1))] == ["Del vehiculo 1"]
 
 
 @POR_ENTIDAD
 def test_el_historial_de_una_entidad_no_se_mezcla_con_el_de_otra_del_mismo_tipo(
     repositorio, entidades, registrar, historial
 ):
-    getattr(repositorio, registrar)(1, evento("De la entidad 1"))
-    getattr(repositorio, registrar)(2, evento("De la entidad 2"))
+    getattr(repositorio, registrar)(uid(1), evento("De la entidad 1"))
+    getattr(repositorio, registrar)(uid(2), evento("De la entidad 2"))
 
-    assert [e.motivo for e in getattr(repositorio, historial)(1)] == ["De la entidad 1"]
-    assert [e.motivo for e in getattr(repositorio, historial)(2)] == ["De la entidad 2"]
+    assert [e.motivo for e in getattr(repositorio, historial)(uid(1))] == ["De la entidad 1"]
+    assert [e.motivo for e in getattr(repositorio, historial)(uid(2))] == ["De la entidad 2"]
 
 
 @POR_ENTIDAD
 def test_historial_sin_eventos_o_de_una_entidad_inexistente_es_una_lista_vacia(
     repositorio, entidades, registrar, historial
 ):
-    getattr(repositorio, registrar)(1, evento())
+    getattr(repositorio, registrar)(uid(1), evento())
 
-    assert getattr(repositorio, historial)(2) == []
-    assert getattr(repositorio, historial)(999) == []
+    assert getattr(repositorio, historial)(uid(2)) == []
+    assert getattr(repositorio, historial)(uid(999)) == []
 
 
 def test_el_repositorio_no_ofrece_operaciones_de_actualizar_ni_borrar(repositorio):
@@ -200,14 +204,14 @@ def test_el_repositorio_no_ofrece_operaciones_de_actualizar_ni_borrar(repositori
 
 
 def test_registrar_un_evento_no_modifica_el_estado_de_la_entidad(repositorio, entidades, sesion_bd):
-    repositorio.registrar_evento_conductor(1, evento())  # APROBAR: PENDIENTE -> APROBADA
-    repositorio.registrar_evento_vehiculo(1, evento())
+    repositorio.registrar_evento_conductor(uid(1), evento())  # APROBAR: PENDIENTE -> APROBADA
+    repositorio.registrar_evento_vehiculo(uid(1), evento())
 
     estado_conductor = sesion_bd.execute(
-        text("SELECT estado_habilitacion FROM conductor WHERE id_conductor = 1")
+        text("SELECT estado_habilitacion FROM conductor WHERE id_conductor = :id"), {"id": uid(1)}
     ).scalar_one()
     estado_vehiculo = sesion_bd.execute(
-        text("SELECT estado_habilitacion FROM vehiculo WHERE id_vehiculo = 1")
+        text("SELECT estado_habilitacion FROM vehiculo WHERE id_vehiculo = :id"), {"id": uid(1)}
     ).scalar_one()
 
     assert estado_conductor == "PENDIENTE"
@@ -220,10 +224,10 @@ def test_un_motivo_vacio_viola_el_check_y_la_sesion_sigue_usable(
     repositorio, entidades, registrar, historial, motivo
 ):
     with pytest.raises(IntegrityError):
-        getattr(repositorio, registrar)(1, evento(motivo))
+        getattr(repositorio, registrar)(uid(1), evento(motivo))
 
-    getattr(repositorio, registrar)(1, evento("Motivo valido"))  # sin rollback manual
-    assert [e.motivo for e in getattr(repositorio, historial)(1)] == ["Motivo valido"]
+    getattr(repositorio, registrar)(uid(1), evento("Motivo valido"))  # sin rollback manual
+    assert [e.motivo for e in getattr(repositorio, historial)(uid(1))] == ["Motivo valido"]
 
 
 @POR_ENTIDAD
@@ -231,11 +235,11 @@ def test_registrar_para_una_entidad_inexistente_propaga_el_integrity_error_de_la
     repositorio, entidades, registrar, historial
 ):
     with pytest.raises(IntegrityError):
-        getattr(repositorio, registrar)(999, evento())
+        getattr(repositorio, registrar)(uid(999), evento())
 
-    assert getattr(repositorio, historial)(999) == []
-    getattr(repositorio, registrar)(1, evento())  # la sesion sigue usable
-    assert len(getattr(repositorio, historial)(1)) == 1
+    assert getattr(repositorio, historial)(uid(999)) == []
+    getattr(repositorio, registrar)(uid(1), evento())  # la sesion sigue usable
+    assert len(getattr(repositorio, historial)(uid(1))) == 1
 
 
 # --- Id del evento ---
@@ -260,38 +264,37 @@ def test_el_historial_trae_el_id_de_la_fila_de_cada_evento(
     tabla,
     columna_de_la_entidad,
 ):
-    getattr(repositorio, registrar)(1, evento("primero"))
-    getattr(repositorio, registrar)(2, evento("de otra entidad"))
-    getattr(repositorio, registrar)(1, evento("segundo"))
-    getattr(repositorio, registrar)(1, evento("tercero"))
+    getattr(repositorio, registrar)(uid(1), evento("primero"))
+    getattr(repositorio, registrar)(uid(2), evento("de otra entidad"))
+    getattr(repositorio, registrar)(uid(1), evento("segundo"))
+    getattr(repositorio, registrar)(uid(1), evento("tercero"))
     sesion_bd.commit()
 
     with fabrica_sesiones() as otra_sesion:
         ids_en_la_base = (
             otra_sesion.execute(
-                text(
-                    f"SELECT id_evento FROM {tabla} "
-                    f"WHERE {columna_de_la_entidad} = 1 ORDER BY id_evento"
-                )
+                text(f"SELECT id_evento FROM {tabla} WHERE {columna_de_la_entidad} = :id"),
+                {"id": uid(1)},
             )
             .scalars()
             .all()
         )
         ids_del_historial = [
-            e.id for e in getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(1)
+            e.id for e in getattr(SqlRepositorioHabilitaciones(otra_sesion), historial)(uid(1))
         ]
 
     assert len(ids_en_la_base) == 3
-    assert ids_del_historial == ids_en_la_base
-    assert ids_en_la_base == sorted(set(ids_en_la_base))  # incrementales en orden de registro
+    assert set(ids_del_historial) == set(ids_en_la_base)
+    assert len(set(ids_en_la_base)) == 3  # cada evento tiene su propio UUID
 
 
-def test_los_ids_de_los_eventos_de_conductor_y_de_vehiculo_se_cuentan_por_separado(
-    repositorio, entidades
-):
-    repositorio.registrar_evento_conductor(1, evento("c1"))
-    repositorio.registrar_evento_vehiculo(1, evento("v1"))
-    repositorio.registrar_evento_conductor(1, evento("c2"))
+def test_los_eventos_de_conductor_y_de_vehiculo_tienen_ids_propios(repositorio, entidades):
+    repositorio.registrar_evento_conductor(uid(1), evento("c1"))
+    repositorio.registrar_evento_vehiculo(uid(1), evento("v1"))
+    repositorio.registrar_evento_conductor(uid(1), evento("c2"))
 
-    assert [e.id for e in repositorio.historial_conductor(1)] == [1, 2]
-    assert [e.id for e in repositorio.historial_vehiculo(1)] == [1]
+    ids_conductor = [e.id for e in repositorio.historial_conductor(uid(1))]
+    ids_vehiculo = [e.id for e in repositorio.historial_vehiculo(uid(1))]
+    assert len(ids_conductor) == 2
+    assert len(ids_vehiculo) == 1
+    assert len({*ids_conductor, *ids_vehiculo}) == 3

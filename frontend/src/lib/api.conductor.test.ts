@@ -6,6 +6,7 @@ import {
   listarSolicitudes,
   responderSolicitud,
 } from "./api";
+import { uid } from "../mocks/ids.mock";
 
 const API = "http://api.test/api/v1";
 const opciones = { apiUrl: API, token: "token-de-prueba" };
@@ -33,17 +34,17 @@ afterEach(() => {
 describe("obtenerEstado", () => {
   it("hace GET a /conductores/{id}/estado con el token y devuelve el cuerpo", async () => {
     const cuerpo = {
-      id_conductor: 15,
+      id_conductor: uid(15),
       estado: "DISPONIBLE",
-      id_vehiculo_activo: 3,
+      id_vehiculo_activo: uid(3),
       actualizado: "2026-11-10T18:00:00Z",
     };
     const fetchSimulado = simularRespuesta(200, cuerpo);
 
-    const resultado = await obtenerEstado(15, opciones);
+    const resultado = await obtenerEstado(uid(15), opciones);
 
     const { url, init } = primeraLlamada(fetchSimulado);
-    expect(url.pathname).toBe("/api/v1/conductores/15/estado");
+    expect(url.pathname).toBe(`/api/v1/conductores/${uid(15)}/estado`);
     expect(init.method).toBe("GET");
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer token-de-prueba");
     expect(resultado).toEqual(cuerpo);
@@ -52,12 +53,12 @@ describe("obtenerEstado", () => {
 
 describe("actualizarEstado", () => {
   it("hace PATCH a /conductores/{id}/estado con solo los campos indicados", async () => {
-    const fetchSimulado = simularRespuesta(200, { id_conductor: 15, estado: "DISPONIBLE" });
+    const fetchSimulado = simularRespuesta(200, { id_conductor: uid(15), estado: "DISPONIBLE" });
 
-    await actualizarEstado(15, { estado: "DISPONIBLE" }, opciones);
+    await actualizarEstado(uid(15), { estado: "DISPONIBLE" }, opciones);
 
     const { url, init } = primeraLlamada(fetchSimulado);
-    expect(url.pathname).toBe("/api/v1/conductores/15/estado");
+    expect(url.pathname).toBe(`/api/v1/conductores/${uid(15)}/estado`);
     expect(init.method).toBe("PATCH");
     expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
     expect(JSON.parse(init.body as string)).toEqual({ estado: "DISPONIBLE" });
@@ -66,7 +67,7 @@ describe("actualizarEstado", () => {
   it("envía latitud y longitud juntas cuando se informa la ubicación", async () => {
     const fetchSimulado = simularRespuesta(200, {});
 
-    await actualizarEstado(15, { latitud: -34.6, longitud: -58.4 }, opciones);
+    await actualizarEstado(uid(15), { latitud: -34.6, longitud: -58.4 }, opciones);
 
     const { init } = primeraLlamada(fetchSimulado);
     expect(JSON.parse(init.body as string)).toEqual({ latitud: -34.6, longitud: -58.4 });
@@ -78,7 +79,7 @@ describe("actualizarEstado", () => {
       mensaje: "El conductor no está habilitado.",
     });
 
-    await expect(actualizarEstado(15, { estado: "DISPONIBLE" }, opciones)).rejects.toMatchObject({
+    await expect(actualizarEstado(uid(15), { estado: "DISPONIBLE" }, opciones)).rejects.toMatchObject({
       name: "ErrorApi",
       status: 422,
       codigo: "CONDUCTOR_NO_HABILITADO",
@@ -88,13 +89,13 @@ describe("actualizarEstado", () => {
 
 describe("obtenerUbicacion", () => {
     it("hace GET a /conductores/{id}/ubicacion y devuelve los campos null tal cual", async () => {
-      const cuerpo = { id_conductor: 15, latitud: null, longitud: null, fecha_act_ubic: null };
+      const cuerpo = { id_conductor: uid(15), latitud: null, longitud: null, fecha_act_ubic: null };
       const fetchSimulado = simularRespuesta(200, cuerpo);
   
-      const resultado = await obtenerUbicacion(15, opciones);
+      const resultado = await obtenerUbicacion(uid(15), opciones);
   
       const { url, init } = primeraLlamada(fetchSimulado);
-      expect(url.pathname).toBe("/api/v1/conductores/15/ubicacion");
+      expect(url.pathname).toBe(`/api/v1/conductores/${uid(15)}/ubicacion`);
       expect(init.method).toBe("GET");
       expect(resultado).toEqual(cuerpo);
     });
@@ -104,17 +105,17 @@ describe("obtenerUbicacion", () => {
     it("hace GET a /conductores/{id}/solicitudes sin filtro", async () => {
       const fetchSimulado = simularRespuesta(200, []);
   
-      await listarSolicitudes(15, opciones);
+      await listarSolicitudes(uid(15), opciones);
   
       const { url } = primeraLlamada(fetchSimulado);
-      expect(url.pathname).toBe("/api/v1/conductores/15/solicitudes");
+      expect(url.pathname).toBe(`/api/v1/conductores/${uid(15)}/solicitudes`);
       expect(url.search).toBe("");
     });
   
     it("envía el filtro estado como parámetro de consulta", async () => {
       const fetchSimulado = simularRespuesta(200, []);
   
-      await listarSolicitudes(15, { ...opciones, estado: "PENDIENTE" });
+      await listarSolicitudes(uid(15), { ...opciones, estado: "PENDIENTE" });
   
       const { url } = primeraLlamada(fetchSimulado);
       expect(url.searchParams.get("estado")).toBe("PENDIENTE");
@@ -123,13 +124,13 @@ describe("obtenerUbicacion", () => {
   
   describe("responderSolicitud", () => {
     it("hace POST a /solicitudes/{id} con respuesta y hora_rta", async () => {
-      const fetchSimulado = simularRespuesta(200, { id: 340, estado: "ACEPTADO" });
+      const fetchSimulado = simularRespuesta(200, { id: uid(340), estado: "ACEPTADO" });
       const cuerpo = { respuesta: "ACEPTADO" as const, hora_rta: "2026-11-10T18:44:10Z" };
   
-      await responderSolicitud(340, cuerpo, opciones);
+      await responderSolicitud(uid(340), cuerpo, opciones);
   
       const { url, init } = primeraLlamada(fetchSimulado);
-      expect(url.pathname).toBe("/api/v1/solicitudes/340");
+      expect(url.pathname).toBe(`/api/v1/solicitudes/${uid(340)}`);
       expect(init.method).toBe("POST");
       expect(JSON.parse(init.body as string)).toEqual(cuerpo);
     });
@@ -138,18 +139,43 @@ describe("obtenerUbicacion", () => {
       simularRespuesta(status, { codigo: "CODIGO_DE_PRUEBA", mensaje: "Mensaje de prueba" });
   
       await expect(
-        responderSolicitud(340, { respuesta: "ACEPTADO", hora_rta: "2026-11-10T18:44:10Z" }, opciones)
+        responderSolicitud(uid(340), { respuesta: "ACEPTADO", hora_rta: "2026-11-10T18:44:10Z" }, opciones)
       ).rejects.toMatchObject({ name: "ErrorApi", status, codigo: "CODIGO_DE_PRUEBA" });
     });
   });
   
+  describe("ids que no son UUID", () => {
+    it.each(["../conductores/x/estado", "340", "a/b", ""])(
+      "no llama a la API si el id de la solicitud es %j",
+      async (id) => {
+        const fetchSimulado = simularRespuesta(200, {});
+
+        await expect(
+          responderSolicitud(id, { respuesta: "ACEPTADO", hora_rta: "2026-11-10T18:44:10Z" }, opciones)
+        ).rejects.toMatchObject({ name: "ErrorApi", status: 400, codigo: "ID_INVALIDO" });
+        expect(fetchSimulado).not.toHaveBeenCalled();
+      }
+    );
+
+    it("no llama a la API si el id del conductor no es un UUID", async () => {
+      const fetchSimulado = simularRespuesta(200, {});
+
+      await expect(obtenerEstado("15", opciones)).rejects.toMatchObject({
+        name: "ErrorApi",
+        status: 400,
+        codigo: "ID_INVALIDO",
+      });
+      expect(fetchSimulado).not.toHaveBeenCalled();
+    });
+  });
+
   describe("errores comunes del cliente", () => {
     it.each([401, 403, 404, 409, 410, 422])(
       "convierte un %i en ErrorApi con {codigo, mensaje}",
       async (status) => {
         simularRespuesta(status, { codigo: "CODIGO_DE_PRUEBA", mensaje: "Mensaje de prueba" });
   
-        await expect(obtenerEstado(15, opciones)).rejects.toMatchObject({
+        await expect(obtenerEstado(uid(15), opciones)).rejects.toMatchObject({
           name: "ErrorApi",
           status,
           codigo: "CODIGO_DE_PRUEBA",
@@ -161,7 +187,7 @@ describe("obtenerUbicacion", () => {
     it("lanza ErrorApi con status 0 si falla la conexión", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("sin red")));
   
-      await expect(obtenerEstado(15, opciones)).rejects.toMatchObject({
+      await expect(obtenerEstado(uid(15), opciones)).rejects.toMatchObject({
         name: "ErrorApi",
         status: 0,
       });

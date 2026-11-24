@@ -19,6 +19,7 @@ from app.dominio.conductor import Conductor
 from app.dominio.errores import NoEncontrado
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 
@@ -95,10 +96,10 @@ def test_no_mezcla_los_tipos_de_servicio_de_otro_vehiculo(listar_tipos_servicio,
 
 def test_lanza_no_encontrado_si_el_vehiculo_no_existe(listar_tipos_servicio, uow):
     conductor = sembrar_conductor(uow)
-    vehiculo = sembrar_vehiculo(uow, conductor.id)
+    sembrar_vehiculo(uow, conductor.id)
 
     with pytest.raises(NoEncontrado):
-        listar_tipos_servicio.ejecutar(id_conductor=conductor.id, id_vehiculo=vehiculo.id + 1)
+        listar_tipos_servicio.ejecutar(id_conductor=conductor.id, id_vehiculo=uid(999))
 
 
 def test_lanza_no_encontrado_si_el_vehiculo_es_de_otro_conductor(listar_tipos_servicio, uow):

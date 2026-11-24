@@ -6,6 +6,7 @@ import importlib.util
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
+from uuid import UUID
 
 import httpx
 import pytest
@@ -19,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.api.conftest import instalar_limitador_falso
+from tests.ids import uid
 
 URL_RESPONDER = "/api/v1/solicitudes/{id_solicitud}"
 URL_CONDUCTOR = "/api/v1/conductores/{id_conductor}"
@@ -65,15 +67,19 @@ def _conductor(sesion_bd: Session, dni: str) -> Conductor:
     return conductor
 
 
-def _solicitud(sesion_bd: Session, id_viaje: int) -> SolicitudDB:
-    solicitud = sesion_bd.scalar(select(SolicitudDB).where(SolicitudDB.id_viaje == id_viaje))
+def _solicitud(sesion_bd: Session, numero_de_viaje: int) -> SolicitudDB:
+    solicitud = sesion_bd.scalar(
+        select(SolicitudDB).where(
+            SolicitudDB.id_viaje == MODULO_SEED.id_viaje_seed(numero_de_viaje)
+        )
+    )
     assert solicitud is not None
     return solicitud
 
 
 def _responder(
     cliente: TestClient,
-    id_solicitud: int,
+    id_solicitud: UUID,
     respuesta: str,
     headers: dict[str, str],
 ) -> httpx.Response:
@@ -119,7 +125,7 @@ def test_aceptar_solicitud_vigente_deja_ocupado(
     )
     assert solicitudes.status_code == 200
     assert (
-        next(item for item in solicitudes.json() if item["id"] == solicitud.id_solicitud)["estado"]
+        next(i for i in solicitudes.json() if i["id"] == str(solicitud.id_solicitud))["estado"]
         == "ACEPTADO"
     )
 
@@ -156,7 +162,7 @@ def test_rechazar_solicitud_vigente_persiste_rechazo_sin_ocupar(
     )
     assert solicitudes.status_code == 200
     assert (
-        next(item for item in solicitudes.json() if item["id"] == solicitud.id_solicitud)["estado"]
+        next(i for i in solicitudes.json() if i["id"] == str(solicitud.id_solicitud))["estado"]
         == "RECHAZADO"
     )
 
@@ -279,7 +285,7 @@ def test_endpoints_no_alteran_calificaciones_del_seed(
     assert detalle_calificado["cantidad_calificaciones"] == 4
     listado = respuestas_get[1].json()
     sin_calificaciones_en_lista = next(
-        item for item in listado if item["id"] == id_sin_calificaciones
+        item for item in listado if item["id"] == str(id_sin_calificaciones)
     )
     assert sin_calificaciones_en_lista["puntaje_promedio"] is None
     assert sin_calificaciones_en_lista["cantidad_calificaciones"] == 0
@@ -287,7 +293,7 @@ def test_endpoints_no_alteran_calificaciones_del_seed(
     conductor_sin_calificaciones.estado = "DISPONIBLE"
     solicitud_nueva = SolicitudDB(
         id_conductor=id_sin_calificaciones,
-        id_viaje=9614,
+        id_viaje=uid(9614),
         estado="PENDIENTE",
         vence_en=datetime.now(UTC) + timedelta(hours=1),
     )

@@ -1,5 +1,5 @@
 /**
- * Tipos basados en el contrato docs/contract/openapi.yaml (1.2.0) del Módulo M3
+ * Tipos basados en el contrato docs/contract/openapi.yaml (2.0.0) del Módulo M3
  */
 
 export type EstadoHabilitacion =
@@ -38,7 +38,7 @@ export type EstadoSolicitud = "PENDIENTE" | "ACEPTADO" | "RECHAZADO" | "VENCIDA"
 export type RespuestaSolicitud = "ACEPTADO" | "RECHAZADO";
 
 export interface DocumentoConductor {
-  id_conductor: number;
+  id_conductor: string;
   tipo: string;
   numero: string;
   categoria?: string;
@@ -49,7 +49,7 @@ export interface DocumentoConductor {
 }
 
 export interface VehiculoResumen {
-  id: number;
+  id: string;
   tipo: TipoVehiculo;
   patente: string;
   marca: string;
@@ -59,7 +59,7 @@ export interface VehiculoResumen {
 }
 
 export interface Conductor {
-  id: number;
+  id: string;
   dni: string;
   nombre: string;
   apellido: string;
@@ -74,7 +74,7 @@ export interface Conductor {
 }
 
 export interface ConductorConUbicacion extends Conductor {
-  id_vehiculo_activo?: number | null;
+  id_vehiculo_activo?: string | null;
   latitud?: number | null;
   longitud?: number | null;
   fecha_act_ubic?: string | null;
@@ -86,30 +86,30 @@ export interface ConductorConUbicacion extends Conductor {
  */
 export interface EstadoConductorRequest {
   estado?: EstadoOperativoPedible;
-  id_vehiculo_activo?: number | null;
+  id_vehiculo_activo?: string | null;
   latitud?: number;
   longitud?: number;
 }
 
 export interface EstadoConductor {
-  id_conductor: number;
+  id_conductor: string;
   estado: EstadoOperativo;
-  id_vehiculo_activo?: number | null;
+  id_vehiculo_activo?: string | null;
   actualizado: string;
 }
 
 /** Los tres campos en null significan ubicación desconocida. */
 export interface UbicacionConductor {
-  id_conductor: number;
+  id_conductor: string;
   latitud: number | null;
   longitud: number | null;
   fecha_act_ubic: string | null;
 }
 
 export interface Solicitud {
-  id: number;
-  id_conductor: number;
-  id_viaje?: number | null;
+  id: string;
+  id_conductor: string;
+  id_viaje?: string | null;
   estado: EstadoSolicitud;
   vence_en: string;
   respuesta?: RespuestaSolicitud | null;

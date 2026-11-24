@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -46,34 +47,34 @@ class HabilitacionAccionRequest(BaseModel):
 class HabilitacionHistorialItem(BaseModel):
     estado: EstadoHabilitacion
     motivo: str = Field(max_length=500)
-    id_operador: int | None = None
+    id_operador: UUID | None = None
     fecha: datetime
 
 
 class HabilitacionResumen(BaseModel):
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoHabilitacion
     historial: list[HabilitacionHistorialItem]
 
 
 class HabilitacionEvento(BaseModel):
-    id: int | None = None
+    id: UUID | None = None
     accion: AccionHabilitacion
     estado_anterior: EstadoHabilitacion | None = None
     estado_nuevo: EstadoHabilitacion
     motivo: str = Field(max_length=500)
-    id_operador: int | None = None
+    id_operador: UUID | None = None
     fecha: datetime
 
 
 class HabilitacionEventos(BaseModel):
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoHabilitacion
     eventos: list[HabilitacionEvento]
 
 
 class HabilitacionVehiculoEventos(BaseModel):
-    id_vehiculo: int
+    id_vehiculo: UUID
     estado: EstadoHabilitacion
     eventos: list[HabilitacionEvento]
 

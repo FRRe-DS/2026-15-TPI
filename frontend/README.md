@@ -85,7 +85,7 @@ npm run dev
 
 Abrí `http://localhost:3000/login` e ingresá con el conductor de prueba (`conductor.m3` y la clave `M3_CONDUCTOR_PASSWORD` del `.env` de la raíz). El formulario envía las credenciales al route handler `/api/sesion`; ese handler pide el token a Keycloak y lo guarda en una cookie `httpOnly`. El navegador nunca recibe el token ni el secreto del cliente.
 
-El modo real necesita que la API exponga las operaciones del contrato 1.2.0 que consume la app: `GET` y `PATCH /conductores/{id}/estado`, `GET /conductores/{id}/ubicacion`, `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`. Si todavía no están disponibles en tu entorno, usá el modo mock.
+El modo real necesita que la API exponga las operaciones del contrato 2.0.0 que consume la app: `GET` y `PATCH /conductores/{id}/estado`, `GET /conductores/{id}/ubicacion`, `GET /conductores/{id}/solicitudes` y `POST /solicitudes/{id}`. Si todavía no están disponibles en tu entorno, usá el modo mock.
 
 ## Recorrido de pantallas
 

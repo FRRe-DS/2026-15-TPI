@@ -2,7 +2,7 @@
 
 Requiere el stack de Docker Compose levantado y el seed cargado. Los tokens se
 obtienen con password grant del realm ``m3``; no se firman tokens de prueba.
-El usuario ``conductor.m3`` representa al conductor ``1`` del seed y
+El usuario ``conductor.m3`` representa al conductor ``a1f3c5d7-…-0001`` del seed y
 ``servicio.m4`` es la cuenta tecnica de solo lectura.
 
 La matriz verificada es la de
@@ -20,8 +20,8 @@ pytestmark = pytest.mark.e2e
 
 BASE = "/api/v1/conductores"
 SOLICITUDES = "/api/v1/solicitudes"
-ID_CONDUCTOR_SEED = 1
-ID_INEXISTENTE = 999_999
+ID_CONDUCTOR_SEED = "a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0001"  # conductor.m3 en el seed
+ID_INEXISTENTE = "00000000-0000-4000-8000-000000999999"
 
 ALTA_CONDUCTOR = {
     "dni": "30111222",

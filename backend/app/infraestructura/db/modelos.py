@@ -8,6 +8,7 @@ la última línea de defensa, además de las validaciones de dominio.
 from __future__ import annotations
 
 from datetime import date, datetime
+from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
@@ -23,6 +24,7 @@ from sqlalchemy import (
     MetaData,
     String,
     UniqueConstraint,
+    Uuid,
     false,
     func,
     text,
@@ -100,7 +102,9 @@ class Conductor(Base):
         Index("ix_conductor_id_vehiculo_activo", "id_vehiculo_activo"),
     )
 
-    id_conductor: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    id_conductor: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
     dni: Mapped[str] = mapped_column(String(8), nullable=False)
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
     apellido: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -112,8 +116,8 @@ class Conductor(Base):
     estado: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=text("'DESCONECTADO'"), default="DESCONECTADO"
     )
-    id_vehiculo_activo: Mapped[int | None] = mapped_column(
-        BigInteger,
+    id_vehiculo_activo: Mapped[UUID | None] = mapped_column(
+        Uuid,
         ForeignKey(
             "vehiculo.id_vehiculo",
             ondelete="SET NULL",
@@ -182,9 +186,11 @@ class Vehiculo(Base):
         Index("ix_vehiculo_estado_habilitacion", "estado_habilitacion"),
     )
 
-    id_vehiculo: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_conductor: Mapped[int] = mapped_column(
-        BigInteger,
+    id_vehiculo: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_conductor: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey("conductor.id_conductor", ondelete="CASCADE", name="fk_vehiculo_conductor"),
         nullable=False,
     )
@@ -236,9 +242,11 @@ class VehiculoTipoServicio(Base):
         Index("ix_vehiculo_tipo_servicio_tipo", "tipo_servicio"),
     )
 
-    id_vehiculo_tipo_servicio: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_vehiculo: Mapped[int] = mapped_column(
-        BigInteger,
+    id_vehiculo_tipo_servicio: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_vehiculo: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "vehiculo.id_vehiculo",
             ondelete="CASCADE",
@@ -263,9 +271,11 @@ class DocumentoConductor(Base):
         Index("ix_documento_conductor_id_conductor", "id_conductor"),
     )
 
-    id_documento: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_conductor: Mapped[int] = mapped_column(
-        BigInteger,
+    id_documento: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_conductor: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "conductor.id_conductor",
             ondelete="CASCADE",
@@ -312,9 +322,11 @@ class Solicitud(Base):
         Index("ix_solicitud_id_conductor_estado", "id_conductor", "estado"),
     )
 
-    id_solicitud: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_conductor: Mapped[int] = mapped_column(
-        BigInteger,
+    id_solicitud: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_conductor: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "conductor.id_conductor",
             ondelete="RESTRICT",
@@ -322,7 +334,7 @@ class Solicitud(Base):
         ),
         nullable=False,
     )
-    id_viaje: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    id_viaje: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     estado: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=text("'PENDIENTE'"), default="PENDIENTE"
     )
@@ -345,9 +357,11 @@ class VehiculoDocumento(Base):
         Index("ix_vehiculo_documento_id_vehiculo", "id_vehiculo"),
     )
 
-    id_documento: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_vehiculo: Mapped[int] = mapped_column(
-        BigInteger,
+    id_documento: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_vehiculo: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "vehiculo.id_vehiculo",
             ondelete="RESTRICT",
@@ -381,9 +395,11 @@ class HabilitacionEventoConductor(Base):
         Index("ix_habilitacion_evento_conductor_id_conductor", "id_conductor"),
     )
 
-    id_evento: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_conductor: Mapped[int] = mapped_column(
-        BigInteger,
+    id_evento: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_conductor: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "conductor.id_conductor",
             ondelete="RESTRICT",
@@ -391,11 +407,12 @@ class HabilitacionEventoConductor(Base):
         ),
         nullable=False,
     )
+    secuencia: Mapped[int] = mapped_column(BigInteger, Identity(always=True), nullable=False)
     estado_anterior: Mapped[str | None] = mapped_column(String(20), nullable=True)
     estado_nuevo: Mapped[str] = mapped_column(String(20), nullable=False)
     accion: Mapped[str] = mapped_column(String(20), nullable=False)
     motivo: Mapped[str] = mapped_column(String(500), nullable=False)
-    id_operador: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    id_operador: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     fecha: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -416,9 +433,11 @@ class HabilitacionEventoVehiculo(Base):
         Index("ix_habilitacion_evento_vehiculo_id_vehiculo", "id_vehiculo"),
     )
 
-    id_evento: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    id_vehiculo: Mapped[int] = mapped_column(
-        BigInteger,
+    id_evento: Mapped[UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    id_vehiculo: Mapped[UUID] = mapped_column(
+        Uuid,
         ForeignKey(
             "vehiculo.id_vehiculo",
             ondelete="RESTRICT",
@@ -426,11 +445,12 @@ class HabilitacionEventoVehiculo(Base):
         ),
         nullable=False,
     )
+    secuencia: Mapped[int] = mapped_column(BigInteger, Identity(always=True), nullable=False)
     estado_anterior: Mapped[str | None] = mapped_column(String(20), nullable=True)
     estado_nuevo: Mapped[str] = mapped_column(String(20), nullable=False)
     accion: Mapped[str] = mapped_column(String(20), nullable=False)
     motivo: Mapped[str] = mapped_column(String(500), nullable=False)
-    id_operador: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    id_operador: Mapped[UUID | None] = mapped_column(Uuid, nullable=True)
     fecha: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

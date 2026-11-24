@@ -22,6 +22,7 @@ from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -108,7 +109,7 @@ def test_devuelve_estado_vehiculo_activo_y_puntajes_con_los_valores_guardados(
         uow,
         "30123456",
         estado=EstadoConductor.OCUPADO,
-        id_vehiculo_activo=7,
+        id_vehiculo_activo=uid(7),
         suma_puntajes=14,
         cantidad_calificaciones=3,
     )
@@ -116,7 +117,7 @@ def test_devuelve_estado_vehiculo_activo_y_puntajes_con_los_valores_guardados(
     conductor = obtener_conductor.ejecutar(id_conductor=guardado.id).conductor
 
     assert conductor.estado is EstadoConductor.OCUPADO
-    assert conductor.id_vehiculo_activo == 7
+    assert conductor.id_vehiculo_activo == uid(7)
     assert conductor.suma_puntajes == 14
     assert conductor.cantidad_calificaciones == 3
     assert conductor.puntaje_promedio == Decimal("4.67")
@@ -172,7 +173,7 @@ def test_un_conductor_sin_documentos_ni_vehiculos_los_trae_vacios(obtener_conduc
 
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe(obtener_conductor, uow):
-    existente = guardar_conductor(uow, "30000001")
+    guardar_conductor(uow, "30000001")
 
     with pytest.raises(NoEncontrado):
-        obtener_conductor.ejecutar(id_conductor=existente.id + 1)
+        obtener_conductor.ejecutar(id_conductor=uid(999))

@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
@@ -55,7 +56,7 @@ router = APIRouter()
     dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def crear_vehiculo(
-    id_conductor: int,
+    id_conductor: UUID,
     datos: VehiculoCreate,
     response: Response,
     caso: Annotated[RegistrarVehiculo, Depends(obtener_caso_registrar_vehiculo)],
@@ -82,7 +83,7 @@ def crear_vehiculo(
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def listar_vehiculos(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[ListarVehiculos, Depends(obtener_caso_listar_vehiculos)],
     tipo: TipoVehiculo | None = None,
     habilitacion: EstadoHabilitacion | None = None,
@@ -105,8 +106,8 @@ def listar_vehiculos(
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_vehiculo(
-    id_conductor: int,
-    id_vehiculo: int,
+    id_conductor: UUID,
+    id_vehiculo: UUID,
     caso: Annotated[ObtenerVehiculo, Depends(obtener_caso_obtener_vehiculo)],
 ) -> Vehiculo:
     detalle = caso.ejecutar(id_conductor=id_conductor, id_vehiculo=id_vehiculo)
@@ -121,8 +122,8 @@ def obtener_vehiculo(
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def listar_tipos_servicio(
-    id_conductor: int,
-    id_vehiculo: int,
+    id_conductor: UUID,
+    id_vehiculo: UUID,
     caso: Annotated[
         ListarTiposServicioVehiculo, Depends(obtener_caso_listar_tipos_servicio_vehiculo)
     ],
@@ -140,8 +141,8 @@ def listar_tipos_servicio(
     dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def registrar_documentacion_vehiculo(
-    id_conductor: int,
-    id_vehiculo: int,
+    id_conductor: UUID,
+    id_vehiculo: UUID,
     datos: DocumentoVehiculoCreate,
     caso: Annotated[RegistrarDocumentoVehiculo, Depends(obtener_caso_registrar_documento_vehiculo)],
 ) -> DocumentoVehiculo:

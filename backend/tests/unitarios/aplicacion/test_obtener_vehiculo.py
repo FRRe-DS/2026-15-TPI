@@ -23,6 +23,7 @@ from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -146,15 +147,15 @@ def test_lanza_no_encontrado_si_el_conductor_no_existe(obtener_vehiculo, uow):
     sembrado = sembrar_vehiculo(uow, conductor.id)
 
     with pytest.raises(NoEncontrado):
-        obtener_vehiculo.ejecutar(id_conductor=conductor.id + 1, id_vehiculo=sembrado.id)
+        obtener_vehiculo.ejecutar(id_conductor=uid(999), id_vehiculo=sembrado.id)
 
 
 def test_lanza_no_encontrado_si_el_vehiculo_no_existe(obtener_vehiculo, uow):
     conductor = sembrar_conductor(uow)
-    sembrado = sembrar_vehiculo(uow, conductor.id)
+    sembrar_vehiculo(uow, conductor.id)
 
     with pytest.raises(NoEncontrado):
-        obtener_vehiculo.ejecutar(id_conductor=conductor.id, id_vehiculo=sembrado.id + 1)
+        obtener_vehiculo.ejecutar(id_conductor=conductor.id, id_vehiculo=uid(999))
 
 
 def test_lanza_no_encontrado_si_el_vehiculo_pertenece_a_otro_conductor(obtener_vehiculo, uow):

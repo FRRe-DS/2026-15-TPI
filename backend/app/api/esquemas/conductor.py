@@ -2,6 +2,7 @@ import logging
 import re
 from datetime import datetime
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -45,7 +46,7 @@ class ConductorCreate(BaseModel):
 
 
 class Conductor(ConductorCreate):
-    id: int
+    id: UUID
     documentos: list[DocumentoConductor]
     vehiculos: list[VehiculoResumen]
     habilitacion: EstadoHabilitacion
@@ -55,7 +56,7 @@ class Conductor(ConductorCreate):
 
 
 class ConductorConUbicacion(Conductor):
-    id_vehiculo_activo: int | None = None
+    id_vehiculo_activo: UUID | None = None
     latitud: float | None = None
     longitud: float | None = None
     fecha_act_ubic: datetime | None = None

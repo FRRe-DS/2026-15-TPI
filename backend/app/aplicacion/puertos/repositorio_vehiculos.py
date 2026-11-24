@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from uuid import UUID
 
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoVehiculo, Vehiculo
@@ -11,13 +12,13 @@ class RepositorioVehiculos(ABC):
         """Persiste el vehículo y le asigna id. Lanza PatenteDuplicada si la patente ya existe."""
 
     @abstractmethod
-    def obtener(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def obtener(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         """Devuelve el vehículo, o None si no existe o es de otro conductor."""
 
     @abstractmethod
     def listar_por_conductor(
         self,
-        id_conductor: int,
+        id_conductor: UUID,
         *,
         tipo: TipoVehiculo | None = None,
         habilitacion: EstadoHabilitacion | None = None,
@@ -25,9 +26,9 @@ class RepositorioVehiculos(ABC):
         """Lista los vehículos del conductor que cumplen los filtros indicados."""
 
     @abstractmethod
-    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
+    def listar_por_conductores(self, ids_conductor: Sequence[UUID]) -> dict[UUID, list[Vehiculo]]:
         """Lista por lote los vehículos de varios conductores, en una sola consulta.
 
         Devuelve una clave por cada id pedido (lista vacía si no tiene vehículos), cada lista
-        en orden de alta; con una secuencia vacía devuelve {}.
+        sin orden garantizado (los ids son UUID); con una secuencia vacía devuelve {}.
         """

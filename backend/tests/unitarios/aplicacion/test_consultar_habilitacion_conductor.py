@@ -25,6 +25,7 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -62,7 +63,7 @@ def registrar_evento(uow, id_conductor, accion, anterior, nuevo, hora, motivo):
         estado_anterior=anterior,
         estado_nuevo=nuevo,
         motivo=motivo,
-        id_operador=7,
+        id_operador=uid(7),
         fecha=datetime(2026, 6, 1, hora, 0, tzinfo=UTC),
     )
     uow.habilitaciones.registrar_evento_conductor(id_conductor, evento)
@@ -195,15 +196,13 @@ def test_un_conductor_sin_eventos_devuelve_historial_vacio(consultar_habilitacio
 
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe(consultar_habilitacion, uow):
-    existente = guardar_conductor(uow, "30000001")
+    guardar_conductor(uow, "30000001")
 
     with pytest.raises(NoEncontrado):
-        consultar_habilitacion.ejecutar(id_conductor=existente.id + 1)
+        consultar_habilitacion.ejecutar(id_conductor=uid(999))
 
 
-def test_los_eventos_del_historial_traen_id_distinto_y_el_posterior_es_mayor(
-    consultar_habilitacion, uow
-):
+def test_los_eventos_del_historial_traen_id_distinto(consultar_habilitacion, uow):
     conductor = guardar_conductor(uow, "30000001", habilitacion=EstadoHabilitacion.APROBADA)
     registrar_evento(
         uow,
@@ -229,4 +228,4 @@ def test_los_eventos_del_historial_traen_id_distinto_y_el_posterior_es_mayor(
     ids = [evento.id for evento in resumen.historial]
     assert len(ids) == 2
     assert all(id_evento is not None for id_evento in ids)
-    assert ids == sorted(set(ids))  # el alta (anterior) tiene menor id que la aprobacion
+    assert len(set(ids)) == len(ids)  # cada evento tiene su propio UUID

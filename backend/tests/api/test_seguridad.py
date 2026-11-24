@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
 from tests.api.conftest import instalar_limitador_falso
+from tests.ids import uid
 
 URL_COMUN = "/api/v1/comun"
 URL_ACCION = "/api/v1/habilitacion"
@@ -33,7 +34,7 @@ def client_protegido(
     @router.post("/habilitacion")
     def habilitacion(
         usuario: Annotated[dict[str, Any], Depends(requerir_operador)],
-    ) -> dict[str, int]:
+    ) -> dict[str, str]:
         return {"id_operador": usuario["id_operador"]}
 
     app = crear_app(routers=[router])
@@ -127,7 +128,7 @@ def test_permite_roles_validos_en_endpoint_comun(
     crear_token,
     roles: list[str],
 ) -> None:
-    token = crear_token(roles=roles, id_operador=12 if "operador" in roles else None)
+    token = crear_token(roles=roles, id_operador=uid(12) if "operador" in roles else None)
 
     respuesta = client_protegido.get(
         URL_COMUN,
@@ -190,10 +191,10 @@ def test_conductor_no_puede_ejecutar_accion_de_habilitacion(
 
 @pytest.mark.parametrize(
     "id_operador",
-    [None, "no-numerico", True],
-    ids=["ausente", "no-numerico", "booleano"],
+    [None, "no-uuid", True, 101, "101"],
+    ids=["ausente", "no-uuid", "booleano", "entero", "entero-en-texto"],
 )
-def test_operador_sin_id_numerico_no_puede_habilitar(
+def test_operador_sin_id_uuid_no_puede_habilitar(
     client_protegido: TestClient,
     crear_token,
     id_operador: Any,
@@ -214,7 +215,7 @@ def test_operador_autorizado_puede_habilitar(
     client_protegido: TestClient,
     crear_token,
 ) -> None:
-    token = crear_token(roles=["operador"], id_operador=12)
+    token = crear_token(roles=["operador"], id_operador=uid(12))
 
     respuesta = client_protegido.post(
         URL_ACCION,
@@ -223,7 +224,7 @@ def test_operador_autorizado_puede_habilitar(
     )
 
     assert respuesta.status_code == 200
-    assert respuesta.json() == {"id_operador": 12}
+    assert respuesta.json() == {"id_operador": str(uid(12))}
 
 
 def test_acepta_emisor_publico_con_jwks_interno(client_protegido, crear_token, monkeypatch):

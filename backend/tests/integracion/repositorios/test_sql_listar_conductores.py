@@ -247,9 +247,13 @@ def test_el_total_de_selects_de_listar_conductores_no_crece_con_la_cantidad_de_c
 
     assert selects_con_2 == selects_con_6
     assert selects_con_6 <= MAXIMO_DE_SELECTS
+    # Los ids son UUID: el orden del listado es arbitrario, se compara por DNI.
+    resultado = sorted(resultado, key=lambda d: d.conductor.dni)
     assert [d.conductor.dni for d in resultado] == [dni for dni, _, _ in esperado]
-    assert [[v.patente for v in d.vehiculos] for d in resultado] == [p for _, p, _ in esperado]
-    assert [[(x.documento.numero, x.estado) for x in d.documentos] for d in resultado] == [
+    assert [sorted(v.patente for v in d.vehiculos) for d in resultado] == [
+        p for _, p, _ in esperado
+    ]
+    assert [sorted((x.documento.numero, x.estado) for x in d.documentos) for d in resultado] == [
         docs for _, _, docs in esperado
     ]
     assert all(len(v.tipos_servicio) == 2 for d in resultado for v in d.vehiculos)

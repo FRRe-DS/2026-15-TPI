@@ -8,21 +8,23 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 
-URL = "/api/v1/conductores/1/vehiculos/5/habilitacion"
+from tests.ids import uid
+
+URL = f"/api/v1/conductores/{uid(1)}/vehiculos/{uid(5)}/habilitacion"
 
 EVENTO = EventoHabilitacion(
     accion=AccionHabilitacion.APROBAR,
     estado_anterior=EstadoHabilitacion.PENDIENTE,
     estado_nuevo=EstadoHabilitacion.APROBADA,
     motivo="Vehículo en regla",
-    id_operador=7,
+    id_operador=uid(7),
     fecha=datetime(2026, 10, 22, 12, 0, tzinfo=UTC),
 )
 
 
 def test_operador_habilita_vehiculo(client, casos, headers_operador) -> None:
     casos["accionar_habilitacion_vehiculo"].resultado = HabilitacionVehiculoEventos(
-        id_vehiculo=5,
+        id_vehiculo=uid(5),
         estado=EstadoHabilitacion.APROBADA,
         eventos=[EVENTO],
     )
@@ -35,18 +37,18 @@ def test_operador_habilita_vehiculo(client, casos, headers_operador) -> None:
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["id_vehiculo"] == 5
+    assert cuerpo["id_vehiculo"] == str(uid(5))
     assert cuerpo["estado"] == "APROBADA"
     assert cuerpo["eventos"][0]["accion"] == "APROBAR"
-    assert cuerpo["eventos"][0]["id_operador"] == 7
+    assert cuerpo["eventos"][0]["id_operador"] == str(uid(7))
 
     assert casos["accionar_habilitacion_vehiculo"].llamadas == [
         {
-            "id_conductor": 1,
-            "id_vehiculo": 5,
+            "id_conductor": uid(1),
+            "id_vehiculo": uid(5),
             "accion": AccionHabilitacion.APROBAR,
             "motivo": "Vehículo en regla",
-            "id_operador": 7,
+            "id_operador": uid(7),
         }
     ]
 

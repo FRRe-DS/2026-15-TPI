@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { listarConductores } from "./api";
 
-describe("listarConductores: filtros del contrato 1.2.0", () => {
+describe("listarConductores: filtros del contrato 2.0.0", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });

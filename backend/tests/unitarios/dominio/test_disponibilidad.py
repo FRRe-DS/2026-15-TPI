@@ -23,6 +23,8 @@ from app.dominio.errores import ConductorNoHabilitado, DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
+
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 ANTES = datetime(2026, 6, 15, 10, 0, tzinfo=UTC)
 APROBADA = EstadoHabilitacion.APROBADA
@@ -47,11 +49,14 @@ def crear_conductor(
         estado=estado,
         id_vehiculo_activo=id_vehiculo_activo,
         fecha_ultimo_cambio_estado=fecha_ultimo_cambio_estado,
-        id=1,
+        id=uid(1),
     )
 
 
-def crear_vehiculo(*, habilitacion=APROBADA, id_vehiculo=5):
+ID_VEHICULO_BASE = uid(5)
+
+
+def crear_vehiculo(*, habilitacion=APROBADA, id_vehiculo=ID_VEHICULO_BASE):
     vehiculo = Vehiculo.crear(
         tipo=TipoVehiculo.AUTO,
         patente="AB123CD",
@@ -62,7 +67,7 @@ def crear_vehiculo(*, habilitacion=APROBADA, id_vehiculo=5):
     )
     vehiculo.habilitacion = habilitacion
     vehiculo.id = id_vehiculo
-    vehiculo.id_conductor = 1
+    vehiculo.id_conductor = uid(1)
     return vehiculo
 
 
@@ -125,12 +130,12 @@ def test_pedir_disponible_sin_cumplir_la_regla_lanza_y_no_cambia_nada(
     conductor = crear_conductor(
         estado=EstadoConductor.CONECTADO,
         habilitacion=habilitacion_conductor,
-        id_vehiculo_activo=5,
+        id_vehiculo_activo=uid(5),
     )
     vehiculo_activo = (
         None if vehiculo is None else crear_vehiculo(habilitacion=habilitacion_vehiculo)
     )
-    id_vehiculo_activo = None if vehiculo is None else 5
+    id_vehiculo_activo = None if vehiculo is None else uid(5)
 
     with pytest.raises(ConductorNoHabilitado):
         aplicar_cambio_estado(
@@ -142,7 +147,7 @@ def test_pedir_disponible_sin_cumplir_la_regla_lanza_y_no_cambia_nada(
         )
 
     assert conductor.estado is EstadoConductor.CONECTADO
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
@@ -151,7 +156,7 @@ def test_pedir_disponible_sin_cumplir_la_regla_lanza_y_no_cambia_nada(
     [EstadoConductor.DESCONECTADO, EstadoConductor.CONECTADO, EstadoConductor.OCUPADO],
 )
 def test_pedir_disponible_cumpliendo_la_regla_lo_deja_disponible(estado_inicial):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
@@ -162,7 +167,7 @@ def test_pedir_disponible_cumpliendo_la_regla_lo_deja_disponible(estado_inicial)
 
     assert cambio is True
     assert conductor.estado is EstadoConductor.DISPONIBLE
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == AHORA
 
 
@@ -203,7 +208,7 @@ def test_pedir_desconectado_o_conectado_se_acepta_desde_cualquier_estado(
 def test_quitar_el_vehiculo_activo_solo_baja_a_conectado_si_estaba_disponible(
     estado_inicial, estado_esperado
 ):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
@@ -229,18 +234,18 @@ def test_quitar_el_vehiculo_activo_solo_baja_a_conectado_si_estaba_disponible(
 def test_cambiar_a_un_vehiculo_no_aprobado_solo_baja_a_conectado_si_estaba_disponible(
     estado_inicial, estado_esperado
 ):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
-        crear_vehiculo(habilitacion=PENDIENTE, id_vehiculo=6),
-        id_vehiculo_activo=6,
+        crear_vehiculo(habilitacion=PENDIENTE, id_vehiculo=uid(6)),
+        id_vehiculo_activo=uid(6),
         ahora=AHORA,
     )
 
     assert cambio is True
     assert conductor.estado is estado_esperado
-    assert conductor.id_vehiculo_activo == 6
+    assert conductor.id_vehiculo_activo == uid(6)
     assert conductor.fecha_ultimo_cambio_estado == AHORA
 
 
@@ -248,24 +253,24 @@ def test_cambiar_a_un_vehiculo_no_aprobado_solo_baja_a_conectado_si_estaba_dispo
 
 
 def test_un_pedido_que_no_cambia_nada_no_toca_la_fecha():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
         crear_vehiculo(),
         estado=EstadoConductor.CONECTADO,
-        id_vehiculo_activo=5,
+        id_vehiculo_activo=uid(5),
         ahora=AHORA,
     )
 
     assert cambio is False
     assert conductor.estado is EstadoConductor.CONECTADO
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
 def test_vehiculo_no_informado_conserva_el_activo_y_la_fecha():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
@@ -275,12 +280,12 @@ def test_vehiculo_no_informado_conserva_el_activo_y_la_fecha():
     )
 
     assert cambio is False
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
 def test_vehiculo_nulo_explicito_quita_el_activo_y_actualiza_la_fecha():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     cambio = aplicar_cambio_estado(
         conductor,
@@ -308,7 +313,7 @@ def test_cambiar_solo_la_ubicacion_no_toca_la_fecha_del_estado():
 
 @pytest.mark.parametrize("estado_inicial", [EstadoConductor.CONECTADO, EstadoConductor.DISPONIBLE])
 def test_marcar_ocupado_deja_ocupado_y_actualiza_la_fecha(estado_inicial):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     marcar_ocupado(conductor, crear_vehiculo(), AHORA)
 
@@ -318,7 +323,7 @@ def test_marcar_ocupado_deja_ocupado_y_actualiza_la_fecha(estado_inicial):
 
 @pytest.mark.parametrize("estado_inicial", [EstadoConductor.DESCONECTADO, EstadoConductor.OCUPADO])
 def test_marcar_ocupado_lanza_si_el_estado_no_es_conectado_ni_disponible(estado_inicial):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     with pytest.raises(ConductorNoHabilitado):
         marcar_ocupado(conductor, crear_vehiculo(), AHORA)
@@ -350,7 +355,7 @@ def test_marcar_ocupado_lanza_si_no_cumple_la_regla_y_no_cambia_nada(
     conductor = crear_conductor(
         estado=EstadoConductor.CONECTADO,
         habilitacion=habilitacion_conductor,
-        id_vehiculo_activo=5 if con_vehiculo else None,
+        id_vehiculo_activo=uid(5) if con_vehiculo else None,
     )
     vehiculo = crear_vehiculo(habilitacion=habilitacion_vehiculo) if con_vehiculo else None
 
@@ -358,7 +363,7 @@ def test_marcar_ocupado_lanza_si_no_cumple_la_regla_y_no_cambia_nada(
         marcar_ocupado(conductor, vehiculo, AHORA)
 
     assert conductor.estado is EstadoConductor.CONECTADO
-    assert conductor.id_vehiculo_activo == (5 if con_vehiculo else None)
+    assert conductor.id_vehiculo_activo == (uid(5) if con_vehiculo else None)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
@@ -367,7 +372,7 @@ def test_marcar_ocupado_lanza_si_no_cumple_la_regla_y_no_cambia_nada(
 
 @pytest.mark.parametrize("estado_inicial", list(EstadoConductor))
 def test_pedir_ocupado_lanza_datos_invalidos_y_no_cambia_nada(estado_inicial):
-    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=estado_inicial, id_vehiculo_activo=uid(5))
 
     with pytest.raises(DatosInvalidos):
         aplicar_cambio_estado(
@@ -379,37 +384,37 @@ def test_pedir_ocupado_lanza_datos_invalidos_y_no_cambia_nada(estado_inicial):
 
 
 def test_quitar_el_vehiculo_pasando_el_vehiculo_anterior_lanza_y_no_cambia_nada():
-    conductor = crear_conductor(estado=EstadoConductor.DISPONIBLE, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.DISPONIBLE, id_vehiculo_activo=uid(5))
 
     with pytest.raises(DatosInvalidos):
         aplicar_cambio_estado(conductor, crear_vehiculo(), id_vehiculo_activo=None, ahora=AHORA)
 
     assert conductor.estado is EstadoConductor.DISPONIBLE
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
 def test_cambiar_de_vehiculo_pasando_otro_vehiculo_lanza_y_no_cambia_nada():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     with pytest.raises(DatosInvalidos):
         aplicar_cambio_estado(
             conductor,
-            crear_vehiculo(id_vehiculo=7),
+            crear_vehiculo(id_vehiculo=uid(7)),
             estado=EstadoConductor.DISPONIBLE,
-            id_vehiculo_activo=5,
+            id_vehiculo_activo=uid(5),
             ahora=AHORA,
         )
 
     assert conductor.estado is EstadoConductor.CONECTADO
-    assert conductor.id_vehiculo_activo == 5
+    assert conductor.id_vehiculo_activo == uid(5)
     assert conductor.fecha_ultimo_cambio_estado == ANTES
 
 
 def test_un_vehiculo_de_otro_conductor_lanza_en_aplicar_cambio_estado():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
     ajeno = crear_vehiculo()
-    ajeno.id_conductor = 99
+    ajeno.id_conductor = uid(99)
 
     with pytest.raises(DatosInvalidos):
         aplicar_cambio_estado(conductor, ajeno, estado=EstadoConductor.DISPONIBLE, ahora=AHORA)
@@ -418,9 +423,9 @@ def test_un_vehiculo_de_otro_conductor_lanza_en_aplicar_cambio_estado():
 
 
 def test_marcar_ocupado_con_el_vehiculo_de_otro_conductor_lanza_y_no_cambia_nada():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
     ajeno = crear_vehiculo()
-    ajeno.id_conductor = 99
+    ajeno.id_conductor = uid(99)
 
     with pytest.raises(DatosInvalidos):
         marcar_ocupado(conductor, ajeno, AHORA)
@@ -430,16 +435,16 @@ def test_marcar_ocupado_con_el_vehiculo_de_otro_conductor_lanza_y_no_cambia_nada
 
 
 def test_marcar_ocupado_con_un_vehiculo_distinto_del_activo_lanza():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     with pytest.raises(DatosInvalidos):
-        marcar_ocupado(conductor, crear_vehiculo(id_vehiculo=7), AHORA)
+        marcar_ocupado(conductor, crear_vehiculo(id_vehiculo=uid(7)), AHORA)
 
     assert conductor.estado is EstadoConductor.CONECTADO
 
 
 def test_un_estado_que_no_es_del_dominio_lanza_datos_invalidos():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     with pytest.raises(DatosInvalidos):
         aplicar_cambio_estado(conductor, crear_vehiculo(), estado="PAUSADO", ahora=AHORA)
@@ -448,7 +453,7 @@ def test_un_estado_que_no_es_del_dominio_lanza_datos_invalidos():
 
 
 def test_un_estado_como_texto_valido_se_acepta_como_el_del_dominio():
-    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=5)
+    conductor = crear_conductor(estado=EstadoConductor.CONECTADO, id_vehiculo_activo=uid(5))
 
     aplicar_cambio_estado(conductor, crear_vehiculo(), estado="DISPONIBLE", ahora=AHORA)
 

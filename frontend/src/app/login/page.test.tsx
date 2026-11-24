@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import Page from "./page";
 import { NOMBRE_COOKIE_SESION } from "../../lib/sesion";
+import { uid } from "../../mocks/ids.mock";
 
 const { cookiesMock, getCookieMock, redirectMock, replaceMock } = vi.hoisted(() => ({
   cookiesMock: vi.fn(),
@@ -28,10 +29,10 @@ function crearToken(payload: Record<string, unknown>): string {
 const segundosAhora = () => Math.floor(Date.now() / 1000);
 
 const tokenVigente = () =>
-  crearToken({ id_conductor: 1, exp: segundosAhora() + 300 });
+  crearToken({ id_conductor: uid(1), exp: segundosAhora() + 300 });
 
 const tokenVencido = () =>
-  crearToken({ id_conductor: 1, exp: segundosAhora() - 1 });
+  crearToken({ id_conductor: uid(1), exp: segundosAhora() - 1 });
 
 function simularCookie(token: string | null) {
   getCookieMock.mockImplementation((nombre: string) =>

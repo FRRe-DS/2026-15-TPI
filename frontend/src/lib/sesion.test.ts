@@ -6,7 +6,9 @@ import {
   leerSesion,
   opcionesCookieSesion,
 } from "./sesion";
+import { uid } from "../mocks/ids.mock";
 
+const ID_CONDUCTOR = uid(1);
 const AHORA = 1_700_000_000_000; // milisegundos
 const enSegundos = (ms: number) => Math.floor(ms / 1000);
 
@@ -17,11 +19,11 @@ function crearToken(payload: Record<string, unknown>): string {
 }
 
 const tokenValido = () =>
-  crearToken({ id_conductor: 1, exp: enSegundos(AHORA) + 300 });
+  crearToken({ id_conductor: ID_CONDUCTOR, exp: enSegundos(AHORA) + 300 });
 
 describe("leerIdConductor", () => {
   it("devuelve el id_conductor del claim", () => {
-    expect(leerIdConductor(tokenValido())).toBe(1);
+    expect(leerIdConductor(tokenValido())).toBe(ID_CONDUCTOR);
   });
 
   it.each(["", "no-es-un-jwt", "a.b.c"])(
@@ -35,14 +37,14 @@ describe("leerIdConductor", () => {
     expect(leerIdConductor(crearToken({ exp: enSegundos(AHORA) + 300 }))).toBeNull();
   });
 
-  it.each(["1", 0, -3, 1.5])("ignora el id_conductor inválido %s", (valor) => {
+  it.each([1, 0, true, "1", "no-es-un-uuid", uid(1).slice(1)])("ignora el id_conductor inválido %s", (valor) => {
     expect(leerIdConductor(crearToken({ id_conductor: valor }))).toBeNull();
   });
 });
 
 describe("leerSesion", () => {
   it("con un token vigente devuelve el id del conductor", () => {
-    expect(leerSesion(tokenValido(), AHORA)).toEqual({ idConductor: 1 });
+    expect(leerSesion(tokenValido(), AHORA)).toEqual({ idConductor: ID_CONDUCTOR });
   });
 
   it.each([undefined, null, ""])("sin token (%s) no hay sesión", (token) => {
@@ -50,19 +52,19 @@ describe("leerSesion", () => {
   });
 
   it("un token vencido cuenta como sin sesión", () => {
-    const vencido = crearToken({ id_conductor: 1, exp: enSegundos(AHORA) - 1 });
+    const vencido = crearToken({ id_conductor: ID_CONDUCTOR, exp: enSegundos(AHORA) - 1 });
 
     expect(leerSesion(vencido, AHORA)).toBeNull();
   });
 
   it("un token que vence justo ahora cuenta como sin sesión", () => {
-    const venceAhora = crearToken({ id_conductor: 1, exp: enSegundos(AHORA) });
+    const venceAhora = crearToken({ id_conductor: ID_CONDUCTOR, exp: enSegundos(AHORA) });
 
     expect(leerSesion(venceAhora, AHORA)).toBeNull();
   });
 
   it("un token sin vencimiento no se acepta", () => {
-    expect(leerSesion(crearToken({ id_conductor: 1 }), AHORA)).toBeNull();
+    expect(leerSesion(crearToken({ id_conductor: ID_CONDUCTOR }), AHORA)).toBeNull();
   });
 
   it("un token vigente sin id_conductor no abre sesión", () => {
@@ -139,7 +141,7 @@ describe("iniciarSesion", () => {
 
     const sesion = await iniciarSesion("conductor.m3", "clave", CONFIG);
 
-    expect(sesion).toEqual({ accessToken: token, expiresIn: 300, idConductor: 1 });
+    expect(sesion).toEqual({ accessToken: token, expiresIn: 300, idConductor: ID_CONDUCTOR });
   });
 
   it("rechaza credenciales inválidas sin repetir la contraseña en el mensaje", async () => {

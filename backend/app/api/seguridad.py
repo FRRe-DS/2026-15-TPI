@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Annotated, Any
+from uuid import UUID
 
 import jwt
 from fastapi import Depends, Path, Request
@@ -26,7 +27,6 @@ from app.aplicacion.politicas.acceso import (
     ROLES_LECTURA_CONDUCTOR,
     ROLES_LISTAR_CONDUCTORES,
     Identidad,
-    es_entero,
     verificar_acceso,
     verificar_rol,
 )
@@ -165,29 +165,35 @@ def requerir_usuario(
 def requerir_operador(
     usuario: Annotated[dict[str, Any], Depends(requerir_usuario)],
 ) -> dict[str, Any]:
-    """Exige el rol operador y un ``id_operador`` numérico."""
+    """Exige el rol operador y un ``id_operador`` UUID."""
     roles = _roles_del_payload(usuario) or []
     if "operador" not in roles:
         raise sin_permisos("Se requiere el rol operador para esta acción")
 
     id_operador = usuario.get("id_operador")
-    if not es_entero(id_operador):
-        raise sin_permisos("El operador debe tener un id_operador numérico")
+    if _uuid_o_none(id_operador) is None:
+        raise sin_permisos("El operador debe tener un id_operador UUID")
 
     return usuario
 
 
-def _entero_o_none(valor: Any) -> int | None:
-    return valor if es_entero(valor) else None
+def _uuid_o_none(valor: Any) -> UUID | None:
+    """Interpreta un claim como UUID; cualquier otro valor se descarta."""
+    if not isinstance(valor, str):
+        return None
+    try:
+        return UUID(valor)
+    except ValueError:
+        return None
 
 
 def identidad_del_payload(payload: dict[str, Any]) -> Identidad:
-    """Construye la identidad con los roles reconocidos y los ids enteros."""
+    """Construye la identidad con los roles reconocidos y los ids UUID."""
     roles = _roles_del_payload(payload) or []
     return Identidad(
         roles=frozenset(rol for rol in roles if isinstance(rol, str) and rol in ROLES_VALIDOS),
-        id_conductor=_entero_o_none(payload.get("id_conductor")),
-        id_operador=_entero_o_none(payload.get("id_operador")),
+        id_conductor=_uuid_o_none(payload.get("id_conductor")),
+        id_operador=_uuid_o_none(payload.get("id_operador")),
     )
 
 
@@ -219,7 +225,7 @@ def requerir_operador_o_conductor(
 
 
 def requerir_conductor_propio_u_operador(
-    id_conductor: Annotated[int, Path()],
+    id_conductor: Annotated[UUID, Path()],
     identidad: Annotated[Identidad, Depends(requerir_identidad)],
 ) -> Identidad:
     """Escrituras sobre un conductor: operador, o el conductor sobre sí mismo."""
@@ -228,7 +234,7 @@ def requerir_conductor_propio_u_operador(
 
 
 def requerir_conductor_propio_operador_o_servicio(
-    id_conductor: Annotated[int, Path()],
+    id_conductor: Annotated[UUID, Path()],
     identidad: Annotated[Identidad, Depends(requerir_identidad)],
 ) -> Identidad:
     """Lecturas sobre un conductor: operador, servicio o el propio conductor."""

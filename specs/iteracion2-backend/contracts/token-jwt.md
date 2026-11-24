@@ -9,10 +9,10 @@ Punto de sincronización entre el **Stack 3** (emite, vía Keycloak), el **Stack
 | `iss` | texto | Debe coincidir con el emisor configurado | sin cambios |
 | `exp` | número | Token vencido → `401` | sin cambios |
 | `realm_access.roles` | lista | Contiene `operador`, `conductor` y/o `servicio` | suma `servicio` |
-| `id_operador` | entero | Solo operadores; se guarda en el evento de habilitación | sin cambios |
-| `id_conductor` | entero | Solo conductores; identifica al conductor dueño del token | **nuevo** |
+| `id_operador` | texto (UUID) | Solo operadores; se guarda en el evento de habilitación | sin cambios |
+| `id_conductor` | texto (UUID) | Solo conductores; identifica al conductor dueño del token | **nuevo** |
 
-- `id_conductor` y `id_operador` deben ser enteros. Un valor booleano no es válido.
+- `id_conductor` y `id_operador` deben ser UUID en texto. Un número o un booleano no son válidos.
 - Un token de rol `servicio` no necesita otro claim: la cuenta técnica de M4 solo trae el rol. Es de solo lectura.
 - El backend no usa el `id_conductor` del cuerpo ni de la consulta para decidir el acceso: siempre el del token.
 
@@ -21,10 +21,10 @@ Punto de sincronización entre el **Stack 3** (emite, vía Keycloak), el **Stack
 1. Sin encabezado `Authorization: Bearer ...`, firma inválida, token vencido o emisor distinto → `401`.
 2. Un token sin ningún rol reconocido (`operador`, `conductor`, `servicio`) → `403`.
 3. Cada operación admite ciertos roles (matriz de abajo). Un rol que no está admitido → `403` `SIN_PERMISOS`. El rol `servicio` solo puede leer: cualquier escritura → `403`.
-4. Un token de conductor sin `id_conductor` numérico → `403` `ACCESO_PROHIBIDO` en cualquier operación sobre un conductor.
+4. Un token de conductor sin `id_conductor` UUID (claim de texto) → `403` `ACCESO_PROHIBIDO` en cualquier operación sobre un conductor.
 5. Un conductor que opera sobre el `id_conductor` de otro → `403` `ACCESO_PROHIBIDO`. Esto se evalúa **antes** de buscar el recurso: aunque el otro conductor no exista, la respuesta es `403` y no `404`.
 6. Con varios roles en el token, vale lo que permita cualquiera de ellos. Si un token es de conductor y de operador, el acceso de operador no queda limitado por el `id_conductor`.
-7. Las acciones de habilitación exigen además un `id_operador` numérico (sin cambios).
+7. Las acciones de habilitación exigen además un `id_operador` UUID (claim de texto).
 
 ## Matriz de acceso por operación
 
@@ -71,7 +71,7 @@ Lo que Backend necesita de Datos y seguridad (issue #36):
 | Rol `servicio` | Rol de realm nuevo |
 | Cuenta técnica | Una de M4 con el rol `servicio` (solo lectura); credenciales por variables de entorno, sin valores en el repo |
 | Usuario conductor de prueba | Su claim `id_conductor` debe coincidir con un conductor del seed |
-| Mapeador | El claim `id_conductor` se incluye como entero en el token de acceso, igual que `id_operador` |
+| Mapeador | El claim `id_conductor` se incluye como texto UUID en el token de acceso, igual que `id_operador` |
 
 ## Tokens para pruebas
 

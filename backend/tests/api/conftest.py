@@ -28,6 +28,8 @@ from app.dominio.vehiculo import (
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from tests.ids import uid
+
 
 class CasoDeUsoFalso:
     """Caso de uso simulado que registra sus llamadas y devuelve lo indicado."""
@@ -62,7 +64,7 @@ def conductor_de_prueba(**cambios: Any) -> Conductor:
         "email": "ana@example.com",
         "habilitacion": EstadoHabilitacion.APROBADA,
         "estado": EstadoConductor.DISPONIBLE,
-        "id": 1,
+        "id": str(uid(1)),
     }
     datos.update(cambios)
     return Conductor(**datos)
@@ -76,7 +78,7 @@ def documento_de_prueba(**cambios: Any) -> Documento:
         "fecha_emision": datetime(2020, 1, 1, tzinfo=UTC).date(),
         "fecha_vencimiento": datetime(2030, 1, 1, tzinfo=UTC).date(),
         "url_archivo": "https://archivos.example/licencia.pdf",
-        "id": 10,
+        "id": str(uid(10)),
     }
     datos.update(cambios)
     return Documento(**datos)
@@ -91,8 +93,8 @@ def vehiculo_de_prueba(**cambios: Any) -> Vehiculo:
         "anio": 2020,
         "tipos_servicio": [ServicioDelVehiculo(TipoServicio.PASAJEROS)],
         "habilitacion": EstadoHabilitacion.APROBADA,
-        "id": 5,
-        "id_conductor": 1,
+        "id": str(uid(5)),
+        "id_conductor": str(uid(1)),
     }
     datos.update(cambios)
     return Vehiculo(**datos)
@@ -127,21 +129,21 @@ def casos() -> dict[str, CasoDeUsoFalso]:
         "obtener_conductor": CasoDeUsoFalso(detalle),
         "consultar_habilitacion_conductor": CasoDeUsoFalso(
             HabilitacionResumen(
-                id_conductor=1,
+                id_conductor=uid(1),
                 estado=EstadoHabilitacion.APROBADA,
                 historial=[],
             )
         ),
         "accionar_habilitacion_conductor": CasoDeUsoFalso(
             HabilitacionEventos(
-                id_conductor=1,
+                id_conductor=uid(1),
                 estado=EstadoHabilitacion.APROBADA,
                 eventos=[],
             )
         ),
         "registrar_licencia": CasoDeUsoFalso(
             DocumentoDeConductor(
-                id_conductor=1,
+                id_conductor=uid(1),
                 documento=documento,
                 estado=EstadoDocumento.VIGENTE,
             )
@@ -151,7 +153,7 @@ def casos() -> dict[str, CasoDeUsoFalso]:
         "obtener_vehiculo": CasoDeUsoFalso(VehiculoDetalle(vehiculo=vehiculo)),
         "accionar_habilitacion_vehiculo": CasoDeUsoFalso(
             HabilitacionVehiculoEventos(
-                id_vehiculo=5,
+                id_vehiculo=uid(5),
                 estado=EstadoHabilitacion.APROBADA,
                 eventos=[],
             )

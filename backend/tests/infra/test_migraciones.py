@@ -13,6 +13,7 @@ ALEMBIC_INI = RAIZ / "infra" / "migraciones" / "alembic.ini"
 ENV_PY = RAIZ / "infra" / "migraciones" / "env.py"
 VERSION_1 = RAIZ / "infra" / "migraciones" / "versions" / "0001_esquema_inicial.py"
 VERSION_2 = RAIZ / "infra" / "migraciones" / "versions" / "0002_iteracion2.py"
+VERSION_3 = RAIZ / "infra" / "migraciones" / "versions" / "0003_ids_uuid.py"
 TABLAS = set(Base.metadata.tables)
 
 
@@ -21,6 +22,7 @@ def test_existen_los_archivos_de_migracion() -> None:
     assert ENV_PY.is_file()
     assert VERSION_1.is_file()
     assert VERSION_2.is_file()
+    assert VERSION_3.is_file()
 
 
 def test_alembic_ini_no_versiona_credenciales() -> None:
@@ -48,7 +50,7 @@ def test_upgrade_head_crea_el_esquema(base_temporal: str, migrar: object) -> Non
         assert "alembic_version" in tablas
         with engine.connect() as conexion:
             version = conexion.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        assert version == "0002"
+        assert version == "0003"
     finally:
         engine.dispose()
 
@@ -133,7 +135,7 @@ def test_0002_migra_los_booleanos_existentes_a_estado(base_temporal: str, migrar
 def test_0002_downgrade_reconstruye_los_booleanos(
     base_temporal: str, migrar: object, revertir: object
 ) -> None:
-    migrar(base_temporal, "head")  # type: ignore[operator]
+    migrar(base_temporal, "0002")  # type: ignore[operator]
     engine = create_engine(base_temporal)
     try:
         with engine.begin() as conexion:
@@ -234,3 +236,186 @@ def test_0002_sincroniza_habilitado_con_la_habilitacion_del_vehiculo(
         engine.dispose()
 
     assert habilitado is True
+
+
+@pytest.mark.integration
+def test_0003_pasa_los_ids_a_uuid_y_conserva_las_relaciones(
+    base_temporal: str, migrar: object
+) -> None:
+    migrar(base_temporal, "0002")  # type: ignore[operator]
+    engine = create_engine(base_temporal)
+    try:
+        with engine.begin() as conexion:
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO conductor (dni, nombre, apellido, telefono, email)
+                    VALUES ('20000031', 'Ana', 'Perez', '3624000031', 'ana31@m3.local')
+                    """
+                )
+            )
+            id_conductor = conexion.execute(
+                text("SELECT id_conductor FROM conductor WHERE dni = '20000031'")
+            ).scalar_one()
+            conexion.execute(
+                text(
+                    """
+                    INSERT INTO vehiculo (id_conductor, patente, marca, modelo, anio, tipo)
+                    VALUES (:id, 'AB123CD', 'Fiat', 'Cronos', 2022, 'AUTO')
+                    """
+                ),
+                {"id": id_conductor},
+            )
+    finally:
+        engine.dispose()
+
+    migrar(base_temporal, "head")  # type: ignore[operator]
+
+    engine = create_engine(base_temporal)
+    try:
+        with engine.connect() as conexion:
+            tipos = {
+                (tabla, columna): tipo
+                for tabla, columna, tipo in conexion.execute(
+                    text(
+                        "SELECT table_name, column_name, data_type "
+                        "FROM information_schema.columns "
+                        "WHERE table_schema = 'public' AND column_name LIKE 'id%'"
+                    )
+                )
+            }
+            enlazadas = conexion.execute(
+                text(
+                    "SELECT count(*) FROM vehiculo v "
+                    "JOIN conductor c ON c.id_conductor = v.id_conductor"
+                )
+            ).scalar_one()
+            nuevo = conexion.execute(
+                text(
+                    "INSERT INTO conductor (dni, nombre, apellido, telefono, email) "
+                    "VALUES ('20000032', 'Luis', 'Gomez', '3624000032', 'l32@m3.local') "
+                    "RETURNING id_conductor"
+                )
+            ).scalar_one()
+    finally:
+        engine.dispose()
+
+    assert tipos, "no se encontraron columnas de id"
+    assert {tipo for tipo in tipos.values()} == {"uuid"}
+    assert enlazadas == 1
+    assert nuevo is not None
+
+
+@pytest.mark.integration
+def test_0003_downgrade_vuelve_a_enteros_con_identidad(
+    base_temporal: str, migrar: object, revertir: object
+) -> None:
+    migrar(base_temporal, "head")  # type: ignore[operator]
+    revertir(base_temporal, "0002")  # type: ignore[operator]
+
+    engine = create_engine(base_temporal)
+    try:
+        with engine.begin() as conexion:
+            id_conductor = conexion.execute(
+                text(
+                    "INSERT INTO conductor (dni, nombre, apellido, telefono, email) "
+                    "VALUES ('20000033', 'Eva', 'Ruiz', '3624000033', 'e33@m3.local') "
+                    "RETURNING id_conductor"
+                )
+            ).scalar_one()
+            tipo = conexion.execute(
+                text(
+                    "SELECT data_type FROM information_schema.columns "
+                    "WHERE table_name = 'conductor' AND column_name = 'id_conductor'"
+                )
+            ).scalar_one()
+    finally:
+        engine.dispose()
+
+    assert tipo == "bigint"
+    assert isinstance(id_conductor, int)
+
+
+@pytest.mark.integration
+def test_0003_conserva_el_orden_de_los_eventos_con_la_secuencia(
+    base_temporal: str, migrar: object
+) -> None:
+    migrar(base_temporal, "0002")  # type: ignore[operator]
+    engine = create_engine(base_temporal)
+    try:
+        with engine.begin() as conexion:
+            id_conductor = conexion.execute(
+                text(
+                    "INSERT INTO conductor (dni, nombre, apellido, telefono, email) "
+                    "VALUES ('20000041', 'Ana', 'Perez', '3624000041', 'a41@m3.local') "
+                    "RETURNING id_conductor"
+                )
+            ).scalar_one()
+            for motivo in ("primero", "segundo", "tercero"):
+                conexion.execute(
+                    text(
+                        "INSERT INTO habilitacion_evento_conductor "
+                        "(id_conductor, estado_nuevo, accion, motivo, fecha) "
+                        "VALUES (:id, 'PENDIENTE', 'ALTA', :motivo, now())"
+                    ),
+                    {"id": id_conductor, "motivo": motivo},
+                )
+    finally:
+        engine.dispose()
+
+    migrar(base_temporal, "head")  # type: ignore[operator]
+
+    engine = create_engine(base_temporal)
+    try:
+        with engine.begin() as conexion:
+            conexion.execute(
+                text(
+                    "INSERT INTO habilitacion_evento_conductor "
+                    "(id_conductor, estado_nuevo, accion, motivo, fecha) "
+                    "SELECT id_conductor, 'PENDIENTE', 'ALTA', 'cuarto', now() FROM conductor"
+                )
+            )
+            motivos = (
+                conexion.execute(
+                    text("SELECT motivo FROM habilitacion_evento_conductor ORDER BY secuencia")
+                )
+                .scalars()
+                .all()
+            )
+    finally:
+        engine.dispose()
+
+    assert motivos == ["primero", "segundo", "tercero", "cuarto"]
+
+
+@pytest.mark.integration
+def test_el_seed_corre_sobre_una_base_migrada_con_datos_previos(
+    base_temporal: str, migrar: object, seed_module: object
+) -> None:
+    migrar(base_temporal, "0002")  # type: ignore[operator]
+    engine = create_engine(base_temporal)
+    try:
+        with engine.begin() as conexion:
+            conexion.execute(
+                text(
+                    "INSERT INTO conductor (dni, nombre, apellido, telefono, email) "
+                    "VALUES (:dni, 'Ana', 'Vieja', '3624000042', 'vieja@m3.local')"
+                ),
+                {"dni": seed_module.DNI_CONDUCTOR_PRUEBA},  # type: ignore[attr-defined]
+            )
+    finally:
+        engine.dispose()
+    migrar(base_temporal, "head")  # type: ignore[operator]
+
+    seed_module.cargar_datos(base_temporal)  # type: ignore[attr-defined]
+
+    engine = create_engine(base_temporal)
+    try:
+        with engine.connect() as conexion:
+            cantidad = conexion.execute(
+                text("SELECT count(*) FROM conductor WHERE dni = :dni"),
+                {"dni": seed_module.DNI_CONDUCTOR_PRUEBA},  # type: ignore[attr-defined]
+            ).scalar_one()
+    finally:
+        engine.dispose()
+    assert cantidad == 1

@@ -8,11 +8,12 @@ from typing import Any
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from tests.ids import uid
 
 pytestmark = pytest.mark.integration
 
 
-def _url_habilitacion(id_conductor: int) -> str:
+def _url_habilitacion(id_conductor: str) -> str:
     return f"/api/v1/conductores/{id_conductor}/habilitacion"
 
 
@@ -80,7 +81,7 @@ def test_aprobar_habilitacion_cumple_el_contrato(
     assert aprobacion["estado_anterior"] == "PENDIENTE"
     assert aprobacion["estado_nuevo"] == "APROBADA"
     assert aprobacion["motivo"] == "Licencia vigente y documentación completa"
-    assert aprobacion["id_operador"] == 7
+    assert aprobacion["id_operador"] == str(uid(7))
     assert aprobacion["fecha"]
 
     consulta = cliente.get(
@@ -93,7 +94,7 @@ def test_aprobar_habilitacion_cumple_el_contrato(
     resumen = consulta.json()
     assert resumen["estado"] == "APROBADA"
     assert [item["estado"] for item in resumen["historial"]] == ["PENDIENTE", "APROBADA"]
-    assert resumen["historial"][-1]["id_operador"] == 7
+    assert resumen["historial"][-1]["id_operador"] == str(uid(7))
 
 
 def test_observar_habilitacion_cumple_el_contrato(
@@ -121,4 +122,4 @@ def test_observar_habilitacion_cumple_el_contrato(
     assert evento["accion"] == "OBSERVAR"
     assert evento["estado_anterior"] == "PENDIENTE"
     assert evento["estado_nuevo"] == "OBSERVADA"
-    assert evento["id_operador"] == 7
+    assert evento["id_operador"] == str(uid(7))

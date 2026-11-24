@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -48,7 +49,7 @@ class VehiculoCreate(BaseModel):
 
 
 class VehiculoResumen(BaseModel):
-    id: int
+    id: UUID
     tipo: TipoVehiculo
     patente: str
     marca: str
@@ -58,8 +59,8 @@ class VehiculoResumen(BaseModel):
 
 
 class Vehiculo(BaseModel):
-    id: int
-    id_conductor: int
+    id: UUID
+    id_conductor: UUID
     tipo: TipoVehiculo
     patente: str
     marca: str
@@ -119,12 +120,12 @@ def vehiculo_desde_dominio(
     )
 
 
-def _id(vehiculo: VehiculoDominio) -> int:
+def _id(vehiculo: VehiculoDominio) -> UUID:
     assert vehiculo.id is not None, "El vehículo debe estar persistido"
     return vehiculo.id
 
 
-def _id_conductor(vehiculo: VehiculoDominio) -> int:
+def _id_conductor(vehiculo: VehiculoDominio) -> UUID:
     assert vehiculo.id_conductor is not None, "El vehículo debe tener conductor"
     return vehiculo.id_conductor
 

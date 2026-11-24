@@ -1,6 +1,7 @@
 from datetime import date
 from enum import StrEnum
 from typing import Literal
+from uuid import UUID
 
 from pydantic import AnyUrl, BaseModel, Field, HttpUrl
 
@@ -27,12 +28,12 @@ class DocumentoConductor(DocumentoConductorCreate):
     # Solo la entrada exige http o https: un documento guardado antes con otro
     # esquema no debe romper las lecturas.
     url_archivo: AnyUrl = Field(max_length=500)
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoDocumento
 
 
 def documento_desde_dominio(
-    id_conductor: int,
+    id_conductor: UUID,
     documento: DocumentoDominio,
     estado: EstadoDocumentoDominio,
 ) -> DocumentoConductor:
@@ -65,12 +66,12 @@ class DocumentoVehiculoCreate(BaseModel):
 
 class DocumentoVehiculo(DocumentoVehiculoCreate):
     url_archivo: AnyUrl = Field(max_length=500)
-    id_vehiculo: int
+    id_vehiculo: UUID
     estado: EstadoDocumento
 
 
 def documento_vehiculo_desde_dominio(
-    id_vehiculo: int,
+    id_vehiculo: UUID,
     documento: DocumentoVehiculoDominio,
     estado: EstadoDocumentoDominio,
 ) -> DocumentoVehiculo:

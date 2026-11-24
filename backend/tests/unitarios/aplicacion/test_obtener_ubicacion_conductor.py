@@ -17,6 +17,7 @@ from app.aplicacion.casos_de_uso.obtener_ubicacion_conductor import ObtenerUbica
 from app.dominio.conductor import Conductor
 from app.dominio.errores import NoEncontrado
 
+from tests.ids import uid
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 LATITUD = -27.4511
@@ -73,7 +74,7 @@ def test_sin_ubicacion_devuelve_los_tres_datos_en_none_y_nunca_cero(uow, obtener
 
 
 def test_conductor_inexistente_lanza_no_encontrado(uow, obtener_ubicacion):
-    conductor = guardar_conductor(uow)
+    guardar_conductor(uow)
 
     with pytest.raises(NoEncontrado):
-        obtener_ubicacion.ejecutar(id_conductor=conductor.id + 1)
+        obtener_ubicacion.ejecutar(id_conductor=uid(999))

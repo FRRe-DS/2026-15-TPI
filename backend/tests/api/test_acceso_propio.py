@@ -9,6 +9,7 @@ import pytest
 from tests.api.test_conductores_crear import PAYLOAD as ALTA_CONDUCTOR
 from tests.api.test_documentacion_licencia import PAYLOAD as LICENCIA
 from tests.api.test_vehiculos_crear import PAYLOAD as VEHICULO
+from tests.ids import uid
 
 BASE = "/api/v1/conductores"
 ACCION = {"accion": "APROBAR", "motivo": "Prueba"}
@@ -42,7 +43,7 @@ OPERACIONES_POR_CONDUCTOR = [
     ),
     pytest.param("get", BASE + "/{id}/vehiculos", None, "listar_vehiculos", True, id="8-vehiculos"),
     pytest.param(
-        "get", BASE + "/{id}/vehiculos/5", None, "obtener_vehiculo", True, id="9-vehiculo"
+        "get", BASE + f"/{{id}}/vehiculos/{uid(5)}", None, "obtener_vehiculo", True, id="9-vehiculo"
     ),
 ]
 
@@ -57,7 +58,7 @@ def _pedir(client, metodo: str, ruta: str, cuerpo: Any, headers: dict[str, str])
 def test_el_conductor_opera_sobre_su_propio_id(
     client, casos, headers_conductor_de, metodo, ruta, cuerpo, caso, _lee
 ) -> None:
-    respuesta = _pedir(client, metodo, ruta.format(id=1), cuerpo, headers_conductor_de(1))
+    respuesta = _pedir(client, metodo, ruta.format(id=uid(1)), cuerpo, headers_conductor_de(uid(1)))
 
     assert respuesta.status_code in (200, 201)
     assert len(casos[caso].llamadas) == 1
@@ -68,7 +69,9 @@ def test_el_conductor_con_el_id_de_otro_recibe_403_sin_llamar_al_caso_de_uso(
     client, casos, headers_conductor_de, metodo, ruta, cuerpo, caso, _lee
 ) -> None:
     # El id 99 no existe: aun así la respuesta es 403 y no 404.
-    respuesta = _pedir(client, metodo, ruta.format(id=99), cuerpo, headers_conductor_de(1))
+    respuesta = _pedir(
+        client, metodo, ruta.format(id=uid(99)), cuerpo, headers_conductor_de(uid(1))
+    )
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -76,13 +79,13 @@ def test_el_conductor_con_el_id_de_otro_recibe_403_sin_llamar_al_caso_de_uso(
 
 
 @pytest.mark.parametrize(("metodo", "ruta", "cuerpo", "caso", "_lee"), OPERACIONES_POR_CONDUCTOR)
-def test_el_conductor_sin_id_conductor_numerico_recibe_403(
+def test_el_conductor_sin_id_conductor_uuid_recibe_403(
     client, casos, crear_token, metodo, ruta, cuerpo, caso, _lee
 ) -> None:
-    for claims in ({}, {"id_conductor": True}):
+    for claims in ({}, {"id_conductor": True}, {"id_conductor": 1}, {"id_conductor": "1"}):
         headers = {"Authorization": f"Bearer {crear_token(roles=['conductor'], **claims)}"}
 
-        respuesta = _pedir(client, metodo, ruta.format(id=1), cuerpo, headers)
+        respuesta = _pedir(client, metodo, ruta.format(id=uid(1)), cuerpo, headers)
 
         assert respuesta.status_code == 403
         assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -93,7 +96,7 @@ def test_el_conductor_sin_id_conductor_numerico_recibe_403(
 def test_el_operador_accede_a_cualquier_conductor(
     client, casos, headers_operador, metodo, ruta, cuerpo, caso, _lee
 ) -> None:
-    respuesta = _pedir(client, metodo, ruta.format(id=99), cuerpo, headers_operador)
+    respuesta = _pedir(client, metodo, ruta.format(id=uid(99)), cuerpo, headers_operador)
 
     assert respuesta.status_code in (200, 201)
     assert len(casos[caso].llamadas) == 1
@@ -103,7 +106,7 @@ def test_el_operador_accede_a_cualquier_conductor(
 def test_el_servicio_solo_lee(
     client, casos, headers_servicio, metodo, ruta, cuerpo, caso, lee
 ) -> None:
-    respuesta = _pedir(client, metodo, ruta.format(id=99), cuerpo, headers_servicio)
+    respuesta = _pedir(client, metodo, ruta.format(id=uid(99)), cuerpo, headers_servicio)
 
     if lee:
         assert respuesta.status_code == 200
@@ -128,7 +131,7 @@ def test_el_servicio_no_da_altas(client, casos, headers_servicio) -> None:
 def test_el_operador_y_el_conductor_dan_altas(
     client, casos, headers_operador, headers_conductor_de
 ) -> None:
-    for headers in (headers_operador, headers_conductor_de(1)):
+    for headers in (headers_operador, headers_conductor_de(uid(1))):
         respuesta = client.post(BASE, json=ALTA_CONDUCTOR, headers=headers)
         assert respuesta.status_code == 201
     assert len(casos["crear_conductor"].llamadas) == 2
@@ -140,15 +143,15 @@ def test_el_operador_y_el_conductor_dan_altas(
 @pytest.mark.parametrize(
     ("ruta", "caso"),
     [
-        (BASE + "/1/habilitacion", "accionar_habilitacion_conductor"),
-        (BASE + "/1/vehiculos/5/habilitacion", "accionar_habilitacion_vehiculo"),
+        (BASE + f"/{uid(1)}/habilitacion", "accionar_habilitacion_conductor"),
+        (BASE + f"/{uid(1)}/vehiculos/{uid(5)}/habilitacion", "accionar_habilitacion_vehiculo"),
     ],
     ids=["5-conductor", "10-vehiculo"],
 )
 def test_las_habilitaciones_siguen_siendo_solo_del_operador(
     client, casos, headers_conductor_de, headers_servicio, headers_operador, ruta, caso
 ) -> None:
-    for headers in (headers_conductor_de(1), headers_servicio):
+    for headers in (headers_conductor_de(uid(1)), headers_servicio):
         respuesta = client.post(ruta, json=ACCION, headers=headers)
         assert respuesta.status_code == 403
         assert respuesta.json()["codigo"] == "SIN_PERMISOS"
@@ -163,7 +166,7 @@ def test_las_habilitaciones_siguen_siendo_solo_del_operador(
 def test_el_listado_es_del_operador_y_del_servicio(
     client, casos, headers_conductor_de, headers_operador, headers_servicio
 ) -> None:
-    rechazado = client.get(BASE, headers=headers_conductor_de(1))
+    rechazado = client.get(BASE, headers=headers_conductor_de(uid(1)))
 
     assert rechazado.status_code == 403
     assert rechazado.json()["codigo"] == "SIN_PERMISOS"

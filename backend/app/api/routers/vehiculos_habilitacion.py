@@ -1,4 +1,5 @@
 from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -23,8 +24,8 @@ router = APIRouter(tags=["Habilitación"])
     operation_id="accionHabilitacionVehiculo",
 )
 def accionar_habilitacion(
-    id_conductor: int,
-    id_vehiculo: int,
+    id_conductor: UUID,
+    id_vehiculo: UUID,
     datos: HabilitacionAccionRequest,
     caso: Annotated[
         AccionarHabilitacionVehiculo,
@@ -37,6 +38,6 @@ def accionar_habilitacion(
         id_vehiculo=id_vehiculo,
         accion=AccionHabilitacion(datos.accion.value),
         motivo=datos.motivo,
-        id_operador=usuario["id_operador"],
+        id_operador=UUID(usuario["id_operador"]),
     )
     return eventos_vehiculo_desde_dominio(resultado)

@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 REALM = Path(__file__).resolve().parents[3] / "infra" / "keycloak" / "realm-m3.json"
 PLACEHOLDER = re.compile(r"^\$\{[A-Z0-9_]+\}$")
@@ -70,7 +71,7 @@ def test_el_usuario_conductor_apunta_a_un_conductor_del_seed(seed_module: Any) -
     valores = conductor["attributes"]["id_conductor"]
 
     assert len(valores) == 1
-    assert int(valores[0]) == seed_module.ID_CONDUCTOR_PRUEBA
+    assert UUID(valores[0]) == seed_module.ID_CONDUCTOR_PRUEBA
     assert seed_module.CONDUCTORES[0]["dni"] == seed_module.DNI_CONDUCTOR_PRUEBA
 
 
@@ -84,14 +85,14 @@ def test_cliente_confidencial_con_password_grant() -> None:
     assert PLACEHOLDER.match(cliente["secret"]), "El secreto debe venir de una variable"
 
 
-def test_usuario_operador_con_id_operador_numerico_y_claim_entero() -> None:
+def test_usuario_operador_con_id_operador_uuid_y_claim_de_texto(seed_module: Any) -> None:
     realm = _cargar()
     operador = next(u for u in realm["users"] if u["username"] == "operador.m3")
 
     assert "operador" in operador["realmRoles"]
     valores = operador["attributes"]["id_operador"]
     assert isinstance(valores, list) and valores
-    assert all(str(valor).isdigit() for valor in valores)
+    assert [UUID(valor) for valor in valores] == [seed_module.ID_OPERADOR_SEED]
 
     cliente = next(c for c in realm["clients"] if c["clientId"] == "m3-api")
     mapper = next(
@@ -101,7 +102,7 @@ def test_usuario_operador_con_id_operador_numerico_y_claim_entero() -> None:
 
     assert mapper["protocolMapper"] == "oidc-usermodel-attribute-mapper"
     assert config["claim.name"] == "id_operador"
-    assert config["jsonType.label"] in {"int", "long"}
+    assert config["jsonType.label"] == "String"
     assert config["access.token.claim"] == "true"
 
 
@@ -112,7 +113,7 @@ def _perfil_de_usuario(realm: dict[str, Any]) -> dict[str, Any]:
     return json.loads(componente["config"]["kc.user.profile.config"][0])
 
 
-def test_el_user_profile_declara_los_claims_numericos() -> None:
+def test_el_user_profile_declara_los_claims_uuid() -> None:
     perfil = _perfil_de_usuario(_cargar())
     atributos = {atributo["name"]: atributo for atributo in perfil["attributes"]}
 
@@ -120,7 +121,7 @@ def test_el_user_profile_declara_los_claims_numericos() -> None:
     for nombre in ("id_operador", "id_conductor"):
         atributo = atributos[nombre]
         assert atributo["multivalued"] is False
-        assert "integer" in atributo["validations"]
+        assert "pattern" in atributo["validations"]
 
     cliente = next(c for c in _cargar()["clients"] if c["clientId"] == "m3-api")
     mappers = {
@@ -129,7 +130,7 @@ def test_el_user_profile_declara_los_claims_numericos() -> None:
         if mapper["config"].get("claim.name") == mapper["config"].get("user.attribute")
     }
     assert {"id_operador", "id_conductor"} <= mappers.keys()
-    assert all(mapper["config"]["jsonType.label"] == "int" for mapper in mappers.values())
+    assert all(mapper["config"]["jsonType.label"] == "String" for mapper in mappers.values())
 
 
 def test_no_hay_password_ni_secretos_literales() -> None:

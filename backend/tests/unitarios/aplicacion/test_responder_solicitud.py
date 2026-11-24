@@ -38,6 +38,7 @@ from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import (
     RepositorioSolicitudesEnMemoria,
@@ -395,7 +396,7 @@ def test_aceptar_con_el_vehiculo_activo_sin_aprobar_lanza_no_habilitado(uow, res
 def test_solicitud_inexistente_lanza_no_encontrado(responder):
     with pytest.raises(NoEncontrado):
         responder.ejecutar(
-            id_solicitud=999,
+            id_solicitud=uid(999),
             respuesta=ACEPTADO,
             hora_rta=HORA_RTA_DEL_CLIENTE,
             identidad=identidad_de_operador(),

@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor, exigir_vehiculo
 from app.aplicacion.casos_de_uso.resultados import EstadoDelConductor
@@ -29,9 +30,9 @@ class ActualizarEstadoConductor:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         estado: EstadoConductor | str | None = None,
-        id_vehiculo_activo: int | None = NO_INFORMADO,
+        id_vehiculo_activo: UUID | None = NO_INFORMADO,
         latitud: float | None = None,
         longitud: float | None = None,
     ) -> EstadoDelConductor:
@@ -59,7 +60,7 @@ class ActualizarEstadoConductor:
             return EstadoDelConductor.desde_conductor(conductor)
 
     def _buscar_vehiculo_activo(
-        self, conductor: Conductor, id_vehiculo_informado: int | None
+        self, conductor: Conductor, id_vehiculo_informado: UUID | None
     ) -> Vehiculo | None:
         """Devuelve el vehiculo que quedara activo; uno informado que no es suyo es NoEncontrado."""
         if id_vehiculo_informado is NO_INFORMADO:
@@ -86,7 +87,7 @@ def _salio_de_desconectado(conductor: Conductor) -> bool:
 
 def _exigir_pedido_valido(
     estado: EstadoConductor | str | None,
-    id_vehiculo_activo: int | None,
+    id_vehiculo_activo: UUID | None,
     latitud: float | None,
     longitud: float | None,
 ) -> None:

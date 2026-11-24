@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import ColumnElement, and_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -81,7 +83,7 @@ class SqlRepositorioConductores(RepositorioConductores):
         conductor.id = fila.id_conductor
         return conductor
 
-    def obtener(self, id_conductor: int) -> Conductor | None:
+    def obtener(self, id_conductor: UUID) -> Conductor | None:
         fila = self._sesion.get(ConductorOrm, id_conductor)
         return None if fila is None else a_dominio(fila)
 

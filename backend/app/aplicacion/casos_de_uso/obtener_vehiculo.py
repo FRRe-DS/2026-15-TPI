@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_vehiculo
 from app.aplicacion.casos_de_uso.resultados import DocumentoVehiculoConEstado, VehiculoDetalle
@@ -16,7 +17,7 @@ class ObtenerVehiculo:
         self._uow = uow
         self._reloj = reloj
 
-    def ejecutar(self, *, id_conductor: int, id_vehiculo: int) -> VehiculoDetalle:
+    def ejecutar(self, *, id_conductor: UUID, id_vehiculo: UUID) -> VehiculoDetalle:
         with self._uow:
             vehiculo = exigir_vehiculo(
                 self._uow.vehiculos.obtener(id_conductor, id_vehiculo), id_conductor, id_vehiculo

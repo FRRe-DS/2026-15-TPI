@@ -20,6 +20,8 @@ from app.aplicacion.politicas.acceso import (
 )
 from app.dominio.errores import AccesoProhibido, RolNoAutorizado
 
+from tests.ids import uid
+
 LECTURA_CONDUCTOR = frozenset({"operador", "conductor", "servicio"})
 ESCRITURA_CONDUCTOR = frozenset({"operador", "conductor"})
 
@@ -36,52 +38,52 @@ def identidad(*roles, id_conductor=None, id_operador=None):
 
 
 def test_el_operador_pasa_sin_id_conductor():
-    verificar_acceso(identidad("operador", id_operador=3), 5, LECTURA_CONDUCTOR)
+    verificar_acceso(identidad("operador", id_operador=uid(3)), uid(5), LECTURA_CONDUCTOR)
 
 
 def test_el_conductor_pasa_sobre_su_propio_id():
-    verificar_acceso(identidad("conductor", id_conductor=7), 7, LECTURA_CONDUCTOR)
+    verificar_acceso(identidad("conductor", id_conductor=uid(7)), uid(7), LECTURA_CONDUCTOR)
 
 
 def test_el_conductor_sobre_otro_id_lanza_acceso_prohibido():
     with pytest.raises(AccesoProhibido):
-        verificar_acceso(identidad("conductor", id_conductor=7), 8, LECTURA_CONDUCTOR)
+        verificar_acceso(identidad("conductor", id_conductor=uid(7)), uid(8), LECTURA_CONDUCTOR)
 
 
 @pytest.mark.parametrize(
     "id_conductor",
-    [None, True, False, "7", 7.0],
-    ids=["nulo", "true", "false", "texto", "flotante"],
+    [None, True, False, "7", 7.0, 7],
+    ids=["nulo", "true", "false", "texto", "flotante", "entero"],
 )
-def test_el_conductor_sin_id_numerico_lanza_acceso_prohibido(id_conductor):
+def test_el_conductor_sin_id_uuid_lanza_acceso_prohibido(id_conductor):
     with pytest.raises(AccesoProhibido):
         verificar_acceso(
             identidad("conductor", id_conductor=id_conductor),
-            7,
+            uid(7),
             LECTURA_CONDUCTOR,
         )
 
 
 def test_el_servicio_pasa_solo_si_la_operacion_lo_admite():
-    verificar_acceso(identidad("servicio"), 7, LECTURA_CONDUCTOR)
+    verificar_acceso(identidad("servicio"), uid(7), LECTURA_CONDUCTOR)
 
     with pytest.raises(RolNoAutorizado):
-        verificar_acceso(identidad("servicio"), 7, ESCRITURA_CONDUCTOR)
+        verificar_acceso(identidad("servicio"), uid(7), ESCRITURA_CONDUCTOR)
 
 
 def test_un_rol_no_admitido_lanza_rol_no_autorizado():
     with pytest.raises(RolNoAutorizado):
-        verificar_acceso(identidad("admin"), 7, LECTURA_CONDUCTOR)
+        verificar_acceso(identidad("admin"), uid(7), LECTURA_CONDUCTOR)
 
 
 def test_sin_roles_lanza_rol_no_autorizado():
     with pytest.raises(RolNoAutorizado):
-        verificar_acceso(identidad(), 7, LECTURA_CONDUCTOR)
+        verificar_acceso(identidad(), uid(7), LECTURA_CONDUCTOR)
 
 
 def test_el_conductor_con_rol_no_admitido_lanza_rol_no_autorizado():
     with pytest.raises(RolNoAutorizado):
-        verificar_acceso(identidad("conductor", id_conductor=7), 7, {"servicio"})
+        verificar_acceso(identidad("conductor", id_conductor=uid(7)), uid(7), {"servicio"})
 
 
 # --- verificar_acceso: varios roles ---
@@ -93,11 +95,13 @@ def test_el_conductor_con_rol_no_admitido_lanza_rol_no_autorizado():
     ids=["conductor-primero", "operador-primero"],
 )
 def test_operador_y_conductor_juntos_no_quedan_limitados_por_el_id(roles):
-    verificar_acceso(identidad(*roles, id_conductor=7), 99, LECTURA_CONDUCTOR)
+    verificar_acceso(identidad(*roles, id_conductor=uid(7)), uid(99), LECTURA_CONDUCTOR)
 
 
 def test_conductor_y_servicio_pasa_por_el_rol_servicio_aunque_sea_otro_id():
-    verificar_acceso(identidad("conductor", "servicio", id_conductor=7), 99, LECTURA_CONDUCTOR)
+    verificar_acceso(
+        identidad("conductor", "servicio", id_conductor=uid(7)), uid(99), LECTURA_CONDUCTOR
+    )
 
 
 # --- verificar_rol: operaciones sin id de conductor ---
@@ -110,7 +114,7 @@ def test_listar_conductores_admite_operador_y_servicio(rol):
 
 def test_listar_conductores_rechaza_al_conductor():
     with pytest.raises(RolNoAutorizado):
-        verificar_rol(identidad("conductor", id_conductor=7), ROLES_LISTAR_CONDUCTORES)
+        verificar_rol(identidad("conductor", id_conductor=uid(7)), ROLES_LISTAR_CONDUCTORES)
 
 
 @pytest.mark.parametrize("rol", ["operador", "conductor"])

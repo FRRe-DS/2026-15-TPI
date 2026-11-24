@@ -18,6 +18,8 @@ from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTr
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
+
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 DISPONIBLE = EstadoConductor.DISPONIBLE
 
@@ -119,7 +121,7 @@ def test_id_vehiculo_activo_se_persiste_y_apunta_a_un_vehiculo(
 
 def test_la_base_rechaza_un_vehiculo_activo_que_no_existe(repositorio):
     conductor = repositorio.guardar(nuevo_conductor())
-    conductor.id_vehiculo_activo = 999
+    conductor.id_vehiculo_activo = uid(999)
 
     with pytest.raises(IntegrityError):
         repositorio.guardar(conductor)
@@ -210,4 +212,4 @@ def test_bloquear_conductor_devuelve_los_campos_nuevos(repositorio, sesion_bd, f
 
 def test_bloquear_un_conductor_inexistente_devuelve_none(sesion_bd, fabrica_sesiones):
     with SqlUnidadDeTrabajo(fabrica_sesiones) as uow:
-        assert uow.bloquear_conductor(999) is None
+        assert uow.bloquear_conductor(uid(999)) is None

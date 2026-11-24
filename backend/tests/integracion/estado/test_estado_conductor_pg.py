@@ -180,7 +180,7 @@ def test_quitar_o_cambiar_vehiculo_activo_deja_conectado(
         )
         sesion_bd.add(vehiculo_nuevo)
         sesion_bd.flush()
-        cuerpo = {"id_vehiculo_activo": vehiculo_nuevo.id_vehiculo}
+        cuerpo = {"id_vehiculo_activo": str(vehiculo_nuevo.id_vehiculo)}
     else:
         cuerpo = {"id_vehiculo_activo": None}
     sesion_bd.commit()
@@ -217,7 +217,7 @@ def test_get_ubicacion_sin_datos_devuelve_nulos_y_no_cero_cero(
 
     assert respuesta.status_code == 200
     assert respuesta.json() == {
-        "id_conductor": conductor.id_conductor,
+        "id_conductor": str(conductor.id_conductor),
         "latitud": None,
         "longitud": None,
         "fecha_act_ubic": None,

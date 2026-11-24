@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
@@ -24,7 +25,7 @@ router = APIRouter(tags=["Documentación"])
     dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def registrar_documentacion(
-    id_conductor: int,
+    id_conductor: UUID,
     datos: DocumentoConductorCreate,
     caso: Annotated[RegistrarLicencia, Depends(obtener_caso_registrar_licencia)],
 ) -> DocumentoConductor:

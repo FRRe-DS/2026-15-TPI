@@ -130,7 +130,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ## Contrato de la API
 
-- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.2.0.
+- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 2.0.0.
 - **El contrato dirige:** no se implementa ningún endpoint que no esté en el `openapi.yaml`.
 - URL base en desarrollo local: `http://localhost:8080/api/v1`
 - Formato: JSON.
@@ -251,7 +251,7 @@ Todos los errores usan el mismo formato:
 | `400` | `SOLICITUD_INVALIDA` | La forma del pedido no cumple el contrato (DNI inválido, motivo vacío, sin tipos de servicio, etc.). |
 | `401` | `NO_AUTENTICADO` | Token ausente, malformado, con firma inválida, vencido o de otro emisor. |
 | `403` | `SIN_PERMISOS` | El rol no permite la operación. |
-| `403` | `ACCESO_PROHIBIDO` | El conductor intenta acceder a recursos de otro conductor o el token no trae un `id_conductor` numérico. |
+| `403` | `ACCESO_PROHIBIDO` | El conductor intenta acceder a recursos de otro conductor o el token no trae un `id_conductor` UUID. |
 | `404` | `NO_ENCONTRADO` | El recurso no existe. |
 | `409` | `DNI_DUPLICADO` | Ya existe un conductor con ese DNI. |
 | `409` | `PATENTE_DUPLICADA` | Ya existe un vehículo con esa patente. |
@@ -274,9 +274,9 @@ El catálogo completo está en `specs/iteracion1/contracts/errores.md`.
 - Roles: **`operador`**, **`conductor`** y **`servicio`** (cuenta técnica de M4, solo lectura).
 - Las acciones de habilitación solo pueden hacerlas usuarios con rol `operador`.
 - El rol `servicio` solo puede leer conductores, vehículos, estado y ubicación; cualquier escritura responde `403 SIN_PERMISOS`.
-- Un conductor solo accede a lo suyo en todos los endpoints con `{id_conductor}` y al responder solicitudes. El `id_conductor` sale del claim entero del token, no de lo que envíe el cliente; si pide datos de otro conductor, responde `403 ACCESO_PROHIBIDO`. El operador y el servicio no tienen esa restricción.
+- Un conductor solo accede a lo suyo en todos los endpoints con `{id_conductor}` y al responder solicitudes. El `id_conductor` sale del claim UUID del token, no de lo que envíe el cliente; si pide datos de otro conductor, responde `403 ACCESO_PROHIBIDO`. El operador y el servicio no tienen esa restricción.
 - `GET /conductores` es solo de operador y servicio. El alta de conductor la hacen el operador o el conductor.
-- El usuario operador tiene un atributo numérico `id_operador`, que Keycloak incluye en el token como un claim entero. La API lo usa para registrar quién hizo cada acción.
+- El usuario operador tiene un atributo `id_operador` (UUID), que Keycloak incluye en el token como un claim de texto. La API lo usa para registrar quién hizo cada acción.
 
 **Realm de Keycloak** (`infra/keycloak/realm-m3.json`):
 

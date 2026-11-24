@@ -23,6 +23,7 @@ from app.dominio.documento import EstadoDocumento, TipoDocumento
 from app.dominio.errores import DatosInvalidos, NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -140,7 +141,7 @@ def test_registrar_una_licencia_no_cambia_la_habilitacion_del_conductor(registra
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe_y_no_guarda_nada(registrar_licencia, uow):
     existente = sembrar_conductor(uow)
-    id_inexistente = existente.id + 1
+    id_inexistente = uid(999)
 
     with pytest.raises(NoEncontrado):
         registrar_licencia.ejecutar(id_conductor=id_inexistente, **datos_de_licencia())

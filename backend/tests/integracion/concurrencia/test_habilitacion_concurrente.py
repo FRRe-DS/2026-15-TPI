@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, wait
+from uuid import UUID
 
 import httpx
 import pytest
@@ -37,16 +38,16 @@ APROBAR = {
 }
 
 
-def _crear_conductor(cliente: TestClient, headers: dict[str, str]) -> int:
+def _crear_conductor(cliente: TestClient, headers: dict[str, str]) -> UUID:
     respuesta = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers)
     assert respuesta.status_code == 201, respuesta.text
-    return int(respuesta.json()["id"])
+    return UUID(respuesta.json()["id"])
 
 
 def _registrar_licencia(
     cliente: TestClient,
     headers: dict[str, str],
-    id_conductor: int,
+    id_conductor: UUID,
 ) -> httpx.Response:
     return cliente.post(
         f"/api/v1/conductores/{id_conductor}/documentacion",
@@ -55,7 +56,7 @@ def _registrar_licencia(
     )
 
 
-def _aprobar(cliente: TestClient, headers: dict[str, str], id_conductor: int) -> httpx.Response:
+def _aprobar(cliente: TestClient, headers: dict[str, str], id_conductor: UUID) -> httpx.Response:
     return cliente.post(
         f"/api/v1/conductores/{id_conductor}/habilitacion",
         json=APROBAR,
@@ -93,7 +94,7 @@ def test_dos_acciones_simultaneas_sobre_el_mismo_conductor_dejan_un_solo_evento_
             SELECT accion, estado_anterior, estado_nuevo
             FROM habilitacion_evento_conductor
             WHERE id_conductor = :id_conductor
-            ORDER BY id_evento
+            ORDER BY secuencia
             """
         ),
         {"id_conductor": id_conductor},

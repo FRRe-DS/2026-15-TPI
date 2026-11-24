@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import httpx
 import pytest
@@ -75,7 +75,7 @@ def _crear_conductor(
 def _registrar_licencia(
     cliente: httpx.Client,
     headers: dict[str, str],
-    id_conductor: int,
+    id_conductor: str,
 ) -> dict[str, Any]:
     respuesta = cliente.post(
         f"{CONDUCTORES}/{id_conductor}/documentacion",
@@ -89,7 +89,7 @@ def _registrar_licencia(
 def _crear_vehiculo(
     cliente: httpx.Client,
     headers: dict[str, str],
-    id_conductor: int,
+    id_conductor: str,
 ) -> dict[str, Any]:
     respuesta = cliente.post(
         f"{CONDUCTORES}/{id_conductor}/vehiculos",
@@ -103,7 +103,7 @@ def _crear_vehiculo(
 def _consultar_habilitacion(
     cliente: httpx.Client,
     headers: dict[str, str],
-    id_conductor: int,
+    id_conductor: str,
 ) -> dict[str, Any]:
     respuesta = cliente.get(
         f"{CONDUCTORES}/{id_conductor}/habilitacion",
@@ -162,7 +162,7 @@ def test_flujo_completo_de_habilitacion(
     assert accion_conductor["estado_anterior"] == "PENDIENTE"
     assert accion_conductor["estado_nuevo"] == "APROBADA"
     assert accion_conductor["motivo"] == MOTIVO_APROBACION_CONDUCTOR
-    assert isinstance(accion_conductor["id_operador"], int)
+    assert UUID(accion_conductor["id_operador"])
 
     aprobacion_vehiculo = cliente_api.post(
         f"{CONDUCTORES}/{id_conductor}/vehiculos/{id_vehiculo}/habilitacion",
@@ -185,7 +185,7 @@ def test_flujo_completo_de_habilitacion(
     assert accion_vehiculo["estado_anterior"] == "PENDIENTE"
     assert accion_vehiculo["estado_nuevo"] == "APROBADA"
     assert accion_vehiculo["motivo"] == MOTIVO_APROBACION_VEHICULO
-    assert isinstance(accion_vehiculo["id_operador"], int)
+    assert UUID(accion_vehiculo["id_operador"])
 
     detalle_vehiculo = cliente_api.get(
         f"{CONDUCTORES}/{id_conductor}/vehiculos/{id_vehiculo}",
@@ -200,7 +200,7 @@ def test_flujo_completo_de_habilitacion(
         "PENDIENTE",
         "APROBADA",
     ]
-    assert isinstance(historial["historial"][-1]["id_operador"], int)
+    assert UUID(historial["historial"][-1]["id_operador"])
 
 
 def test_token_de_conductor_no_puede_aprobar(

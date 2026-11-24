@@ -8,6 +8,7 @@ cambia cuando el conductor acepta o rechaza dentro del plazo.
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 from app.dominio.errores import DatosInvalidos, SolicitudVencida, SolicitudYaRespondida
 
@@ -24,13 +25,13 @@ RESPUESTAS_VALIDAS = frozenset({EstadoSolicitud.ACEPTADO, EstadoSolicitud.RECHAZ
 
 @dataclass
 class Solicitud:
-    id_conductor: int
+    id_conductor: UUID
     vence_en: datetime
-    id_viaje: int | None = None
+    id_viaje: UUID | None = None
     estado: EstadoSolicitud = EstadoSolicitud.PENDIENTE
     respuesta: EstadoSolicitud | None = None
     hora_rta: datetime | None = None
-    id: int | None = None
+    id: UUID | None = None
 
     def estado_efectivo(self, ahora: datetime) -> EstadoSolicitud:
         if self.estado is EstadoSolicitud.PENDIENTE and ahora > self.vence_en:

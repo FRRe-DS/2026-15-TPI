@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+from uuid import UUID
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from tests.ids import uid
 
 pytestmark = pytest.mark.integration
 
 
-def _url_vehiculos(id_conductor: int) -> str:
+def _url_vehiculos(id_conductor: str) -> str:
     return f"/api/v1/conductores/{id_conductor}/vehiculos"
 
 
@@ -28,7 +30,7 @@ def test_crear_vehiculo_cumple_el_contrato(
     validar_contrato(respuesta)
 
     creado = respuesta.json()
-    assert isinstance(creado["id"], int)
+    assert UUID(creado["id"])
     assert creado["id_conductor"] == conductor["id"]
     assert creado["tipo"] == "AUTO"
     assert creado["patente"] == "AB123CD"
@@ -70,11 +72,12 @@ def test_listar_vehiculos_cumple_el_contrato(
     validar_contrato(respuesta)
 
     listado = respuesta.json()
-    assert [vehiculo["id"] for vehiculo in listado] == [
+    assert {vehiculo["id"] for vehiculo in listado} == {
         primero.json()["id"],
         segundo.json()["id"],
-    ]
-    assert [vehiculo["patente"] for vehiculo in listado] == ["AB123CD", "MOTO123"]
+    }
+    assert len(listado) == 2
+    assert sorted(vehiculo["patente"] for vehiculo in listado) == ["AB123CD", "MOTO123"]
     assert [vehiculo["habilitacion"] for vehiculo in listado] == ["PENDIENTE", "PENDIENTE"]
 
     motos = cliente.get(
@@ -93,10 +96,10 @@ def test_listar_vehiculos_cumple_el_contrato(
     )
     assert pendientes.status_code == 200, pendientes.text
     validar_contrato(pendientes)
-    assert [vehiculo["id"] for vehiculo in pendientes.json()] == [
+    assert {vehiculo["id"] for vehiculo in pendientes.json()} == {
         primero.json()["id"],
         segundo.json()["id"],
-    ]
+    }
 
 
 def test_obtener_vehiculo_cumple_el_contrato(
@@ -168,7 +171,7 @@ def test_habilitar_vehiculo_cumple_el_contrato(
     assert aprobacion["estado_anterior"] == "PENDIENTE"
     assert aprobacion["estado_nuevo"] == "APROBADA"
     assert aprobacion["motivo"] == "Documentación del vehículo validada"
-    assert aprobacion["id_operador"] == 7
+    assert aprobacion["id_operador"] == str(uid(7))
     assert aprobacion["fecha"]
 
     detalle = cliente.get(

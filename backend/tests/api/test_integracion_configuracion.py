@@ -4,6 +4,8 @@ from app.api.seguridad import obtener_cliente_jwks
 from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 from sqlalchemy.orm import sessionmaker
 
+from tests.ids import uid
+
 
 def test_dependencia_construye_la_unidad_sql_real(monkeypatch):
     fabrica = sessionmaker()
@@ -38,7 +40,7 @@ def test_respuesta_conserva_el_id_del_evento_persistido():
     )
 
     evento = EventoHabilitacion(
-        id=42,
+        id=uid(42),
         accion=AccionHabilitacion.ALTA,
         estado_anterior=None,
         estado_nuevo=EstadoHabilitacion.PENDIENTE,
@@ -47,7 +49,7 @@ def test_respuesta_conserva_el_id_del_evento_persistido():
         fecha=datetime.now(UTC),
     )
     resultado = HabilitacionEventos(
-        id_conductor=1, estado=EstadoHabilitacion.PENDIENTE, eventos=[evento]
+        id_conductor=uid(1), estado=EstadoHabilitacion.PENDIENTE, eventos=[evento]
     )
 
-    assert eventos_conductor_desde_dominio(resultado).eventos[0].id == 42
+    assert eventos_conductor_desde_dominio(resultado).eventos[0].id == uid(42)

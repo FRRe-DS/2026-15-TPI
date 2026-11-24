@@ -104,6 +104,17 @@ Las opciones significan:
 
 La primera ejecución tarda más por las descargas. No necesitás iniciar Python ni instalar las dependencias del backend en tu computadora: se ejecuta dentro de Docker.
 
+### Actualizar desde una versión con ids enteros (contrato 2.0.0)
+
+Desde el contrato 2.0.0 todos los ids son UUID. La migración `0003` convierte las filas existentes, pero el realm de Keycloak solo se importa la primera vez: un Keycloak ya inicializado sigue emitiendo `id_conductor` e `id_operador` como enteros, y la API los rechaza con `403`. Si tus datos son descartables, recreá todo con el volumen vacío:
+
+```powershell
+docker compose down -v
+docker compose up --build -d
+```
+
+Con datos que querés conservar hay que actualizar a mano los atributos `id_conductor` e `id_operador` de los usuarios en Keycloak con los UUID que corresponden.
+
 ## 4. Comprobar el backend
 
 ```powershell

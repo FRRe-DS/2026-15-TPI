@@ -9,6 +9,7 @@ y de ids que arrancan en 1, asi que la segunda falla si la primera dejo datos.
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from alembic.config import Config
@@ -134,20 +135,21 @@ def test_la_sesion_esta_ligada_al_engine_expuesto(sesion_bd, engine_integracion)
 
 
 @pytest.mark.parametrize("corrida", ["primera", "segunda"])
-def test_cada_prueba_parte_de_tablas_vacias_y_ids_en_uno(sesion_bd, corrida):
+def test_cada_prueba_parte_de_tablas_vacias(sesion_bd, corrida):
     for tabla in TABLAS_DE_M3:
         assert contar_filas(sesion_bd, tabla) == 0, tabla
 
     ids = poblar_todas_las_tablas(sesion_bd)
 
-    assert ids == dict.fromkeys(TABLAS_DE_M3, 1)
+    assert set(ids) == set(TABLAS_DE_M3)
+    assert all(isinstance(id_fila, UUID) for id_fila in ids.values())
 
 
 @pytest.mark.parametrize("corrida", ["primera", "segunda"])
 def test_la_limpieza_funciona_aunque_la_prueba_deje_la_transaccion_en_error(sesion_bd, corrida):
     for tabla in TABLAS_DE_M3:
         assert contar_filas(sesion_bd, tabla) == 0, tabla
-    assert insertar_conductor(sesion_bd) == 1
+    assert isinstance(insertar_conductor(sesion_bd), UUID)
     sesion_bd.commit()
 
     with pytest.raises(IntegrityError):

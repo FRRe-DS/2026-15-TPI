@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from uuid import UUID
 
 from app.dominio.errores import DatosInvalidos
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -31,8 +32,8 @@ class Vehiculo:
     anio: int
     tipos_servicio: list[ServicioDelVehiculo]
     habilitacion: EstadoHabilitacion = EstadoHabilitacion.PENDIENTE
-    id: int | None = None
-    id_conductor: int | None = None
+    id: UUID | None = None
+    id_conductor: UUID | None = None
 
     @classmethod
     def crear(

@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { UbicacionActual } from "./UbicacionActual";
 import type { UbicacionConductor } from "../lib/tipos";
+import { uid } from "../mocks/ids.mock";
 
 const UBICACION: UbicacionConductor = {
-  id_conductor: 1,
+  id_conductor: uid(1),
   latitud: -34.6037,
   longitud: -58.3816,
   fecha_act_ubic: "2026-11-10T18:50:00Z",
 };
 
 const DESCONOCIDA: UbicacionConductor = {
-  id_conductor: 1,
+  id_conductor: uid(1),
   latitud: null,
   longitud: null,
   fecha_act_ubic: null,

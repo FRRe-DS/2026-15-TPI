@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,7 +22,7 @@ def _a_dominio(fila: DocumentoOrm) -> Documento:
     )
 
 
-def _copiar_a_fila(id_conductor: int, documento: Documento, fila: DocumentoOrm) -> None:
+def _copiar_a_fila(id_conductor: UUID, documento: Documento, fila: DocumentoOrm) -> None:
     fila.id_conductor = id_conductor
     fila.tipo = documento.tipo.value
     fila.numero = documento.numero
@@ -37,14 +38,14 @@ class SqlRepositorioDocumentos(RepositorioDocumentos):
     def __init__(self, sesion: Session) -> None:
         self._sesion = sesion
 
-    def guardar(self, id_conductor: int, documento: Documento) -> Documento:
+    def guardar(self, id_conductor: UUID, documento: Documento) -> Documento:
         fila = DocumentoOrm()
         _copiar_a_fila(id_conductor, documento, fila)
         flush_aislado(self._sesion, fila)
         documento.id = fila.id_documento
         return documento
 
-    def listar_por_conductor(self, id_conductor: int) -> list[Documento]:
+    def listar_por_conductor(self, id_conductor: UUID) -> list[Documento]:
         # Consulta explicita: la relacion del ORM ordena por vencimiento, no por alta.
         consulta = (
             select(DocumentoOrm)
@@ -53,8 +54,8 @@ class SqlRepositorioDocumentos(RepositorioDocumentos):
         )
         return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
-    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Documento]]:
-        por_conductor: dict[int, list[Documento]] = {id_: [] for id_ in ids_conductor}
+    def listar_por_conductores(self, ids_conductor: Sequence[UUID]) -> dict[UUID, list[Documento]]:
+        por_conductor: dict[UUID, list[Documento]] = {id_: [] for id_ in ids_conductor}
         if not por_conductor:
             return por_conductor
         consulta = (

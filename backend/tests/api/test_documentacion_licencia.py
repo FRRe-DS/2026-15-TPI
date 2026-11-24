@@ -6,8 +6,9 @@ from app.dominio.documento import EstadoDocumento
 from app.dominio.errores import DatosInvalidos, NoEncontrado
 
 from tests.api.conftest import documento_de_prueba
+from tests.ids import uid
 
-URL = "/api/v1/conductores/1/documentacion"
+URL = f"/api/v1/conductores/{uid(1)}/documentacion"
 
 PAYLOAD = {
     "tipo": "LICENCIA",
@@ -25,13 +26,13 @@ def test_registra_licencia_vigente(client, casos, headers_conductor) -> None:
     assert respuesta.status_code == 201
     cuerpo = respuesta.json()
     assert cuerpo["tipo"] == "LICENCIA"
-    assert cuerpo["id_conductor"] == 1
+    assert cuerpo["id_conductor"] == str(uid(1))
     assert cuerpo["estado"] == "VIGENTE"
     assert cuerpo["url_archivo"] == PAYLOAD["url_archivo"]
 
     assert casos["registrar_licencia"].llamadas == [
         {
-            "id_conductor": 1,
+            "id_conductor": uid(1),
             "numero": "LIC-1",
             "categoria": "B1",
             "fecha_emision": date(2020, 1, 1),
@@ -43,7 +44,7 @@ def test_registra_licencia_vigente(client, casos, headers_conductor) -> None:
 
 def test_devuelve_estado_vencido(client, casos, headers_conductor) -> None:
     casos["registrar_licencia"].resultado = DocumentoDeConductor(
-        id_conductor=1,
+        id_conductor=uid(1),
         documento=documento_de_prueba(),
         estado=EstadoDocumento.VENCIDO,
     )
