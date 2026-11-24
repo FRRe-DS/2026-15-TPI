@@ -1,4 +1,5 @@
 from dataclasses import replace
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.puertos.reloj import Reloj
@@ -14,7 +15,7 @@ class ListarSolicitudesConductor:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         estado: EstadoSolicitud | None = None,
     ) -> list[Solicitud]:
         """Devuelve copias con el estado efectivo; las solicitudes guardadas no cambian."""

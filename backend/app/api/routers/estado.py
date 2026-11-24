@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -34,7 +35,7 @@ router = APIRouter(tags=["Disponibilidad"])
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_estado(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[ObtenerEstadoConductor, Depends(obtener_caso_obtener_estado_conductor)],
 ) -> EstadoConductor:
     return estado_desde_dominio(caso.ejecutar(id_conductor=id_conductor))
@@ -47,7 +48,7 @@ def obtener_estado(
     dependencies=[Depends(requerir_conductor_propio_u_operador)],
 )
 def actualizar_estado(
-    id_conductor: int,
+    id_conductor: UUID,
     datos: EstadoConductorRequest,
     caso: Annotated[ActualizarEstadoConductor, Depends(obtener_caso_actualizar_estado_conductor)],
 ) -> EstadoConductor:
@@ -69,7 +70,7 @@ def actualizar_estado(
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_ubicacion(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[ObtenerUbicacionConductor, Depends(obtener_caso_obtener_ubicacion_conductor)],
 ) -> UbicacionConductor:
     return ubicacion_desde_dominio(caso.ejecutar(id_conductor=id_conductor))

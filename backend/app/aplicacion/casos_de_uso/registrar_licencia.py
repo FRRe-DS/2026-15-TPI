@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.resultados import DocumentoDeConductor
@@ -15,7 +16,7 @@ class RegistrarLicencia:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         numero: str,
         categoria: str | None,
         fecha_emision: date,

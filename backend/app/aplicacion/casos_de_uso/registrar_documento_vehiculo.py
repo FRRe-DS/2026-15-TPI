@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_vehiculo
 from app.aplicacion.casos_de_uso.resultados import DocumentoDeVehiculo
@@ -15,8 +16,8 @@ class RegistrarDocumentoVehiculo:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
-        id_vehiculo: int,
+        id_conductor: UUID,
+        id_vehiculo: UUID,
         tipo: TipoDocumentoVehiculo,
         numero: str,
         entidad_emisora: str | None,

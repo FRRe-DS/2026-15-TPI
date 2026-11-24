@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.detalle_conductor import armar_detalle
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
@@ -10,7 +12,7 @@ class ObtenerConductor:
         self._uow = uow
         self._reloj = reloj
 
-    def ejecutar(self, *, id_conductor: int) -> ConductorDetalle:
+    def ejecutar(self, *, id_conductor: UUID) -> ConductorDetalle:
         with self._uow:
             conductor = exigir_conductor(self._uow.conductores.obtener(id_conductor), id_conductor)
             return armar_detalle(self._uow, self._reloj, conductor)

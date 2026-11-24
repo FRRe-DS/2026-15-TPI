@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -76,7 +77,7 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
         vehiculo.id = fila.id_vehiculo
         return vehiculo
 
-    def obtener(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def obtener(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         consulta = (
             select(VehiculoOrm)
             .where(
@@ -90,7 +91,7 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
 
     def listar_por_conductor(
         self,
-        id_conductor: int,
+        id_conductor: UUID,
         *,
         tipo: TipoVehiculo | None = None,
         habilitacion: EstadoHabilitacion | None = None,
@@ -107,8 +108,8 @@ class SqlRepositorioVehiculos(RepositorioVehiculos):
             consulta = consulta.where(VehiculoOrm.estado_habilitacion == habilitacion.value)
         return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
-    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
-        por_conductor: dict[int, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
+    def listar_por_conductores(self, ids_conductor: Sequence[UUID]) -> dict[UUID, list[Vehiculo]]:
+        por_conductor: dict[UUID, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
         if not por_conductor:
             return por_conductor
         consulta = (

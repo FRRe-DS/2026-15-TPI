@@ -1,5 +1,6 @@
 from types import TracebackType
 from typing import Self
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload, sessionmaker
@@ -67,7 +68,7 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
     def rollback(self) -> None:
         self._sesion.rollback()
 
-    def bloquear_conductor(self, id_conductor: int) -> Conductor | None:
+    def bloquear_conductor(self, id_conductor: UUID) -> Conductor | None:
         consulta = (
             select(ConductorOrm)
             .where(ConductorOrm.id_conductor == id_conductor)
@@ -77,7 +78,7 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
         fila = self._sesion.scalars(consulta).first()
         return None if fila is None else conductor_a_dominio(fila)
 
-    def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def bloquear_vehiculo(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         consulta = (
             select(VehiculoOrm)
             .where(
@@ -91,7 +92,7 @@ class SqlUnidadDeTrabajo(UnidadDeTrabajo):
         fila = self._sesion.scalars(consulta).first()
         return None if fila is None else vehiculo_a_dominio(fila)
 
-    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+    def bloquear_solicitud(self, id_solicitud: UUID) -> Solicitud | None:
         consulta = (
             select(SolicitudOrm)
             .where(SolicitudOrm.id_solicitud == id_solicitud)

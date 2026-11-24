@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionEventos
@@ -16,10 +18,10 @@ class AccionarHabilitacionConductor:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         accion: AccionHabilitacion,
         motivo: str,
-        id_operador: int,
+        id_operador: UUID,
     ) -> HabilitacionEventos:
         with self._uow:
             conductor = exigir_conductor(self._uow.bloquear_conductor(id_conductor), id_conductor)
@@ -43,7 +45,7 @@ class AccionarHabilitacionConductor:
                 eventos=en_orden_cronologico(historial),
             )
 
-    def _exigir_licencia_vigente(self, id_conductor: int) -> None:
+    def _exigir_licencia_vigente(self, id_conductor: UUID) -> None:
         hoy = self._reloj.hoy()
         documentos = self._uow.documentos.listar_por_conductor(id_conductor)
         tiene_licencia_vigente = any(

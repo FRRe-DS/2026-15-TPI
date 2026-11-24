@@ -7,6 +7,7 @@ verificaciones: una para operaciones sobre un conductor concreto (donde el rol
 
 from collections.abc import Collection
 from dataclasses import dataclass, field
+from uuid import UUID
 
 from app.dominio.errores import AccesoProhibido, RolNoAutorizado
 
@@ -24,8 +25,8 @@ ROLES_SOLO_OPERADOR = frozenset({ROL_OPERADOR})
 @dataclass(frozen=True)
 class Identidad:
     roles: frozenset[str] = field(default_factory=frozenset)
-    id_conductor: int | None = None
-    id_operador: int | None = None
+    id_conductor: UUID | None = None
+    id_operador: UUID | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "roles", frozenset(self.roles))
@@ -33,13 +34,13 @@ class Identidad:
 
 def verificar_acceso(
     identidad: Identidad,
-    id_conductor_recurso: int,
+    id_conductor_recurso: UUID,
     admite: Collection[str],
 ) -> None:
     """Autoriza una operacion sobre el conductor `id_conductor_recurso`.
 
     El operador y el servicio no tienen restriccion por conductor. El conductor solo
-    pasa sobre su propio id y necesita un `id_conductor` entero en el token.
+    pasa sobre su propio id y necesita un `id_conductor` UUID en el token.
     """
     if ROL_OPERADOR in identidad.roles and ROL_OPERADOR in admite:
         return
@@ -59,14 +60,10 @@ def verificar_rol(identidad: Identidad, admite: Collection[str]) -> None:
 
 
 def _exigir_conductor_propio(
-    id_conductor: int | None,
-    id_conductor_recurso: int,
+    id_conductor: UUID | None,
+    id_conductor_recurso: UUID,
 ) -> None:
-    if not es_entero(id_conductor):
-        raise AccesoProhibido("El token del conductor no trae un id_conductor numerico")
+    if not isinstance(id_conductor, UUID):
+        raise AccesoProhibido("El token del conductor no trae un id_conductor UUID")
     if id_conductor != id_conductor_recurso:
         raise AccesoProhibido("El conductor solo puede operar sobre sus propios datos")
-
-
-def es_entero(valor: object) -> bool:
-    return isinstance(valor, int) and not isinstance(valor, bool)

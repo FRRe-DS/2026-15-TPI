@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.historial import evento_de_alta
 from app.aplicacion.casos_de_uso.resultados import VehiculoDetalle
@@ -16,7 +18,7 @@ class RegistrarVehiculo:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         tipo: TipoVehiculo,
         patente: str,
         marca: str,

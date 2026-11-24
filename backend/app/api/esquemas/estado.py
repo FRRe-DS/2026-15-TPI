@@ -3,6 +3,7 @@
 from datetime import datetime
 from enum import StrEnum
 from typing import Self
+from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -33,7 +34,7 @@ class EstadoPedido(StrEnum):
 class EstadoConductorRequest(BaseModel):
     estado: EstadoPedido | None = None
     # Se distingue "no informado" de `null` con `model_fields_set`: `null` quita el vehículo.
-    id_vehiculo_activo: int | None = None
+    id_vehiculo_activo: UUID | None = None
     latitud: float | None = Field(default=None, ge=-90, le=90)
     longitud: float | None = Field(default=None, ge=-180, le=180)
 
@@ -50,14 +51,14 @@ class EstadoConductorRequest(BaseModel):
 
 
 class EstadoConductor(BaseModel):
-    id_conductor: int
+    id_conductor: UUID
     estado: EstadoOperativo
-    id_vehiculo_activo: int | None = None
+    id_vehiculo_activo: UUID | None = None
     actualizado: datetime
 
 
 class UbicacionConductor(BaseModel):
-    id_conductor: int
+    id_conductor: UUID
     latitud: float | None
     longitud: float | None
     fecha_act_ubic: datetime | None

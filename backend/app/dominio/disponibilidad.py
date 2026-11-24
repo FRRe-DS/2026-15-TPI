@@ -5,6 +5,7 @@ de estado y vehiculo activo, y marca `OCUPADO` al aceptar una solicitud.
 """
 
 from datetime import datetime
+from uuid import UUID
 
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.errores import ConductorNoHabilitado, DatosInvalidos
@@ -38,7 +39,7 @@ def _normalizar_estado(estado: object) -> EstadoConductor | None:
 
 
 def _verificar_vehiculo(
-    conductor: Conductor, vehiculo: Vehiculo | None, id_esperado: int | None
+    conductor: Conductor, vehiculo: Vehiculo | None, id_esperado: UUID | None
 ) -> None:
     """El vehiculo recibido debe ser el que se pretende dejar activo y ser del conductor."""
     if vehiculo is None:
@@ -52,7 +53,7 @@ def aplicar_cambio_estado(
     vehiculo_activo: Vehiculo | None,
     *,
     estado: EstadoConductor | None = None,
-    id_vehiculo_activo: int | None | _NoInformado = NO_INFORMADO,
+    id_vehiculo_activo: UUID | None | _NoInformado = NO_INFORMADO,
     ahora: datetime,
 ) -> bool:
     """Aplica un cambio de estado y/o de vehiculo activo. Devuelve si hubo cambio.

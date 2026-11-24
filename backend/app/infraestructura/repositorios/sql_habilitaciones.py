@@ -1,4 +1,5 @@
 from datetime import UTC
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -44,28 +45,28 @@ class SqlRepositorioHabilitaciones(RepositorioHabilitaciones):
     def __init__(self, sesion: Session) -> None:
         self._sesion = sesion
 
-    def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
+    def registrar_evento_conductor(self, id_conductor: UUID, evento: EventoHabilitacion) -> None:
         fila = EventoConductorOrm(id_conductor=id_conductor)
         _copiar_a_fila(evento, fila)
         flush_aislado(self._sesion, fila)
 
-    def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
+    def registrar_evento_vehiculo(self, id_vehiculo: UUID, evento: EventoHabilitacion) -> None:
         fila = EventoVehiculoOrm(id_vehiculo=id_vehiculo)
         _copiar_a_fila(evento, fila)
         flush_aislado(self._sesion, fila)
 
-    def historial_conductor(self, id_conductor: int) -> list[EventoHabilitacion]:
+    def historial_conductor(self, id_conductor: UUID) -> list[EventoHabilitacion]:
         consulta = (
             select(EventoConductorOrm)
             .where(EventoConductorOrm.id_conductor == id_conductor)
-            .order_by(EventoConductorOrm.id_evento)
+            .order_by(EventoConductorOrm.secuencia)
         )
         return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
-    def historial_vehiculo(self, id_vehiculo: int) -> list[EventoHabilitacion]:
+    def historial_vehiculo(self, id_vehiculo: UUID) -> list[EventoHabilitacion]:
         consulta = (
             select(EventoVehiculoOrm)
             .where(EventoVehiculoOrm.id_vehiculo == id_vehiculo)
-            .order_by(EventoVehiculoOrm.id_evento)
+            .order_by(EventoVehiculoOrm.secuencia)
         )
         return [_a_dominio(fila) for fila in self._sesion.scalars(consulta)]

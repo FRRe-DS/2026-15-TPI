@@ -225,9 +225,7 @@ def downgrade() -> None:
     op.drop_table("solicitud")
 
     op.drop_index("ix_conductor_id_vehiculo_activo", table_name="conductor")
-    op.drop_constraint(
-        op.f("ck_conductor_promedio_puntajes_rango"), "conductor", type_="check"
-    )
+    op.drop_constraint(op.f("ck_conductor_promedio_puntajes_rango"), "conductor", type_="check")
     op.drop_constraint(op.f("ck_conductor_puntajes_coherentes"), "conductor", type_="check")
     op.drop_constraint(
         op.f("ck_conductor_cantidad_calificaciones_no_negativa"),

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,11 +45,11 @@ class SqlRepositorioSolicitudes(RepositorioSolicitudes):
         solicitud.id = fila.id_solicitud
         return solicitud
 
-    def obtener(self, id_solicitud: int) -> Solicitud | None:
+    def obtener(self, id_solicitud: UUID) -> Solicitud | None:
         fila = self._sesion.get(SolicitudOrm, id_solicitud)
         return None if fila is None else a_dominio(fila)
 
-    def listar_por_conductor(self, id_conductor: int) -> list[Solicitud]:
+    def listar_por_conductor(self, id_conductor: UUID) -> list[Solicitud]:
         consulta = (
             select(SolicitudOrm)
             .where(SolicitudOrm.id_conductor == id_conductor)
