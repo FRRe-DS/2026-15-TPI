@@ -10,7 +10,7 @@ info:
     | Módulo | Sentido | Operación |
     |---|---|---|
     | M4 | M4 → M3 | `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`: lectura de estado y ubicación |
-    | M5 | M5 → M3 / M3 → M5 | `POST /conductores/{id_conductor}/solicitudes`: M5 envía un viaje, M3 lo guarda como `PENDIENTE` y lo expone en `GET /conductores/{id_conductor}/solicitudes`. Al aceptar, M3 confirma con M5 de forma síncrona (`contratos/m5_solicitud/openapi.yml`) y solo con el OK pasa el conductor a `OCUPADO`. |
+    | M5 | M5 → M3 | `POST /conductores/{id_conductor}/solicitudes`: M5 envía un viaje, M3 lo guarda como `PENDIENTE` y lo expone en `GET /conductores/{id_conductor}/solicitudes`. Al aceptar, M3 lo confirma con M5 de forma síncrona y solo con el OK pasa el conductor a `OCUPADO`. |
     | M6 | M6 → M3 | `POST /conductores/{id_conductor}/calificaciones`: M6 registra la valoración del conductor al finalizar un viaje. |
 
     El estado y la ubicación del conductor los informa el propio conductor con `PATCH /conductores/{id_conductor}/estado`. `OCUPADO` lo asigna M3 únicamente después de que M5 confirme la aceptación de una solicitud.
@@ -66,7 +66,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Conductor'
               example:
-                id: 1
+                id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                 dni: "30123456"
                 nombre: Ana
                 apellido: Gómez
@@ -148,7 +148,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/ConductorConUbicacion'
               example:
-                - id: 1
+                - id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                   dni: "30123456"
                   nombre: Ana
                   apellido: Gómez
@@ -189,7 +189,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ConductorConUbicacion'
               example:
-                id: 1
+                id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                 dni: "30123456"
                 nombre: Ana
                 apellido: Gómez
@@ -230,7 +230,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HabilitacionResumen'
               example:
-                id_conductor: 1
+                id_conductor: 'caa3df2f-5a09-52ce-b724-3adee32a8614'
                 estado: APROBADA
                 historial:
                   - estado: PENDIENTE
@@ -239,7 +239,7 @@ paths:
                     fecha: "2026-10-22T10:00:00Z"
                   - estado: APROBADA
                     motivo: Licencia vigente y documentación completa
-                    id_operador: 7
+                    id_operador: 'd5a0cae9-26da-5de5-940c-71e16bb97091'
                     fecha: "2026-10-22T12:30:00Z"
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -275,22 +275,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/HabilitacionEventos'
               example:
-                id_conductor: 1
+                id_conductor: 'caa3df2f-5a09-52ce-b724-3adee32a8614'
                 estado: APROBADA
                 eventos:
-                  - id: 1
+                  - id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                     accion: ALTA
                     estado_anterior: null
                     estado_nuevo: PENDIENTE
                     motivo: Alta del conductor
                     id_operador: null
                     fecha: "2026-10-22T10:00:00Z"
-                  - id: 2
+                  - id: 'b8ec14f1-50f3-5a40-b9c2-07ce5b8cde79'
                     accion: APROBAR
                     estado_anterior: PENDIENTE
                     estado_nuevo: APROBADA
                     motivo: Licencia vigente y documentación completa
-                    id_operador: 7
+                    id_operador: 'd5a0cae9-26da-5de5-940c-71e16bb97091'
                     fecha: "2026-10-22T12:30:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -352,7 +352,7 @@ paths:
                 fecha_emision: "2024-05-10"
                 fecha_vencimiento: "2028-05-10"
                 url_archivo: https://storage.example.com/licencias/1.pdf
-                id_conductor: 1
+                id_conductor: 'caa3df2f-5a09-52ce-b724-3adee32a8614'
                 estado: VIGENTE
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -405,8 +405,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Vehiculo'
               example:
-                id: 1
-                id_conductor: 1
+                id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
+                id_conductor: 'caa3df2f-5a09-52ce-b724-3adee32a8614'
                 tipo: AUTO
                 patente: AB123CD
                 marca: Toyota
@@ -465,7 +465,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/VehiculoResumen'
               example:
-                - id: 1
+                - id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                   tipo: AUTO
                   patente: AB123CD
                   marca: Toyota
@@ -501,8 +501,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Vehiculo'
               example:
-                id: 1
-                id_conductor: 1
+                id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
+                id_conductor: 'caa3df2f-5a09-52ce-b724-3adee32a8614'
                 tipo: AUTO
                 patente: AB123CD
                 marca: Toyota
@@ -590,7 +590,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/DocumentoVehiculo'
               example:
-                id_vehiculo: 7
+                id_vehiculo: '4697c312-9dc5-57e2-820f-ef7f84215e81'
                 tipo: SEGURO
                 numero: POL-123456
                 entidad_emisora: Aseguradora de prueba
@@ -643,22 +643,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/HabilitacionVehiculoEventos'
               example:
-                id_vehiculo: 1
+                id_vehiculo: '5a562551-1799-59df-aaea-f78ce401fbae'
                 estado: APROBADA
                 eventos:
-                  - id: 1
+                  - id: '98ced537-b1b8-567d-8bc9-25984e296b7b'
                     accion: ALTA
                     estado_anterior: null
                     estado_nuevo: PENDIENTE
                     motivo: Alta del vehículo
                     id_operador: null
                     fecha: "2026-10-22T10:05:00Z"
-                  - id: 2
+                  - id: 'b8ec14f1-50f3-5a40-b9c2-07ce5b8cde79'
                     accion: APROBAR
                     estado_anterior: PENDIENTE
                     estado_nuevo: APROBADA
                     motivo: Documentación del vehículo validada
-                    id_operador: 7
+                    id_operador: 'd5a0cae9-26da-5de5-940c-71e16bb97091'
                     fecha: "2026-10-22T13:00:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -695,9 +695,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/EstadoConductor'
               example:
-                id_conductor: 15
+                id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                 estado: DISPONIBLE
-                id_vehiculo_activo: 7
+                id_vehiculo_activo: '4697c312-9dc5-57e2-820f-ef7f84215e81'
                 actualizado: '2026-11-02T01:30:00Z'
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -740,9 +740,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/EstadoConductor'
               example:
-                id_conductor: 15
+                id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                 estado: CONECTADO
-                id_vehiculo_activo: 7
+                id_vehiculo_activo: '4697c312-9dc5-57e2-820f-ef7f84215e81'
                 actualizado: '2026-11-02T01:30:00Z'
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -786,7 +786,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UbicacionConductor'
               example:
-                id_conductor: 15
+                id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                 latitud: -27.4511
                 longitud: -58.9867
                 fecha_act_ubic: '2026-11-02T01:30:00Z'
@@ -807,7 +807,7 @@ paths:
       summary: Registrar calificación hacia el conductor
       description: |
         Registra el puntaje otorgado por un pasajero tras finalizar un viaje (RF-2.5).
-        La invoca M6 con la cuenta `servicio.m6`. M6 garantiza que el viaje está
+        La invoca M6 con el rol `servicio`. M6 garantiza que el viaje está
         `COMPLETED`: M3 no puede verificarlo porque no consulta a M6.
 
         M3 valida solo lo que tiene:
@@ -835,9 +835,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/CalificacionConductor'
               example:
-                id: 104
+                id: 'b7f91658-e680-5b4b-88bc-0218000f7a75'
                 id_viaje: '7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11'
-                id_conductor: 15
+                id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                 puntaje: 5
                 fecha: '2026-11-20T22:10:00Z'
         '400':
@@ -888,8 +888,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/Solicitud'
               example:
-                - id: 340
-                  id_conductor: 15
+                - id: 'bfd4ec04-6172-5cc3-9ead-d634fcf06bb7'
+                  id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                   id_viaje: '7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11'
                   id_solicitud_m5: '0c6a4f0e-8f43-4d3b-a3b7-6a1f2c8e9d10'
                   tipo_servicio: PASAJEROS
@@ -919,7 +919,7 @@ paths:
       tags: [Solicitudes]
       summary: Recibir oferta de viaje desde M5
       description: |
-        Lo invoca **M5** con la cuenta `servicio.m5` para enviar una oferta de viaje a un conductor candidato.
+        Lo invoca **M5** (rol `servicio`) para enviar una oferta de viaje a un conductor candidato.
         M3 la guarda como `PENDIENTE` y la expone en `GET /conductores/{id_conductor}/solicitudes`.
         El conductor debe estar habilitado (`APROBADA`) y `DISPONIBLE`; de lo contrario responde `422 CONDUCTOR_NO_HABILITADO`.
 
@@ -978,17 +978,15 @@ paths:
         in: path
         required: true
         schema:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
     post:
       tags: [Solicitudes]
       summary: Aceptar o rechazar una solicitud
       description: |
         El conductor acepta o rechaza una oferta `PENDIENTE` mientras esté vigente; vencida devuelve `410`.
         Si `respuesta` es `RECHAZADO`, M3 guarda el rechazo sin consultar a M5.
-        Si es `ACEPTADO`, M3 envía la aceptación a M5 de forma síncrona. La operación que M3 invoca
-        está en el contrato compartido de M5 (`contratos/m5_solicitud/openapi.yml`); su `operationId`
-        debe acordarse con M5.
+        Si es `ACEPTADO`, M3 lo confirma con M5 de forma síncrona.
 
         - Con el OK de M5: M3 guarda `ACEPTADO` y pasa al conductor a `OCUPADO`.
         - Si M5 no valida la aceptación: `409 TRANSICION_INVALIDA`.
@@ -1018,8 +1016,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Solicitud'
               example:
-                id: 340
-                id_conductor: 15
+                id: 'bfd4ec04-6172-5cc3-9ead-d634fcf06bb7'
+                id_conductor: 'ab3ee30c-086d-5902-a647-ce922f90172e'
                 id_viaje: '7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11'
                 id_solicitud_m5: '0c6a4f0e-8f43-4d3b-a3b7-6a1f2c8e9d10'
                 tipo_servicio: PASAJEROS
@@ -1063,12 +1061,9 @@ components:
       description: |
         JWT emitido por Keycloak (realm `m3`). Roles:
 
-        - `operador`: acciones de habilitación. El token trae el claim entero `id_operador`.
-        - `conductor`: opera sobre sus propios datos. El token trae el claim entero `id_conductor`; si pide datos de otro conductor recibe `403 ACCESO_PROHIBIDO`. No puede listar conductores (`GET /conductores`).
-        - `servicio`: rol compartido por las cuentas técnicas. Cada módulo usa la suya (`servicio.m4`, `servicio.m5`, `servicio.m6`) y M3 acota los permisos por operación según la cuenta:
-          - `servicio.m4`: `GET /conductores`, `GET /conductores/{id_conductor}`, `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`.
-          - `servicio.m5`: `POST /conductores/{id_conductor}/solicitudes`.
-          - `servicio.m6`: `POST /conductores/{id_conductor}/calificaciones`.
+        - `operador`: acciones de habilitación. El token trae el claim `id_operador` (UUID).
+        - `conductor`: opera sobre sus propios datos. El token trae el claim `id_conductor` (UUID); si pide datos de otro conductor recibe `403 ACCESO_PROHIBIDO`. No puede listar conductores (`GET /conductores`).
+        - `servicio`: cuenta técnica compartida por los otros módulos (M4, M5 y M6). Puede leer conductores, vehículos, estado y ubicación; M5 envía ofertas de viaje y M6 registra calificaciones.
 
   parameters:
     IdConductor:
@@ -1076,15 +1071,15 @@ components:
       in: path
       required: true
       schema:
-        type: integer
-        format: int64
+        type: string
+        format: uuid
     IdVehiculo:
       name: id_vehiculo
       in: path
       required: true
       schema:
-        type: integer
-        format: int64
+        type: string
+        format: uuid
 
   responses:
     BadRequest:
@@ -1287,8 +1282,8 @@ components:
           required: [id, documentos, vehiculos, habilitacion, estado]
           properties:
             id:
-              type: integer
-              format: int64
+              type: string
+              format: uuid
             documentos:
               type: array
               items:
@@ -1319,8 +1314,8 @@ components:
         - type: object
           properties:
             id_vehiculo_activo:
-              type: integer
-              format: int64
+              type: string
+              format: uuid
               nullable: true
               description: Vehículo con el que trabaja el conductor. null si no tiene uno activo.
             latitud:
@@ -1346,8 +1341,8 @@ components:
           description: No admite OCUPADO, que lo asigna M3 al aceptar una solicitud.
           enum: [DESCONECTADO, CONECTADO, DISPONIBLE]
         id_vehiculo_activo:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
           nullable: true
         latitud:
           type: number
@@ -1363,13 +1358,13 @@ components:
       required: [id_conductor, estado, actualizado]
       properties:
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         estado:
           $ref: '#/components/schemas/EstadoOperativo'
         id_vehiculo_activo:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
           nullable: true
         actualizado:
           type: string
@@ -1381,8 +1376,8 @@ components:
       required: [id_conductor, latitud, longitud, fecha_act_ubic]
       properties:
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         latitud:
           type: number
           format: double
@@ -1437,11 +1432,11 @@ components:
       required: [id, id_conductor, tipo, patente, marca, modelo, anio, tipos_serv, documentos, habilitacion]
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         tipo:
           $ref: '#/components/schemas/TipoVehiculo'
         patente:
@@ -1470,8 +1465,8 @@ components:
       required: [id, tipo, patente, marca, modelo, anio, habilitacion]
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         tipo:
           $ref: '#/components/schemas/TipoVehiculo'
         patente:
@@ -1520,8 +1515,8 @@ components:
           required: [id_conductor, estado]
           properties:
             id_conductor:
-              type: integer
-              format: int64
+              type: string
+              format: uuid
             estado:
               $ref: '#/components/schemas/EstadoDocumento'
 
@@ -1559,8 +1554,8 @@ components:
           required: [id_vehiculo, estado]
           properties:
             id_vehiculo:
-              type: integer
-              format: int64
+              type: string
+              format: uuid
             estado:
               $ref: '#/components/schemas/EstadoDocumento'
 
@@ -1586,8 +1581,8 @@ components:
           type: string
           maxLength: 500
         id_operador:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
           nullable: true
         fecha:
           type: string
@@ -1598,8 +1593,8 @@ components:
       required: [id_conductor, estado, historial]
       properties:
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         estado:
           $ref: '#/components/schemas/EstadoHabilitacion'
         historial:
@@ -1612,8 +1607,8 @@ components:
       required: [id, accion, estado_nuevo, motivo, fecha]
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         accion:
           $ref: '#/components/schemas/AccionHabilitacion'
         estado_anterior:
@@ -1627,8 +1622,8 @@ components:
           type: string
           maxLength: 500
         id_operador:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
           nullable: true
           description: null si lo genera el sistema
         fecha:
@@ -1640,8 +1635,8 @@ components:
       required: [id_conductor, estado, eventos]
       properties:
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         estado:
           $ref: '#/components/schemas/EstadoHabilitacion'
         eventos:
@@ -1654,8 +1649,8 @@ components:
       required: [id_vehiculo, estado, eventos]
       properties:
         id_vehiculo:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         estado:
           $ref: '#/components/schemas/EstadoHabilitacion'
         eventos:
@@ -1711,12 +1706,12 @@ components:
       required: [id, id_conductor, id_viaje, id_solicitud_m5, tipo_servicio, origen, destino, estado, vence_en]
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
           description: ID interno de la oferta en M3
         id_conductor:
-          type: integer
-          format: int64
+          type: string
+          format: uuid
         id_viaje:
           type: string
           format: uuid
@@ -1777,17 +1772,17 @@ components:
       required: [id, id_viaje, id_conductor, puntaje, fecha]
       properties:
         id:
-          type: integer
-          format: int64
-          example: 104
+          type: string
+          format: uuid
+          example: 'b7f91658-e680-5b4b-88bc-0218000f7a75'
         id_viaje:
           type: string
           format: uuid
           example: "7b0e3a8e-4f7c-4d1a-9a52-1f0c2f9d6b11"
         id_conductor:
-          type: integer
-          format: int64
-          example: 15
+          type: string
+          format: uuid
+          example: '64e57cf1-ce28-55c4-954f-11a23eddeafd'
         puntaje:
           type: integer
           minimum: 1
