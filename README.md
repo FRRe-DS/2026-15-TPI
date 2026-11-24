@@ -130,7 +130,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ## Contrato de la API
 
-- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 1.2.0.
+- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 2.0.0.
 - **El contrato dirige:** no se implementa ningún endpoint que no esté en el `openapi.yaml`.
 - URL base en desarrollo local: `http://localhost:8080/api/v1`
 - Formato: JSON.
