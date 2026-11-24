@@ -5,7 +5,7 @@ info:
   description: |
     Contrato del módulo M3 - Conductores y Vehículos.
 
-    Describe solo lo que M3 expone. Lo que M3 consume de otros módulos se define en los contratos de esos módulos y no figura aquí.
+    Describe solo lo que M3 expone.
 
     | Módulo | Sentido | Operación |
     |---|---|---|
@@ -1685,7 +1685,7 @@ components:
         id_solicitud_m5:
           type: string
           format: uuid
-          description: Identificador de la solicitud en M5 (requestId)
+          description: Identificador de la oferta en M5
         id_viaje:
           type: string
           format: uuid
