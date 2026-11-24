@@ -9,10 +9,10 @@ Punto de sincronización entre el **Stack 3** (emite, vía Keycloak), el **Stack
 | `iss` | texto | Debe coincidir con el emisor configurado | sin cambios |
 | `exp` | número | Token vencido → `401` | sin cambios |
 | `realm_access.roles` | lista | Contiene `operador`, `conductor` y/o `servicio` | suma `servicio` |
-| `id_operador` | entero | Solo operadores; se guarda en el evento de habilitación | sin cambios |
-| `id_conductor` | entero | Solo conductores; identifica al conductor dueño del token | **nuevo** |
+| `id_operador` | texto (UUID) | Solo operadores; se guarda en el evento de habilitación | sin cambios |
+| `id_conductor` | texto (UUID) | Solo conductores; identifica al conductor dueño del token | **nuevo** |
 
-- `id_conductor` y `id_operador` deben ser enteros. Un valor booleano no es válido.
+- `id_conductor` y `id_operador` deben ser UUID en texto. Un número o un booleano no son válidos.
 - Un token de rol `servicio` no necesita otro claim: la cuenta técnica de M4 solo trae el rol. Es de solo lectura.
 - El backend no usa el `id_conductor` del cuerpo ni de la consulta para decidir el acceso: siempre el del token.
 
@@ -71,7 +71,7 @@ Lo que Backend necesita de Datos y seguridad (issue #36):
 | Rol `servicio` | Rol de realm nuevo |
 | Cuenta técnica | Una de M4 con el rol `servicio` (solo lectura); credenciales por variables de entorno, sin valores en el repo |
 | Usuario conductor de prueba | Su claim `id_conductor` debe coincidir con un conductor del seed |
-| Mapeador | El claim `id_conductor` se incluye como entero en el token de acceso, igual que `id_operador` |
+| Mapeador | El claim `id_conductor` se incluye como texto UUID en el token de acceso, igual que `id_operador` |
 
 ## Tokens para pruebas
 

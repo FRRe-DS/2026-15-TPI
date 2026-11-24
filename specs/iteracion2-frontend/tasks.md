@@ -1,6 +1,6 @@
 # Tareas: Iteración 2 — Frontend de M3
 
-**Fuentes**: [spec.md](./spec.md), [plan.md](./plan.md) y `docs/contract/openapi.yaml` (1.2.0).
+**Fuentes**: [spec.md](./spec.md), [plan.md](./plan.md) y `docs/contract/openapi.yaml` (2.0.0, ids UUID).
 
 **Review previa al release**: [hallazgos-review.md](./docs/hallazgos-review.md). Los hallazgos funcionales quedan pendientes; este cierre concilia documentación y tareas entregadas, sin corregirlos.
 
@@ -20,7 +20,7 @@
 
 **Stack A · tipos y cliente de API** (una PR desde `dev`)
 
-- [x] T704 Actualizar `src/lib/tipos.ts` al contrato 1.2.0: `estado` operativo (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) en lugar de `conectado` y `disponible`; sumar `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`; agregar los tipos `EstadoConductor`, `EstadoConductorRequest`, `UbicacionConductor`, `Solicitud` y `RespuestaSolicitudRequest` (`respuesta` y `hora_rta` obligatorios). Ajustar mocks y tests existentes.
+- [x] T704 Actualizar `src/lib/tipos.ts` al contrato 1.2.0 (luego 2.0.0, ids UUID): `estado` operativo (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE`, `OCUPADO`) en lugar de `conectado` y `disponible`; sumar `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`; agregar los tipos `EstadoConductor`, `EstadoConductorRequest`, `UbicacionConductor`, `Solicitud` y `RespuestaSolicitudRequest` (`respuesta` y `hora_rta` obligatorios). Ajustar mocks y tests existentes.
 - [x] T705 [Test] Extender `src/lib/api.conductor.test.ts` y `src/lib/api.filtros.test.ts`: `obtenerEstado`, `actualizarEstado` (PATCH con estado, ubicación opcional y `latitud` con `longitud` juntas), `listarSolicitudes` (filtro `estado`), `responderSolicitud` y `obtenerUbicacion` envían `Authorization: Bearer`, usan el método y la URL del contrato y lanzan `ErrorApi` con `{codigo, mensaje}` ante 401, 403, 404, 409, 410 y 422.
 - [x] T706 [Impl] Implementar esas funciones en `src/lib/api.ts` hasta que pase T705.
 
