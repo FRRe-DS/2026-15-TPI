@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from types import TracebackType
 from typing import Self
+from uuid import UUID
 
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
@@ -47,21 +48,21 @@ class UnidadDeTrabajo(ABC):
         """Descarta los cambios de la transacción."""
 
     @abstractmethod
-    def bloquear_conductor(self, id_conductor: int) -> Conductor | None:
+    def bloquear_conductor(self, id_conductor: UUID) -> Conductor | None:
         """Obtiene el conductor con bloqueo de fila (SELECT ... FOR UPDATE).
 
         Devuelve el valor vigente en la base aunque la transacción ya haya leído al conductor.
         """
 
     @abstractmethod
-    def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def bloquear_vehiculo(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         """Obtiene el vehículo del conductor con bloqueo de fila (SELECT ... FOR UPDATE).
 
         Devuelve el valor vigente en la base aunque la transacción ya haya leído el vehículo.
         """
 
     @abstractmethod
-    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+    def bloquear_solicitud(self, id_solicitud: UUID) -> Solicitud | None:
         """Obtiene la solicitud con bloqueo de fila (SELECT ... FOR UPDATE).
 
         Devuelve el valor vigente en la base aunque la transacción ya haya leído la solicitud:

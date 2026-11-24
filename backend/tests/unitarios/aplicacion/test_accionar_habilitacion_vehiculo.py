@@ -38,6 +38,7 @@ from app.dominio.habilitacion import (
 )
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -287,8 +288,8 @@ def test_lanza_no_encontrado_y_no_persiste_nada(accionar, uow, caso):
     vehiculo = sembrar_vehiculo(uow, duenio.id, PENDIENTE)
     alta = sembrar_evento_de_alta(uow, vehiculo.id)
     ids = {
-        "vehiculo_inexistente": (duenio.id, vehiculo.id + 1),
-        "conductor_inexistente": (otro.id + 1, vehiculo.id),
+        "vehiculo_inexistente": (duenio.id, uid(999)),
+        "conductor_inexistente": (uid(999), vehiculo.id),
         "vehiculo_de_otro_conductor": (otro.id, vehiculo.id),
     }
     id_conductor, id_vehiculo = ids[caso]
@@ -304,7 +305,7 @@ def test_lanza_no_encontrado_y_no_persiste_nada(accionar, uow, caso):
 
     assert estado_guardado(uow, duenio.id, vehiculo.id) is PENDIENTE
     assert uow.habilitaciones.historial_vehiculo(vehiculo.id) == [alta]
-    assert uow.habilitaciones.historial_vehiculo(vehiculo.id + 1) == []
+    assert uow.habilitaciones.historial_vehiculo(uid(999)) == []
 
 
 def test_toma_el_vehiculo_con_bloqueo_de_fila_una_sola_vez(accionar, uow):
@@ -495,7 +496,7 @@ def test_una_transicion_no_permitida_no_toca_los_tipos_de_servicio(
     assert habilitados_guardados(uow, conductor.id, vehiculo.id) == [True, False]
 
 
-def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_alta(accionar, uow):
+def test_los_eventos_devueltos_traen_id_distinto(accionar, uow):
     conductor = sembrar_conductor(uow)
     vehiculo = sembrar_vehiculo(uow, conductor.id, PENDIENTE)
     sembrar_evento_de_alta(uow, vehiculo.id)
@@ -518,4 +519,4 @@ def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_
     ids = [evento.id for evento in resultado.eventos]
     assert len(ids) == 3
     assert all(id_evento is not None for id_evento in ids)
-    assert ids == sorted(set(ids))  # distintos y crecientes: el alta primero, el nuevo ultimo
+    assert len(set(ids)) == len(ids)  # cada evento tiene su propio UUID

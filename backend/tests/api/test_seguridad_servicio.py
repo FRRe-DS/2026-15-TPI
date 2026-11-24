@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends
 from fastapi.testclient import TestClient
 
 from tests.api.conftest import instalar_limitador_falso
+from tests.ids import uid
 
 URL_USUARIO = "/api/v1/usuario"
 URL_IDENTIDAD = "/api/v1/identidad"
@@ -76,15 +77,15 @@ def test_token_sin_ningun_rol_reconocido_responde_403(
     assert respuesta.json()["codigo"] == "SIN_PERMISOS"
 
 
-def test_la_identidad_lee_roles_y_claim_id_conductor_entero(
+def test_la_identidad_lee_roles_y_claim_id_conductor_uuid(
     client_identidad: TestClient,
     headers_conductor_de,
 ) -> None:
-    respuesta = client_identidad.get(URL_IDENTIDAD, headers=headers_conductor_de(5))
+    respuesta = client_identidad.get(URL_IDENTIDAD, headers=headers_conductor_de(uid(5)))
 
     assert respuesta.json() == {
         "roles": ["conductor"],
-        "id_conductor": 5,
+        "id_conductor": str(uid(5)),
         "id_operador": None,
     }
 
@@ -93,21 +94,21 @@ def test_la_identidad_lee_id_operador_y_varios_roles(
     client_identidad: TestClient,
     crear_token,
 ) -> None:
-    token = crear_token(roles=["operador", "conductor"], id_operador=7, id_conductor=2)
+    token = crear_token(roles=["operador", "conductor"], id_operador=uid(7), id_conductor=uid(2))
 
     respuesta = client_identidad.get(URL_IDENTIDAD, headers={"Authorization": f"Bearer {token}"})
 
     assert respuesta.json() == {
         "roles": ["conductor", "operador"],
-        "id_conductor": 2,
-        "id_operador": 7,
+        "id_conductor": str(uid(2)),
+        "id_operador": str(uid(7)),
     }
 
 
 @pytest.mark.parametrize(
     "id_conductor",
-    [True, "no-numerico", 3.5],
-    ids=["booleano", "no-numerico", "decimal"],
+    [True, "no-uuid", 3.5, 1, "1"],
+    ids=["booleano", "no-uuid", "decimal", "entero", "entero-en-texto"],
 )
 def test_id_conductor_invalido_se_trata_como_ausente(
     client_identidad: TestClient,

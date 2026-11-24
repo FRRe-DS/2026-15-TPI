@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
@@ -102,7 +103,7 @@ def listar_conductores(
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def obtener_conductor(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[ObtenerConductor, Depends(obtener_caso_obtener_conductor)],
 ) -> ConductorConUbicacion:
     return conductor_desde_detalle(caso.ejecutar(id_conductor=id_conductor))

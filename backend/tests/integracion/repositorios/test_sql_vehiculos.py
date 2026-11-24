@@ -10,7 +10,8 @@ Se comporta como el fake `RepositorioVehiculosEnMemoria` (ver `tests/unitarios/f
   previa); el INSERT, con sus tipos de servicio, se aisla en un SAVEPOINT para que la sesion
   siga usable y no queden filas hijas. Otro `IntegrityError` se propaga sin traducir.
 - `obtener(id_conductor, id_vehiculo)` devuelve None si no existe o es de otro conductor.
-- `listar_por_conductor` devuelve solo los del conductor, en orden de id, con `tipo` y
+- `listar_por_conductor` devuelve solo los del conductor (sin orden garantizado: ids UUID), con
+  `tipo` y
   `habilitacion` combinados con AND.
 Los tipos de servicio vuelven en el orden del modelo ORM: los tests los comparan como
 conjunto de pares (tipo, habilitado).
@@ -28,6 +29,7 @@ from app.infraestructura.repositorios.sql_vehiculos import SqlRepositorioVehicul
 from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
 from tests.integracion.sentencias import capturar_sentencias, selects
 
 PENDIENTE = EstadoHabilitacion.PENDIENTE
@@ -82,7 +84,8 @@ def pares(vehiculo):
 
 
 def patentes(vehiculos):
-    return [vehiculo.patente for vehiculo in vehiculos]
+    # Los ids son UUID: el orden de los listados es estable pero arbitrario.
+    return sorted([vehiculo.patente for vehiculo in vehiculos])
 
 
 def contar_tipos_de_servicio(sesion):
@@ -92,7 +95,7 @@ def contar_tipos_de_servicio(sesion):
 # --- guardar y obtener ---
 
 
-def test_guardar_vehiculo_nuevo_devuelve_el_vehiculo_de_dominio_con_ids_incrementales(
+def test_guardar_vehiculo_nuevo_devuelve_el_vehiculo_de_dominio_con_ids_distintos(
     repositorio, sesion_bd
 ):
     id_conductor = sembrar_conductor(sesion_bd)
@@ -101,7 +104,9 @@ def test_guardar_vehiculo_nuevo_devuelve_el_vehiculo_de_dominio_con_ids_incremen
     segundo = repositorio.guardar(nuevo_vehiculo(id_conductor, "BBB222"))
 
     assert isinstance(primero, Vehiculo)
-    assert (primero.id, segundo.id) == (1, 2)
+    assert primero.id is not None
+    assert segundo.id is not None
+    assert primero.id != segundo.id
     assert primero.id_conductor == id_conductor
     assert primero.patente == "AAA111"
 
@@ -151,9 +156,9 @@ def test_el_vehiculo_confirmado_se_lee_con_todos_sus_campos_desde_otra_sesion(
 
 def test_obtener_vehiculo_inexistente_devuelve_none(repositorio, sesion_bd):
     id_conductor = sembrar_conductor(sesion_bd)
-    guardado = repositorio.guardar(nuevo_vehiculo(id_conductor))
+    repositorio.guardar(nuevo_vehiculo(id_conductor))
 
-    assert repositorio.obtener(id_conductor, guardado.id + 1) is None
+    assert repositorio.obtener(id_conductor, uid(999)) is None
 
 
 def test_obtener_vehiculo_de_otro_conductor_devuelve_none(repositorio, sesion_bd):
@@ -289,12 +294,10 @@ def test_listar_de_un_conductor_sin_vehiculos_o_inexistente_devuelve_lista_vacia
     id_conductor = sembrar_conductor(sesion_bd)
 
     assert repositorio.listar_por_conductor(id_conductor) == []
-    assert repositorio.listar_por_conductor(id_conductor + 1) == []
+    assert repositorio.listar_por_conductor(uid(999)) == []
 
 
-def test_listar_devuelve_solo_los_del_conductor_en_orden_de_id_con_sus_servicios(
-    repositorio, sesion_bd
-):
+def test_listar_devuelve_solo_los_del_conductor_con_sus_servicios(repositorio, sesion_bd):
     uno = sembrar_conductor(sesion_bd, "30000001")
     otro = sembrar_conductor(sesion_bd, "30000002")
     repositorio.guardar(nuevo_vehiculo(uno, "CCC333", tipos_servicio=(PASAJEROS, ENVIOS)))
@@ -303,12 +306,13 @@ def test_listar_devuelve_solo_los_del_conductor_en_orden_de_id_con_sus_servicios
 
     resultado = repositorio.listar_por_conductor(uno)
 
-    assert patentes(resultado) == ["CCC333", "AAA111"]
-    assert [v.id for v in resultado] == [1, 3]
+    assert patentes(resultado) == ["AAA111", "CCC333"]
+    assert len({v.id for v in resultado}) == 2
     assert all(isinstance(v, Vehiculo) for v in resultado)
-    assert [pares(v) for v in resultado] == [
-        {(PASAJEROS, False), (ENVIOS, False)},
+    por_patente = sorted(resultado, key=lambda v: v.patente)
+    assert [pares(v) for v in por_patente] == [
         {(ENVIOS, False)},
+        {(PASAJEROS, False), (ENVIOS, False)},
     ]
 
 
@@ -344,7 +348,7 @@ def test_listar_filtra_por_tipo_y_habilitacion_combinando_con_and(
 
     resultado = repositorio.listar_por_conductor(id_conductor, **filtros)
 
-    assert patentes(resultado) == patentes_esperadas
+    assert patentes(resultado) == sorted(patentes_esperadas)
 
 
 def test_listar_con_filtros_sin_coincidencias_devuelve_lista_vacia(repositorio, sesion_bd):
@@ -399,7 +403,7 @@ def test_listar_por_conductores_devuelve_una_clave_por_id_pedido_con_sus_vehicul
     assert pares(leido) == {(PASAJEROS, False), (ENVIOS, True)}
 
 
-def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
+def test_listar_por_conductores_devuelve_cada_lista_sin_orden_garantizado(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     uno = sembrar_conductor(sesion_bd, "30000001")
@@ -412,7 +416,7 @@ def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
     with fabrica_sesiones() as otra_sesion:
         resultado = SqlRepositorioVehiculos(otra_sesion).listar_por_conductores([otro, uno])
 
-    assert patentes(resultado[uno]) == ["CCC333", "AAA111"]
+    assert patentes(resultado[uno]) == ["AAA111", "CCC333"]
     assert patentes(resultado[otro]) == ["XXX111", "YYY222"]
 
 
@@ -435,7 +439,7 @@ def test_listar_por_conductores_sin_ids_devuelve_un_diccionario_vacio(repositori
 
 
 def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(repositorio):
-    assert repositorio.listar_por_conductores([998, 999]) == {998: [], 999: []}
+    assert repositorio.listar_por_conductores([uid(998), uid(999)]) == {uid(998): [], uid(999): []}
 
 
 def test_el_lote_de_vehiculos_hace_una_cantidad_de_selects_que_no_crece_con_los_conductores(
@@ -513,7 +517,7 @@ def test_guardar_un_vehiculo_con_id_inexistente_lanza_no_encontrado_y_no_deja_fi
     """Caracterizacion: los ids los genera la base; un id inexistente no es un alta."""
     id_conductor = sembrar_conductor(sesion_bd)
     vehiculo = nuevo_vehiculo(id_conductor)
-    vehiculo.id = 999
+    vehiculo.id = uid(999)
 
     with pytest.raises(NoEncontrado):
         repositorio.guardar(vehiculo)

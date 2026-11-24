@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.puertos.unidad_de_trabajo import UnidadDeTrabajo
 from app.dominio.habilitacion import EstadoHabilitacion
@@ -11,7 +13,7 @@ class ListarVehiculos:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
+        id_conductor: UUID,
         tipo: TipoVehiculo | None = None,
         habilitacion: EstadoHabilitacion | None = None,
     ) -> list[Vehiculo]:

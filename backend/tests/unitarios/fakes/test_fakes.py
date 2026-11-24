@@ -16,6 +16,7 @@ Los fakes se comportan como los repositorios SQL (T034-T039) frente a los puerto
 """
 
 from datetime import UTC, date, datetime, timedelta
+from uuid import UUID
 
 import pytest
 from app.aplicacion.puertos.reloj import Reloj
@@ -42,6 +43,7 @@ from app.dominio.habilitacion import (
 from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -98,7 +100,7 @@ def nuevo_evento(motivo="Documentacion revisada"):
         estado_anterior=EstadoHabilitacion.PENDIENTE,
         estado_nuevo=EstadoHabilitacion.APROBADA,
         motivo=motivo,
-        id_operador=7,
+        id_operador=uid(7),
         fecha=AHORA,
     )
 
@@ -147,12 +149,12 @@ def test_entrar_al_with_devuelve_la_misma_unidad_de_trabajo(uow):
 # --- Conductores ---
 
 
-def test_guardar_conductor_asigna_ids_incrementales(uow):
+def test_guardar_conductor_asigna_ids_distintos(uow):
     primero = uow.conductores.guardar(nuevo_conductor(dni="30000001"))
     segundo = uow.conductores.guardar(nuevo_conductor(dni="30000002"))
 
     assert primero.id is not None
-    assert segundo.id == primero.id + 1
+    assert segundo.id != primero.id
 
 
 def test_guardar_conductor_nuevo_le_asigna_fecha_de_alta_como_hace_la_base(uow):
@@ -334,14 +336,14 @@ def test_listar_conductores_combina_los_filtros(uow):
 # --- Vehiculos ---
 
 
-def test_guardar_vehiculo_asigna_ids_incrementales(uow):
+def test_guardar_vehiculo_asigna_ids_distintos(uow):
     conductor = uow.conductores.guardar(nuevo_conductor())
 
     primero = uow.vehiculos.guardar(nuevo_vehiculo(conductor.id, "AAA111"))
     segundo = uow.vehiculos.guardar(nuevo_vehiculo(conductor.id, "BBB222"))
 
     assert primero.id is not None
-    assert segundo.id == primero.id + 1
+    assert segundo.id != primero.id
 
 
 def test_obtener_vehiculo_devuelve_el_guardado_del_conductor(uow):
@@ -440,14 +442,14 @@ def test_listar_vehiculos_filtra_por_tipo_y_por_habilitacion(uow):
 # --- Documentos ---
 
 
-def test_guardar_documento_asigna_ids_incrementales(uow):
+def test_guardar_documento_asigna_ids_distintos(uow):
     conductor = uow.conductores.guardar(nuevo_conductor())
 
     primero = uow.documentos.guardar(conductor.id, nueva_licencia("LIC-1"))
     segundo = uow.documentos.guardar(conductor.id, nueva_licencia("LIC-2"))
 
     assert primero.id is not None
-    assert segundo.id == primero.id + 1
+    assert segundo.id != primero.id
 
 
 def test_listar_documentos_devuelve_solo_los_del_conductor_en_orden_de_alta(uow):
@@ -474,50 +476,52 @@ def test_listar_documentos_de_un_conductor_sin_documentos_devuelve_lista_vacia(u
 def test_historial_del_conductor_devuelve_sus_eventos_en_orden_de_registro(uow):
     primero = nuevo_evento("Primero")
     segundo = nuevo_evento("Segundo")
-    uow.habilitaciones.registrar_evento_conductor(1, primero)
-    uow.habilitaciones.registrar_evento_conductor(2, nuevo_evento("De otro conductor"))
-    uow.habilitaciones.registrar_evento_conductor(1, segundo)
+    uow.habilitaciones.registrar_evento_conductor(uid(1), primero)
+    uow.habilitaciones.registrar_evento_conductor(uid(2), nuevo_evento("De otro conductor"))
+    uow.habilitaciones.registrar_evento_conductor(uid(1), segundo)
 
-    assert uow.habilitaciones.historial_conductor(1) == [primero, segundo]
+    assert uow.habilitaciones.historial_conductor(uid(1)) == [primero, segundo]
 
 
 def test_historial_del_vehiculo_devuelve_sus_eventos_en_orden_de_registro(uow):
     primero = nuevo_evento("Primero")
     segundo = nuevo_evento("Segundo")
-    uow.habilitaciones.registrar_evento_vehiculo(1, primero)
+    uow.habilitaciones.registrar_evento_vehiculo(uid(1), primero)
     uow.habilitaciones.registrar_evento_vehiculo(2, nuevo_evento("De otro vehiculo"))
-    uow.habilitaciones.registrar_evento_vehiculo(1, segundo)
+    uow.habilitaciones.registrar_evento_vehiculo(uid(1), segundo)
 
-    assert uow.habilitaciones.historial_vehiculo(1) == [primero, segundo]
+    assert uow.habilitaciones.historial_vehiculo(uid(1)) == [primero, segundo]
 
 
 def test_el_historial_del_conductor_y_el_del_vehiculo_son_independientes(uow):
-    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("Del conductor"))
+    uow.habilitaciones.registrar_evento_conductor(uid(1), nuevo_evento("Del conductor"))
 
-    assert uow.habilitaciones.historial_vehiculo(1) == []
+    assert uow.habilitaciones.historial_vehiculo(uid(1)) == []
 
 
 def test_historial_sin_eventos_devuelve_lista_vacia(uow):
-    assert uow.habilitaciones.historial_conductor(1) == []
-    assert uow.habilitaciones.historial_vehiculo(1) == []
+    assert uow.habilitaciones.historial_conductor(uid(1)) == []
+    assert uow.habilitaciones.historial_vehiculo(uid(1)) == []
 
 
-def test_los_eventos_del_historial_traen_id_incremental_por_tipo_de_entidad(uow):
-    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-primero"))
-    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-primero"))
-    uow.habilitaciones.registrar_evento_conductor(2, nuevo_evento("c2-primero"))
-    uow.habilitaciones.registrar_evento_conductor(1, nuevo_evento("c1-segundo"))
-    uow.habilitaciones.registrar_evento_vehiculo(1, nuevo_evento("v1-segundo"))
+def test_los_eventos_del_historial_traen_id_propio_por_tipo_de_entidad(uow):
+    uow.habilitaciones.registrar_evento_conductor(uid(1), nuevo_evento("c1-primero"))
+    uow.habilitaciones.registrar_evento_vehiculo(uid(1), nuevo_evento("v1-primero"))
+    uow.habilitaciones.registrar_evento_conductor(uid(2), nuevo_evento("c2-primero"))
+    uow.habilitaciones.registrar_evento_conductor(uid(1), nuevo_evento("c1-segundo"))
+    uow.habilitaciones.registrar_evento_vehiculo(uid(1), nuevo_evento("v1-segundo"))
 
-    ids_conductor_1 = [e.id for e in uow.habilitaciones.historial_conductor(1)]
-    ids_conductor_2 = [e.id for e in uow.habilitaciones.historial_conductor(2)]
-    ids_vehiculo_1 = [e.id for e in uow.habilitaciones.historial_vehiculo(1)]
+    ids_conductor_1 = [e.id for e in uow.habilitaciones.historial_conductor(uid(1))]
+    ids_conductor_2 = [e.id for e in uow.habilitaciones.historial_conductor(uid(2))]
+    ids_vehiculo_1 = [e.id for e in uow.habilitaciones.historial_vehiculo(uid(1))]
 
-    # la numeracion es por tipo de entidad (como dos tablas) y sigue el orden de registro
-    assert ids_conductor_1 == [1, 3]
-    assert ids_conductor_2 == [2]
-    assert ids_vehiculo_1 == [1, 2]
-    assert all(type(i) is int for i in ids_conductor_1 + ids_conductor_2 + ids_vehiculo_1)
+    # cada evento tiene su propio UUID y se agrupa por entidad, en orden de registro
+    assert len(ids_conductor_1) == 2
+    assert len(ids_conductor_2) == 1
+    assert len(ids_vehiculo_1) == 2
+    todos = ids_conductor_1 + ids_conductor_2 + ids_vehiculo_1
+    assert len(set(todos)) == len(todos)
+    assert all(isinstance(i, UUID) for i in todos)
 
 
 # --- Unidad de trabajo: bloqueo y transaccion ---
@@ -713,14 +717,14 @@ def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(
 # --- Solicitudes ---
 
 
-def test_guardar_solicitud_asigna_ids_incrementales(uow):
+def test_guardar_solicitud_asigna_ids_distintos(uow):
     conductor = uow.conductores.guardar(nuevo_conductor())
 
     primera = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
     segunda = uow.solicitudes.guardar(nueva_solicitud(conductor.id))
 
     assert primera.id is not None
-    assert segunda.id == primera.id + 1
+    assert segunda.id != primera.id
 
 
 def test_obtener_solicitud_devuelve_la_guardada(uow):
@@ -767,12 +771,12 @@ def test_listar_solicitudes_de_un_conductor_sin_solicitudes_devuelve_lista_vacia
 # --- Documentos del vehiculo ---
 
 
-def test_guardar_documento_de_vehiculo_asigna_ids_incrementales(uow):
+def test_guardar_documento_de_vehiculo_asigna_ids_distintos(uow):
     primero = uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-1"))
     segundo = uow.documentos_vehiculo.guardar(1, nuevo_documento_vehiculo("SEG-2"))
 
     assert primero.id is not None
-    assert segundo.id == primero.id + 1
+    assert segundo.id != primero.id
 
 
 def test_guardar_de_nuevo_un_documento_de_vehiculo_existente_lo_actualiza_sin_duplicar(uow):

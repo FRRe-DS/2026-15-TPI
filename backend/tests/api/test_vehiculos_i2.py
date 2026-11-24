@@ -17,9 +17,10 @@ from app.dominio.vehiculo import ServicioDelVehiculo, TipoServicio
 from fastapi.testclient import TestClient
 
 from tests.api.conftest import CasoDeUsoFalso, devolver_caso, vehiculo_de_prueba
+from tests.ids import uid
 
-TIPOS = "/api/v1/conductores/{id}/vehiculos/5/tipos-servicio"
-DOCUMENTACION = "/api/v1/conductores/{id}/vehiculos/5/documentacion"
+TIPOS = f"/api/v1/conductores/{{id}}/vehiculos/{uid(5)}/tipos-servicio"
+DOCUMENTACION = f"/api/v1/conductores/{{id}}/vehiculos/{uid(5)}/documentacion"
 URL_ARCHIVO = "https://archivos.example/seguro.pdf"
 
 PAYLOAD = {
@@ -45,7 +46,7 @@ def _documento(**cambios) -> DocumentoVehiculo:
         "fecha_emision": date(2026, 1, 1),
         "fecha_vencimiento": date(2027, 1, 1),
         "url_archivo": URL_ARCHIVO,
-        "id": 9,
+        "id": str(uid(9)),
     }
     datos.update(cambios)
     return DocumentoVehiculo(**datos)
@@ -62,7 +63,7 @@ def casos_vehiculo() -> dict[str, CasoDeUsoFalso]:
         ),
         "registrar_documento": CasoDeUsoFalso(
             DocumentoDeVehiculo(
-                id_vehiculo=5, documento=_documento(), estado=EstadoDocumento.VIGENTE
+                id_vehiculo=uid(5), documento=_documento(), estado=EstadoDocumento.VIGENTE
             )
         ),
     }
@@ -85,27 +86,29 @@ def client_vehiculo(client, casos_vehiculo) -> TestClient:
 def test_listar_tipos_de_servicio_devuelve_la_habilitacion_de_cada_uno(
     client_vehiculo, casos_vehiculo, headers_conductor_de
 ) -> None:
-    respuesta = client_vehiculo.get(TIPOS.format(id=1), headers=headers_conductor_de(1))
+    respuesta = client_vehiculo.get(TIPOS.format(id=uid(1)), headers=headers_conductor_de(uid(1)))
 
     assert respuesta.status_code == 200
     assert respuesta.json() == [
         {"tipo": "PASAJEROS", "habilitado": True},
         {"tipo": "ENVIOS", "habilitado": False},
     ]
-    assert casos_vehiculo["listar_tipos"].llamadas == [{"id_conductor": 1, "id_vehiculo": 5}]
+    assert casos_vehiculo["listar_tipos"].llamadas == [
+        {"id_conductor": uid(1), "id_vehiculo": uid(5)}
+    ]
 
 
 def test_listar_tipos_lo_leen_operador_servicio_y_el_propio_conductor(
     client_vehiculo, headers_operador, headers_servicio, headers_conductor_de
 ) -> None:
-    for headers in (headers_operador, headers_servicio, headers_conductor_de(1)):
-        assert client_vehiculo.get(TIPOS.format(id=1), headers=headers).status_code == 200
+    for headers in (headers_operador, headers_servicio, headers_conductor_de(uid(1))):
+        assert client_vehiculo.get(TIPOS.format(id=uid(1)), headers=headers).status_code == 200
 
 
 def test_listar_tipos_de_otro_conductor_es_403_sin_llamar_al_caso(
     client_vehiculo, casos_vehiculo, headers_conductor_de
 ) -> None:
-    respuesta = client_vehiculo.get(TIPOS.format(id=99), headers=headers_conductor_de(1))
+    respuesta = client_vehiculo.get(TIPOS.format(id=uid(99)), headers=headers_conductor_de(uid(1)))
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -117,7 +120,7 @@ def test_listar_tipos_de_un_vehiculo_inexistente_es_404(
 ) -> None:
     casos_vehiculo["listar_tipos"].error = NoEncontrado("No existe el vehículo 5")
 
-    respuesta = client_vehiculo.get(TIPOS.format(id=1), headers=headers_operador)
+    respuesta = client_vehiculo.get(TIPOS.format(id=uid(1)), headers=headers_operador)
 
     assert respuesta.status_code == 404
     assert respuesta.json()["codigo"] == "NO_ENCONTRADO"
@@ -130,15 +133,15 @@ def test_registrar_documento_responde_201_con_el_estado_calculado(
     client_vehiculo, casos_vehiculo, headers_conductor_de
 ) -> None:
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1), json=PAYLOAD, headers=headers_conductor_de(1)
+        DOCUMENTACION.format(id=uid(1)), json=PAYLOAD, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 201
-    assert respuesta.json() == {**PAYLOAD, "id_vehiculo": 5, "estado": "VIGENTE"}
+    assert respuesta.json() == {**PAYLOAD, "id_vehiculo": str(uid(5)), "estado": "VIGENTE"}
     assert casos_vehiculo["registrar_documento"].llamadas == [
         {
-            "id_conductor": 1,
-            "id_vehiculo": 5,
+            "id_conductor": uid(1),
+            "id_vehiculo": uid(5),
             "tipo": TipoDocumentoVehiculo.SEGURO,
             "numero": "POL-1",
             "entidad_emisora": "La Segunda",
@@ -155,7 +158,7 @@ def test_registrar_documento_sin_entidad_emisora(
     cuerpo = {clave: valor for clave, valor in PAYLOAD.items() if clave != "entidad_emisora"}
 
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1), json=cuerpo, headers=headers_operador
+        DOCUMENTACION.format(id=uid(1)), json=cuerpo, headers=headers_operador
     )
 
     assert respuesta.status_code == 201
@@ -191,7 +194,7 @@ def test_registrar_documento_con_cuerpo_invalido_es_400(
     client_vehiculo, casos_vehiculo, headers_operador, cambios
 ) -> None:
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1), json={**PAYLOAD, **cambios}, headers=headers_operador
+        DOCUMENTACION.format(id=uid(1)), json={**PAYLOAD, **cambios}, headers=headers_operador
     )
 
     assert respuesta.status_code == 400
@@ -207,7 +210,7 @@ def test_registrar_documento_con_vencimiento_anterior_a_la_emision_es_422(
     )
 
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1),
+        DOCUMENTACION.format(id=uid(1)),
         json={**PAYLOAD, "fecha_vencimiento": "2025-01-01"},
         headers=headers_operador,
     )
@@ -224,7 +227,7 @@ def test_registrar_documento_de_un_vehiculo_de_otro_conductor_es_404(
     )
 
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1), json=PAYLOAD, headers=headers_conductor_de(1)
+        DOCUMENTACION.format(id=uid(1)), json=PAYLOAD, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 404
@@ -235,7 +238,7 @@ def test_el_servicio_no_registra_documentos(
     client_vehiculo, casos_vehiculo, headers_servicio
 ) -> None:
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1), json=PAYLOAD, headers=headers_servicio
+        DOCUMENTACION.format(id=uid(1)), json=PAYLOAD, headers=headers_servicio
     )
 
     assert respuesta.status_code == 403
@@ -247,7 +250,7 @@ def test_registrar_documento_de_otro_conductor_es_403(
     client_vehiculo, casos_vehiculo, headers_conductor_de
 ) -> None:
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=99), json=PAYLOAD, headers=headers_conductor_de(1)
+        DOCUMENTACION.format(id=uid(99)), json=PAYLOAD, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 403
@@ -264,19 +267,21 @@ def test_el_vehiculo_incluye_sus_documentos_con_estado(client, casos, headers_op
         documentos=[
             DocumentoVehiculoConEstado(_documento(), EstadoDocumento.VIGENTE),
             DocumentoVehiculoConEstado(
-                _documento(id=10, tipo=TipoDocumentoVehiculo.VTV, entidad_emisora=None),
+                _documento(id=uid(10), tipo=TipoDocumentoVehiculo.VTV, entidad_emisora=None),
                 EstadoDocumento.VENCIDO,
             ),
         ],
     )
 
-    respuesta = client.get("/api/v1/conductores/1/vehiculos/5", headers=headers_operador)
+    respuesta = client.get(
+        f"/api/v1/conductores/{uid(1)}/vehiculos/{uid(5)}", headers=headers_operador
+    )
 
     assert respuesta.status_code == 200
     documentos = respuesta.json()["documentos"]
     assert [documento["tipo"] for documento in documentos] == ["SEGURO", "VTV"]
     assert [documento["estado"] for documento in documentos] == ["VIGENTE", "VENCIDO"]
-    assert {documento["id_vehiculo"] for documento in documentos} == {5}
+    assert {documento["id_vehiculo"] for documento in documentos} == {str(uid(5))}
     assert documentos[0]["url_archivo"] == URL_ARCHIVO
 
 
@@ -284,7 +289,7 @@ def test_la_url_se_guarda_en_su_forma_normalizada(
     client_vehiculo, casos_vehiculo, headers_operador
 ) -> None:
     respuesta = client_vehiculo.post(
-        DOCUMENTACION.format(id=1),
+        DOCUMENTACION.format(id=uid(1)),
         json={**PAYLOAD, "url_archivo": "https://archivos.example"},
         headers=headers_operador,
     )

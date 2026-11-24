@@ -1,4 +1,5 @@
 from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -35,7 +36,7 @@ router = APIRouter(tags=["Habilitación"])
     dependencies=[Depends(requerir_conductor_propio_operador_o_servicio)],
 )
 def consultar_habilitacion(
-    id_conductor: int,
+    id_conductor: UUID,
     caso: Annotated[
         ConsultarHabilitacionConductor,
         Depends(obtener_caso_consultar_habilitacion_conductor),
@@ -50,7 +51,7 @@ def consultar_habilitacion(
     operation_id="accionHabilitacionConductor",
 )
 def accionar_habilitacion(
-    id_conductor: int,
+    id_conductor: UUID,
     datos: HabilitacionAccionRequest,
     caso: Annotated[
         AccionarHabilitacionConductor,
@@ -62,6 +63,6 @@ def accionar_habilitacion(
         id_conductor=id_conductor,
         accion=AccionHabilitacion(datos.accion.value),
         motivo=datos.motivo,
-        id_operador=usuario["id_operador"],
+        id_operador=UUID(usuario["id_operador"]),
     )
     return eventos_conductor_desde_dominio(resultado)

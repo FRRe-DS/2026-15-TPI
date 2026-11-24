@@ -20,6 +20,7 @@ from app.dominio.conductor import EstadoConductor
 from app.dominio.errores import DatosInvalidos, DniDuplicado
 from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -100,7 +101,7 @@ def test_rechaza_dni_duplicado_sin_dejar_conductor_ni_evento_extra(crear_conduct
 
     assert [c.id for c in uow.conductores.listar()] == [primero.id]
     assert len(uow.habilitaciones.historial_conductor(primero.id)) == 1
-    assert uow.habilitaciones.historial_conductor(primero.id + 1) == []
+    assert uow.habilitaciones.historial_conductor(uid(999)) == []
 
 
 @pytest.mark.parametrize(

@@ -17,6 +17,8 @@ from app.dominio.habilitacion import (
     aplicar_accion,
 )
 
+from tests.ids import uid
+
 PENDIENTE = EstadoHabilitacion.PENDIENTE
 OBSERVADA = EstadoHabilitacion.OBSERVADA
 APROBADA = EstadoHabilitacion.APROBADA
@@ -137,8 +139,8 @@ def test_dos_eventos_que_solo_difieren_en_el_id_son_iguales():
         fecha=FECHA,
     )
 
-    con_id = dataclasses.replace(evento, id=5)
+    con_id = dataclasses.replace(evento, id=uid(5))
 
-    assert con_id.id == 5
+    assert con_id.id == uid(5)
     assert con_id == evento
-    assert dataclasses.replace(evento, id=6) == con_id
+    assert dataclasses.replace(evento, id=uid(6)) == con_id

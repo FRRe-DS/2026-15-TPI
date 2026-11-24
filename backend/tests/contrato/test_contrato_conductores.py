@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from uuid import UUID
 
 import httpx
 import pytest
@@ -38,7 +39,7 @@ def test_crear_conductor_cumple_el_contrato(
     validar_contrato(respuesta)
 
     creado = respuesta.json()
-    assert isinstance(creado["id"], int)
+    assert UUID(creado["id"])
     assert creado["dni"] == CONDUCTOR["dni"]
     assert creado["nombre"] == CONDUCTOR["nombre"]
     assert creado["apellido"] == CONDUCTOR["apellido"]

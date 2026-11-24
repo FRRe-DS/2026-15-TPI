@@ -7,6 +7,7 @@ fecha de hoy, igual que el documento del conductor.
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+from uuid import UUID
 
 from app.dominio.documento import EstadoDocumento, es_url_valida
 from app.dominio.errores import DatosInvalidos
@@ -27,7 +28,7 @@ class DocumentoVehiculo:
     fecha_emision: date
     fecha_vencimiento: date
     url_archivo: str
-    id: int | None = None
+    id: UUID | None = None
 
     @classmethod
     def crear(

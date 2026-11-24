@@ -3,6 +3,8 @@ from app.dominio.conductor import EstadoConductor
 from app.dominio.vehiculo import TipoServicio as TipoServicioDominio
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
 
+from tests.ids import uid
+
 URL = "/api/v1/conductores"
 
 
@@ -11,7 +13,7 @@ def test_lista_sin_filtros(client, casos, headers_operador) -> None:
 
     assert respuesta.status_code == 200
     assert len(respuesta.json()) == 1
-    assert respuesta.json()[0]["id"] == 1
+    assert respuesta.json()[0]["id"] == str(uid(1))
     assert casos["listar_conductores"].llamadas == [
         {"habilitado": None, "estado": None, "tipo_vehiculo": None, "tipo_servicio": None}
     ]

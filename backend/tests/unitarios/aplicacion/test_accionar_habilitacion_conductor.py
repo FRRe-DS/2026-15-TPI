@@ -39,6 +39,7 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -316,17 +317,17 @@ def test_motivo_vacio_lanza_datos_invalidos_y_no_persiste_nada(accionar, uow, mo
 
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe(accionar, uow):
-    existente = sembrar_conductor(uow)
+    sembrar_conductor(uow)
 
     with pytest.raises(NoEncontrado):
         accionar.ejecutar(
-            id_conductor=existente.id + 1,
+            id_conductor=uid(999),
             accion=OBSERVAR,
             motivo=MOTIVO,
             id_operador=ID_OPERADOR,
         )
 
-    assert uow.habilitaciones.historial_conductor(existente.id + 1) == []
+    assert uow.habilitaciones.historial_conductor(uid(999)) == []
 
 
 def test_toma_el_conductor_con_bloqueo_de_fila(accionar, uow):
@@ -342,7 +343,7 @@ def test_toma_el_conductor_con_bloqueo_de_fila(accionar, uow):
     assert uow.conductores_bloqueados == [conductor.id]
 
 
-def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_alta(accionar, uow):
+def test_los_eventos_devueltos_traen_id_distinto(accionar, uow):
     conductor = sembrar_conductor(uow, PENDIENTE, [MANANA])
     sembrar_evento_de_alta(uow, conductor.id)
 
@@ -356,4 +357,4 @@ def test_los_eventos_devueltos_traen_id_distinto_y_el_nuevo_es_mayor_que_el_del_
     ids = [evento.id for evento in resultado.eventos]
     assert len(ids) == 3
     assert all(id_evento is not None for id_evento in ids)
-    assert ids == sorted(set(ids))  # distintos y crecientes: el alta primero, el nuevo ultimo
+    assert len(set(ids)) == len(ids)  # cada evento tiene su propio UUID

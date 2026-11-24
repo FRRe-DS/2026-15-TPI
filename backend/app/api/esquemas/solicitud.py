@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import StrEnum
+from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel
 
@@ -29,9 +30,9 @@ class RespuestaSolicitudRequest(BaseModel):
 
 
 class Solicitud(BaseModel):
-    id: int
-    id_conductor: int
-    id_viaje: int | None = None
+    id: UUID
+    id_conductor: UUID
+    id_viaje: UUID | None = None
     estado: EstadoSolicitud
     vence_en: datetime
     respuesta: RespuestaSolicitud | None = None

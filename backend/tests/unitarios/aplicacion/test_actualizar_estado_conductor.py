@@ -23,6 +23,7 @@ from app.dominio.errores import ConductorNoHabilitado, DatosInvalidos, NoEncontr
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -270,10 +271,10 @@ def test_un_cuerpo_sin_ningun_campo_lanza_datos_invalidos_y_no_cambia_nada(uow, 
 
 
 def test_conductor_inexistente_lanza_no_encontrado(uow, actualizar):
-    conductor = sembrar_conductor(uow)
+    sembrar_conductor(uow)
 
     with pytest.raises(NoEncontrado):
-        actualizar.ejecutar(id_conductor=conductor.id + 1, estado=CONECTADO)
+        actualizar.ejecutar(id_conductor=uid(999), estado=CONECTADO)
 
 
 @pytest.mark.parametrize("caso", ["inexistente", "de_otro_conductor"])
@@ -283,7 +284,7 @@ def test_vehiculo_activo_ajeno_o_inexistente_lanza_no_encontrado_y_no_cambia_nad
     conductor = sembrar_conductor(uow, "30000001", estado=CONECTADO)
     otro = sembrar_conductor(uow, "30000002", estado=CONECTADO)
     vehiculo_ajeno = sembrar_vehiculo(uow, otro.id)
-    id_vehiculo = vehiculo_ajeno.id if caso == "de_otro_conductor" else vehiculo_ajeno.id + 100
+    id_vehiculo = vehiculo_ajeno.id if caso == "de_otro_conductor" else uid(999)
     antes = copia_guardada(uow, conductor.id)
 
     with pytest.raises(NoEncontrado):

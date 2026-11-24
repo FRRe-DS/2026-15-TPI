@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 from urllib.parse import urlparse
+from uuid import UUID
 
 from app.dominio.errores import DatosInvalidos
 from app.dominio.validaciones import exigir_texto
@@ -33,7 +34,7 @@ class Documento:
     fecha_emision: date
     fecha_vencimiento: date
     url_archivo: str
-    id: int | None = None
+    id: UUID | None = None
 
     @classmethod
     def crear(

@@ -14,6 +14,7 @@ import sys
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -42,14 +43,22 @@ FECHA_EMISION = date(2024, 1, 1)
 FECHA_EMISION_VENCIDA = date(2016, 1, 1)
 SOLICITUD_VIGENTE_HASTA = datetime(2035, 12, 31, 23, 59, tzinfo=UTC)
 SOLICITUD_VENCIDA_DESDE = datetime(2020, 12, 31, 23, 59, tzinfo=UTC)
-ID_OPERADOR_SEED = 101
-# El usuario conductor del realm (conductor.m3) apunta a este conductor: el
-# primer conductor del seed recibe id_conductor=1 en una base recien migrada.
+
+
+def id_viaje_seed(numero: int) -> UUID:
+    """UUID fijo del viaje de una oferta sembrada (1001 a 1005)."""
+    return UUID(f"00000000-0000-4000-8000-{numero:012d}")
+
+
+ID_OPERADOR_SEED = UUID("6f0e9c1d-3b2a-4c7e-8d41-0a5b9e101001")
+# El usuario conductor del realm (conductor.m3) apunta a este conductor: sus
+# claims id_conductor e id_operador coinciden con los UUID fijos del seed.
 DNI_CONDUCTOR_PRUEBA = "30111222"
-ID_CONDUCTOR_PRUEBA = 1
+ID_CONDUCTOR_PRUEBA = UUID("a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0001")
 
 CONDUCTORES: tuple[dict[str, Any], ...] = (
     {
+        "id_conductor": UUID("a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0001"),
         "dni": "30111222",
         "nombre": "Ana",
         "apellido": "Pérez",
@@ -65,6 +74,7 @@ CONDUCTORES: tuple[dict[str, Any], ...] = (
         "fecha_act_ubic": FECHA_BASE,
     },
     {
+        "id_conductor": UUID("a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0002"),
         "dni": "28444555",
         "nombre": "Bruno",
         "apellido": "Gómez",
@@ -80,6 +90,7 @@ CONDUCTORES: tuple[dict[str, Any], ...] = (
         "fecha_act_ubic": FECHA_BASE,
     },
     {
+        "id_conductor": UUID("a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0003"),
         "dni": "35777888",
         "nombre": "Carla",
         "apellido": "Díaz",
@@ -95,6 +106,7 @@ CONDUCTORES: tuple[dict[str, Any], ...] = (
         "fecha_act_ubic": None,
     },
     {
+        "id_conductor": UUID("a1f3c5d7-2b4e-4f60-8a91-3c5e7d9f0004"),
         "dni": "40123456",
         "nombre": "Diego",
         "apellido": "Sosa",
@@ -227,7 +239,7 @@ DOCUMENTOS_VEHICULO: tuple[dict[str, Any], ...] = (
 
 SOLICITUDES: tuple[dict[str, Any], ...] = (
     {
-        "id_viaje": 1001,
+        "id_viaje": id_viaje_seed(1001),
         "dni_conductor": "30111222",
         "estado": "PENDIENTE",
         "vence_en": SOLICITUD_VIGENTE_HASTA,
@@ -235,7 +247,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "hora_rta": None,
     },
     {
-        "id_viaje": 1002,
+        "id_viaje": id_viaje_seed(1002),
         "dni_conductor": "30111222",
         "estado": "PENDIENTE",
         "vence_en": SOLICITUD_VENCIDA_DESDE,
@@ -243,7 +255,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "hora_rta": None,
     },
     {
-        "id_viaje": 1003,
+        "id_viaje": id_viaje_seed(1003),
         "dni_conductor": "40123456",
         "estado": "ACEPTADO",
         "vence_en": FECHA_BASE + timedelta(days=1),
@@ -251,7 +263,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "hora_rta": FECHA_BASE - timedelta(hours=1),
     },
     {
-        "id_viaje": 1004,
+        "id_viaje": id_viaje_seed(1004),
         "dni_conductor": "28444555",
         "estado": "RECHAZADO",
         "vence_en": FECHA_BASE + timedelta(days=1),
@@ -259,7 +271,7 @@ SOLICITUDES: tuple[dict[str, Any], ...] = (
         "hora_rta": FECHA_BASE - timedelta(minutes=30),
     },
     {
-        "id_viaje": 1005,
+        "id_viaje": id_viaje_seed(1005),
         "dni_conductor": "35777888",
         "estado": "VENCIDA",
         "vence_en": FECHA_BASE - timedelta(days=1),
@@ -401,8 +413,10 @@ def _upsert_conductor(session: Session, datos: dict[str, Any]) -> Conductor:
         conductor = Conductor(**datos)
         session.add(conductor)
     else:
+        # El id fijo solo se usa en el alta: la clave primaria no se reescribe.
         for campo, valor in datos.items():
-            setattr(conductor, campo, valor)
+            if campo != "id_conductor":
+                setattr(conductor, campo, valor)
     session.flush()
     return conductor
 

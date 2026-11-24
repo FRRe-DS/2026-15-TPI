@@ -16,6 +16,7 @@ from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 AUTO = TipoVehiculo.AUTO
@@ -146,7 +147,7 @@ def test_un_conductor_sin_vehiculos_devuelve_lista_vacia_sin_error(listar_vehicu
 
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe(listar_vehiculos, uow):
-    existente = sembrar_conductor(uow)
+    sembrar_conductor(uow)
 
     with pytest.raises(NoEncontrado):
-        listar_vehiculos.ejecutar(id_conductor=existente.id + 1)
+        listar_vehiculos.ejecutar(id_conductor=uid(999))

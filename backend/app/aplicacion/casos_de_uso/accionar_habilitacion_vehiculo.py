@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.encontrado import exigir_vehiculo
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionVehiculoEventos
@@ -30,11 +32,11 @@ class AccionarHabilitacionVehiculo:
     def ejecutar(
         self,
         *,
-        id_conductor: int,
-        id_vehiculo: int,
+        id_conductor: UUID,
+        id_vehiculo: UUID,
         accion: AccionHabilitacion,
         motivo: str,
-        id_operador: int,
+        id_operador: UUID,
     ) -> HabilitacionVehiculoEventos:
         with self._uow:
             vehiculo = exigir_vehiculo(

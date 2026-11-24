@@ -4,6 +4,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import Self
+from uuid import UUID, uuid4
 
 from app.aplicacion.puertos.repositorio_conductores import RepositorioConductores
 from app.aplicacion.puertos.repositorio_documentos import RepositorioDocumentos
@@ -29,15 +30,13 @@ from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 class _Estado:
     """Contenido de la "base" en memoria, compartido por todos los repositorios."""
 
-    conductores: dict[int, Conductor] = field(default_factory=dict)
-    vehiculos: dict[int, Vehiculo] = field(default_factory=dict)
-    documentos: dict[int, tuple[int, Documento]] = field(default_factory=dict)
-    solicitudes: dict[int, Solicitud] = field(default_factory=dict)
-    documentos_vehiculo: dict[int, tuple[int, DocumentoVehiculo]] = field(default_factory=dict)
-    eventos_conductor: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
-    eventos_vehiculo: dict[int, list[EventoHabilitacion]] = field(default_factory=dict)
-    ultimo_id_evento_conductor: int = 0
-    ultimo_id_evento_vehiculo: int = 0
+    conductores: dict[UUID, Conductor] = field(default_factory=dict)
+    vehiculos: dict[UUID, Vehiculo] = field(default_factory=dict)
+    documentos: dict[UUID, tuple[UUID, Documento]] = field(default_factory=dict)
+    solicitudes: dict[UUID, Solicitud] = field(default_factory=dict)
+    documentos_vehiculo: dict[UUID, tuple[UUID, DocumentoVehiculo]] = field(default_factory=dict)
+    eventos_conductor: dict[UUID, list[EventoHabilitacion]] = field(default_factory=dict)
+    eventos_vehiculo: dict[UUID, list[EventoHabilitacion]] = field(default_factory=dict)
 
     def reemplazar_por(self, otro: "_Estado") -> None:
         self.__dict__.update(otro.__dict__)
@@ -46,7 +45,7 @@ class _Estado:
 def _guardar(entidades: dict, entidad):
     """Alta si la entidad no tiene id (se lo asigna); actualizacion si ya lo tiene."""
     if entidad.id is None:
-        entidad.id = max(entidades, default=0) + 1
+        entidad.id = uuid4()
     entidades[entidad.id] = entidad
     return entidad
 
@@ -71,7 +70,7 @@ class RepositorioConductoresEnMemoria(RepositorioConductores):
             conductor.fecha_alta = conductor.fecha_alta or datetime.now(UTC)
         return _guardar(self._estado.conductores, conductor)
 
-    def obtener(self, id_conductor: int) -> Conductor | None:
+    def obtener(self, id_conductor: UUID) -> Conductor | None:
         return self._estado.conductores.get(id_conductor)
 
     def listar(
@@ -119,7 +118,7 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
             raise PatenteDuplicada(f"Ya existe un vehiculo con la patente {vehiculo.patente}")
         return _guardar(self._estado.vehiculos, vehiculo)
 
-    def obtener(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def obtener(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         vehiculo = self._estado.vehiculos.get(id_vehiculo)
         if vehiculo is None or vehiculo.id_conductor != id_conductor:
             return None
@@ -127,7 +126,7 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
 
     def listar_por_conductor(
         self,
-        id_conductor: int,
+        id_conductor: UUID,
         *,
         tipo: TipoVehiculo | None = None,
         habilitacion: EstadoHabilitacion | None = None,
@@ -140,8 +139,8 @@ class RepositorioVehiculosEnMemoria(RepositorioVehiculos):
             and (habilitacion is None or v.habilitacion is habilitacion)
         ]
 
-    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Vehiculo]]:
-        por_conductor: dict[int, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
+    def listar_por_conductores(self, ids_conductor: Sequence[UUID]) -> dict[UUID, list[Vehiculo]]:
+        por_conductor: dict[UUID, list[Vehiculo]] = {id_: [] for id_ in ids_conductor}
         for vehiculo in self._estado.vehiculos.values():
             if vehiculo.id_conductor in por_conductor:
                 por_conductor[vehiculo.id_conductor].append(vehiculo)
@@ -152,21 +151,21 @@ class RepositorioDocumentosEnMemoria(RepositorioDocumentos):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
 
-    def guardar(self, id_conductor: int, documento: Documento) -> Documento:
+    def guardar(self, id_conductor: UUID, documento: Documento) -> Documento:
         if documento.id is None:
-            documento.id = max(self._estado.documentos, default=0) + 1
+            documento.id = uuid4()
         self._estado.documentos[documento.id] = (id_conductor, documento)
         return documento
 
-    def listar_por_conductor(self, id_conductor: int) -> list[Documento]:
+    def listar_por_conductor(self, id_conductor: UUID) -> list[Documento]:
         return [
             documento
             for dueno, documento in self._estado.documentos.values()
             if dueno == id_conductor
         ]
 
-    def listar_por_conductores(self, ids_conductor: Sequence[int]) -> dict[int, list[Documento]]:
-        por_conductor: dict[int, list[Documento]] = {id_: [] for id_ in ids_conductor}
+    def listar_por_conductores(self, ids_conductor: Sequence[UUID]) -> dict[UUID, list[Documento]]:
+        por_conductor: dict[UUID, list[Documento]] = {id_: [] for id_ in ids_conductor}
         for dueno, documento in self._estado.documentos.values():
             if dueno in por_conductor:
                 por_conductor[dueno].append(documento)
@@ -177,22 +176,20 @@ class RepositorioHabilitacionesEnMemoria(RepositorioHabilitaciones):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
 
-    def registrar_evento_conductor(self, id_conductor: int, evento: EventoHabilitacion) -> None:
-        self._estado.ultimo_id_evento_conductor += 1
+    def registrar_evento_conductor(self, id_conductor: UUID, evento: EventoHabilitacion) -> None:
         self._estado.eventos_conductor.setdefault(id_conductor, []).append(
-            replace(evento, id=self._estado.ultimo_id_evento_conductor)
+            replace(evento, id=uuid4())
         )
 
-    def registrar_evento_vehiculo(self, id_vehiculo: int, evento: EventoHabilitacion) -> None:
-        self._estado.ultimo_id_evento_vehiculo += 1
+    def registrar_evento_vehiculo(self, id_vehiculo: UUID, evento: EventoHabilitacion) -> None:
         self._estado.eventos_vehiculo.setdefault(id_vehiculo, []).append(
-            replace(evento, id=self._estado.ultimo_id_evento_vehiculo)
+            replace(evento, id=uuid4())
         )
 
-    def historial_conductor(self, id_conductor: int) -> list[EventoHabilitacion]:
+    def historial_conductor(self, id_conductor: UUID) -> list[EventoHabilitacion]:
         return list(self._estado.eventos_conductor.get(id_conductor, []))
 
-    def historial_vehiculo(self, id_vehiculo: int) -> list[EventoHabilitacion]:
+    def historial_vehiculo(self, id_vehiculo: UUID) -> list[EventoHabilitacion]:
         return list(self._estado.eventos_vehiculo.get(id_vehiculo, []))
 
 
@@ -203,10 +200,10 @@ class RepositorioSolicitudesEnMemoria(RepositorioSolicitudes):
     def guardar(self, solicitud: Solicitud) -> Solicitud:
         return _guardar(self._estado.solicitudes, solicitud)
 
-    def obtener(self, id_solicitud: int) -> Solicitud | None:
+    def obtener(self, id_solicitud: UUID) -> Solicitud | None:
         return self._estado.solicitudes.get(id_solicitud)
 
-    def listar_por_conductor(self, id_conductor: int) -> list[Solicitud]:
+    def listar_por_conductor(self, id_conductor: UUID) -> list[Solicitud]:
         return [s for s in self._estado.solicitudes.values() if s.id_conductor == id_conductor]
 
 
@@ -214,13 +211,13 @@ class RepositorioDocumentosVehiculoEnMemoria(RepositorioDocumentosVehiculo):
     def __init__(self, estado: _Estado) -> None:
         self._estado = estado
 
-    def guardar(self, id_vehiculo: int, documento: DocumentoVehiculo) -> DocumentoVehiculo:
+    def guardar(self, id_vehiculo: UUID, documento: DocumentoVehiculo) -> DocumentoVehiculo:
         if documento.id is None:
-            documento.id = max(self._estado.documentos_vehiculo, default=0) + 1
+            documento.id = uuid4()
         self._estado.documentos_vehiculo[documento.id] = (id_vehiculo, documento)
         return documento
 
-    def listar_por_vehiculo(self, id_vehiculo: int) -> list[DocumentoVehiculo]:
+    def listar_por_vehiculo(self, id_vehiculo: UUID) -> list[DocumentoVehiculo]:
         return [
             documento
             for dueno, documento in self._estado.documentos_vehiculo.values()
@@ -228,9 +225,9 @@ class RepositorioDocumentosVehiculoEnMemoria(RepositorioDocumentosVehiculo):
         ]
 
     def listar_por_vehiculos(
-        self, ids_vehiculo: Sequence[int]
-    ) -> dict[int, list[DocumentoVehiculo]]:
-        por_vehiculo: dict[int, list[DocumentoVehiculo]] = {id_: [] for id_ in ids_vehiculo}
+        self, ids_vehiculo: Sequence[UUID]
+    ) -> dict[UUID, list[DocumentoVehiculo]]:
+        por_vehiculo: dict[UUID, list[DocumentoVehiculo]] = {id_: [] for id_ in ids_vehiculo}
         for dueno, documento in self._estado.documentos_vehiculo.values():
             if dueno in por_vehiculo:
                 por_vehiculo[dueno].append(documento)
@@ -265,11 +262,11 @@ class UnidadDeTrabajoEnMemoria(UnidadDeTrabajo):
     def rollback(self) -> None:
         self._estado.reemplazar_por(copy.deepcopy(self._confirmado))
 
-    def bloquear_conductor(self, id_conductor: int) -> Conductor | None:
+    def bloquear_conductor(self, id_conductor: UUID) -> Conductor | None:
         return self.conductores.obtener(id_conductor)
 
-    def bloquear_vehiculo(self, id_conductor: int, id_vehiculo: int) -> Vehiculo | None:
+    def bloquear_vehiculo(self, id_conductor: UUID, id_vehiculo: UUID) -> Vehiculo | None:
         return self.vehiculos.obtener(id_conductor, id_vehiculo)
 
-    def bloquear_solicitud(self, id_solicitud: int) -> Solicitud | None:
+    def bloquear_solicitud(self, id_solicitud: UUID) -> Solicitud | None:
         return self.solicitudes.obtener(id_solicitud)

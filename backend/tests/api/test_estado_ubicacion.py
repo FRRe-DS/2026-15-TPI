@@ -16,6 +16,7 @@ from app.dominio.errores import ConductorNoHabilitado, NoEncontrado
 from fastapi.testclient import TestClient
 
 from tests.api.conftest import CasoDeUsoFalso, devolver_caso, instalar_limitador_falso
+from tests.ids import uid
 
 ESTADO = "/api/v1/conductores/{id}/estado"
 UBICACION = "/api/v1/conductores/{id}/ubicacion"
@@ -31,13 +32,13 @@ PROVEEDORES_V3 = {
 @pytest.fixture
 def casos_estado() -> dict[str, CasoDeUsoFalso]:
     estado = EstadoDelConductor(
-        id_conductor=1,
+        id_conductor=uid(1),
         estado=EstadoConductor.DISPONIBLE,
-        id_vehiculo_activo=5,
+        id_vehiculo_activo=uid(5),
         actualizado=FECHA,
     )
     ubicacion = UbicacionDelConductor(
-        id_conductor=1, latitud=-27.4511, longitud=-58.9867, fecha_act_ubic=FECHA
+        id_conductor=uid(1), latitud=-27.4511, longitud=-58.9867, fecha_act_ubic=FECHA
     )
     return {
         "obtener_estado": CasoDeUsoFalso(estado),
@@ -68,29 +69,29 @@ def client_estado(
 def test_obtener_estado_devuelve_el_estado_sin_ubicacion(
     client_estado, casos_estado, headers_conductor_de
 ) -> None:
-    respuesta = client_estado.get(ESTADO.format(id=1), headers=headers_conductor_de(1))
+    respuesta = client_estado.get(ESTADO.format(id=uid(1)), headers=headers_conductor_de(uid(1)))
 
     assert respuesta.status_code == 200
     assert respuesta.json() == {
-        "id_conductor": 1,
+        "id_conductor": str(uid(1)),
         "estado": "DISPONIBLE",
-        "id_vehiculo_activo": 5,
+        "id_vehiculo_activo": str(uid(5)),
         "actualizado": "2026-11-02T01:30:00Z",
     }
-    assert casos_estado["obtener_estado"].llamadas == [{"id_conductor": 1}]
+    assert casos_estado["obtener_estado"].llamadas == [{"id_conductor": uid(1)}]
 
 
 def test_obtener_estado_lo_leen_operador_servicio_y_el_propio_conductor(
     client_estado, headers_operador, headers_servicio, headers_conductor_de
 ) -> None:
-    for headers in (headers_operador, headers_servicio, headers_conductor_de(1)):
-        assert client_estado.get(ESTADO.format(id=1), headers=headers).status_code == 200
+    for headers in (headers_operador, headers_servicio, headers_conductor_de(uid(1))):
+        assert client_estado.get(ESTADO.format(id=uid(1)), headers=headers).status_code == 200
 
 
 def test_obtener_estado_de_otro_conductor_es_403_sin_llamar_al_caso(
     client_estado, casos_estado, headers_conductor_de
 ) -> None:
-    respuesta = client_estado.get(ESTADO.format(id=99), headers=headers_conductor_de(1))
+    respuesta = client_estado.get(ESTADO.format(id=uid(99)), headers=headers_conductor_de(uid(1)))
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -100,7 +101,7 @@ def test_obtener_estado_de_otro_conductor_es_403_sin_llamar_al_caso(
 def test_obtener_estado_inexistente_es_404(client_estado, casos_estado, headers_operador) -> None:
     casos_estado["obtener_estado"].error = NoEncontrado("No existe el conductor 99")
 
-    respuesta = client_estado.get(ESTADO.format(id=99), headers=headers_operador)
+    respuesta = client_estado.get(ESTADO.format(id=uid(99)), headers=headers_operador)
 
     assert respuesta.status_code == 404
     assert respuesta.json()["codigo"] == "NO_ENCONTRADO"
@@ -112,30 +113,30 @@ def test_obtener_estado_inexistente_es_404(client_estado, casos_estado, headers_
 def test_obtener_ubicacion_devuelve_la_ultima_registrada(
     client_estado, casos_estado, headers_conductor_de
 ) -> None:
-    respuesta = client_estado.get(UBICACION.format(id=1), headers=headers_conductor_de(1))
+    respuesta = client_estado.get(UBICACION.format(id=uid(1)), headers=headers_conductor_de(uid(1)))
 
     assert respuesta.status_code == 200
     assert respuesta.json() == {
-        "id_conductor": 1,
+        "id_conductor": str(uid(1)),
         "latitud": -27.4511,
         "longitud": -58.9867,
         "fecha_act_ubic": "2026-11-02T01:30:00Z",
     }
-    assert casos_estado["obtener_ubicacion"].llamadas == [{"id_conductor": 1}]
+    assert casos_estado["obtener_ubicacion"].llamadas == [{"id_conductor": uid(1)}]
 
 
 def test_obtener_ubicacion_sin_registro_responde_200_con_nulos(
     client_estado, casos_estado, headers_servicio
 ) -> None:
     casos_estado["obtener_ubicacion"].resultado = UbicacionDelConductor(
-        id_conductor=1, latitud=None, longitud=None, fecha_act_ubic=None
+        id_conductor=uid(1), latitud=None, longitud=None, fecha_act_ubic=None
     )
 
-    respuesta = client_estado.get(UBICACION.format(id=1), headers=headers_servicio)
+    respuesta = client_estado.get(UBICACION.format(id=uid(1)), headers=headers_servicio)
 
     assert respuesta.status_code == 200
     assert respuesta.json() == {
-        "id_conductor": 1,
+        "id_conductor": str(uid(1)),
         "latitud": None,
         "longitud": None,
         "fecha_act_ubic": None,
@@ -145,7 +146,9 @@ def test_obtener_ubicacion_sin_registro_responde_200_con_nulos(
 def test_obtener_ubicacion_de_otro_conductor_es_403(
     client_estado, casos_estado, headers_conductor_de
 ) -> None:
-    respuesta = client_estado.get(UBICACION.format(id=99), headers=headers_conductor_de(1))
+    respuesta = client_estado.get(
+        UBICACION.format(id=uid(99)), headers=headers_conductor_de(uid(1))
+    )
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -157,7 +160,7 @@ def test_obtener_ubicacion_inexistente_es_404(
 ) -> None:
     casos_estado["obtener_ubicacion"].error = NoEncontrado("No existe el conductor 99")
 
-    respuesta = client_estado.get(UBICACION.format(id=99), headers=headers_operador)
+    respuesta = client_estado.get(UBICACION.format(id=uid(99)), headers=headers_operador)
 
     assert respuesta.status_code == 404
 
@@ -170,22 +173,22 @@ def test_actualizar_estado_pasa_los_argumentos_esperados(
 ) -> None:
     cuerpo = {
         "estado": "DISPONIBLE",
-        "id_vehiculo_activo": 5,
+        "id_vehiculo_activo": str(uid(5)),
         "latitud": -27.1,
         "longitud": -58.2,
     }
 
     respuesta = client_estado.patch(
-        ESTADO.format(id=1), json=cuerpo, headers=headers_conductor_de(1)
+        ESTADO.format(id=uid(1)), json=cuerpo, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 200
     assert respuesta.json()["estado"] == "DISPONIBLE"
     assert casos_estado["actualizar_estado"].llamadas == [
         {
-            "id_conductor": 1,
+            "id_conductor": uid(1),
             "estado": EstadoConductor.DISPONIBLE,
-            "id_vehiculo_activo": 5,
+            "id_vehiculo_activo": uid(5),
             "latitud": -27.1,
             "longitud": -58.2,
         }
@@ -195,7 +198,9 @@ def test_actualizar_estado_pasa_los_argumentos_esperados(
 def test_actualizar_estado_con_solo_estado_deja_el_resto_sin_informar(
     client_estado, casos_estado, headers_operador
 ) -> None:
-    client_estado.patch(ESTADO.format(id=1), json={"estado": "CONECTADO"}, headers=headers_operador)
+    client_estado.patch(
+        ESTADO.format(id=uid(1)), json={"estado": "CONECTADO"}, headers=headers_operador
+    )
 
     llamada = casos_estado["actualizar_estado"].llamadas[0]
     assert llamada["estado"] is EstadoConductor.CONECTADO
@@ -208,7 +213,7 @@ def test_actualizar_estado_distingue_vehiculo_nulo_de_no_informado(
     client_estado, casos_estado, headers_operador
 ) -> None:
     client_estado.patch(
-        ESTADO.format(id=1), json={"id_vehiculo_activo": None}, headers=headers_operador
+        ESTADO.format(id=uid(1)), json={"id_vehiculo_activo": None}, headers=headers_operador
     )
 
     llamada = casos_estado["actualizar_estado"].llamadas[0]
@@ -231,7 +236,7 @@ def test_actualizar_estado_distingue_vehiculo_nulo_de_no_informado(
 def test_actualizar_estado_con_pedido_invalido_es_400(
     client_estado, casos_estado, headers_operador, cuerpo
 ) -> None:
-    respuesta = client_estado.patch(ESTADO.format(id=1), json=cuerpo, headers=headers_operador)
+    respuesta = client_estado.patch(ESTADO.format(id=uid(1)), json=cuerpo, headers=headers_operador)
 
     assert respuesta.status_code == 400
     assert respuesta.json()["codigo"] == "SOLICITUD_INVALIDA"
@@ -244,7 +249,9 @@ def test_actualizar_estado_de_conductor_no_habilitado_es_422(
     casos_estado["actualizar_estado"].error = ConductorNoHabilitado("No está habilitado")
 
     respuesta = client_estado.patch(
-        ESTADO.format(id=1), json={"estado": "DISPONIBLE"}, headers=headers_conductor_de(1)
+        ESTADO.format(id=uid(1)),
+        json={"estado": "DISPONIBLE"},
+        headers=headers_conductor_de(uid(1)),
     )
 
     assert respuesta.status_code == 422
@@ -257,7 +264,7 @@ def test_actualizar_estado_inexistente_es_404(
     casos_estado["actualizar_estado"].error = NoEncontrado("No existe el conductor 99")
 
     respuesta = client_estado.patch(
-        ESTADO.format(id=99), json={"estado": "CONECTADO"}, headers=headers_operador
+        ESTADO.format(id=uid(99)), json={"estado": "CONECTADO"}, headers=headers_operador
     )
 
     assert respuesta.status_code == 404
@@ -268,7 +275,7 @@ def test_actualizar_estado_con_el_rol_servicio_es_403(
     client_estado, casos_estado, headers_servicio
 ) -> None:
     respuesta = client_estado.patch(
-        ESTADO.format(id=1), json={"estado": "CONECTADO"}, headers=headers_servicio
+        ESTADO.format(id=uid(1)), json={"estado": "CONECTADO"}, headers=headers_servicio
     )
 
     assert respuesta.status_code == 403
@@ -280,7 +287,9 @@ def test_actualizar_estado_de_otro_conductor_es_403(
     client_estado, casos_estado, headers_conductor_de
 ) -> None:
     respuesta = client_estado.patch(
-        ESTADO.format(id=99), json={"estado": "CONECTADO"}, headers=headers_conductor_de(1)
+        ESTADO.format(id=uid(99)),
+        json={"estado": "CONECTADO"},
+        headers=headers_conductor_de(uid(1)),
     )
 
     assert respuesta.status_code == 403

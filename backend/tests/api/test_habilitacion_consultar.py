@@ -8,21 +8,23 @@ from app.dominio.habilitacion import (
     EventoHabilitacion,
 )
 
-URL = "/api/v1/conductores/1/habilitacion"
+from tests.ids import uid
+
+URL = f"/api/v1/conductores/{uid(1)}/habilitacion"
 
 EVENTO = EventoHabilitacion(
     accion=AccionHabilitacion.APROBAR,
     estado_anterior=EstadoHabilitacion.PENDIENTE,
     estado_nuevo=EstadoHabilitacion.APROBADA,
     motivo="Documentación correcta",
-    id_operador=7,
+    id_operador=uid(7),
     fecha=datetime(2026, 10, 22, 12, 0, tzinfo=UTC),
 )
 
 
 def test_consulta_estado_e_historial(client, casos, headers_conductor) -> None:
     casos["consultar_habilitacion_conductor"].resultado = HabilitacionResumen(
-        id_conductor=1,
+        id_conductor=uid(1),
         estado=EstadoHabilitacion.APROBADA,
         historial=[EVENTO],
     )
@@ -31,13 +33,13 @@ def test_consulta_estado_e_historial(client, casos, headers_conductor) -> None:
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["id_conductor"] == 1
+    assert cuerpo["id_conductor"] == str(uid(1))
     assert cuerpo["estado"] == "APROBADA"
     assert cuerpo["historial"] == [
         {
             "estado": "APROBADA",
             "motivo": "Documentación correcta",
-            "id_operador": 7,
+            "id_operador": str(uid(7)),
             "fecha": "2026-10-22T12:00:00Z",
         }
     ]

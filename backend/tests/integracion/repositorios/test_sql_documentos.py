@@ -3,7 +3,7 @@
 - `guardar(id_conductor, documento)` inserta y devuelve el `Documento` de dominio con id
   asignado (1, 2, ...). Hace `flush`, no `commit`: los tests llaman a `sesion_bd.commit()` y
   leen desde otra sesion.
-- `listar_por_conductor` devuelve solo los del conductor, en orden de alta (por id).
+- `listar_por_conductor` devuelve solo los del conductor, sin orden garantizado (los ids son UUID).
 - Las fechas hacen ida y vuelta exactas como `date`. El estado VIGENTE/VENCIDO no se guarda
   (no hay columna): se calcula con `documento.estado_al(hoy)` del dominio.
 - Guardar para un conductor inexistente propaga el `IntegrityError` de la FK sin traducir
@@ -20,6 +20,7 @@ from app.infraestructura.repositorios.sql_documentos import SqlRepositorioDocume
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
 from tests.integracion.sentencias import capturar_sentencias, selects
 
 HOY = date(2026, 6, 15)
@@ -56,17 +57,20 @@ def nueva_licencia(numero="LIC-1", categoria="B1", vencimiento=date(2029, 1, 1))
 
 
 def numeros(documentos):
-    return [documento.numero for documento in documentos]
+    # Los ids son UUID: el orden de los listados es estable pero arbitrario.
+    return sorted([documento.numero for documento in documentos])
 
 
-def test_guardar_devuelve_el_documento_de_dominio_con_ids_incrementales(repositorio, sesion_bd):
+def test_guardar_devuelve_el_documento_de_dominio_con_ids_distintos(repositorio, sesion_bd):
     id_conductor = sembrar_conductor(sesion_bd)
 
     primero = repositorio.guardar(id_conductor, nueva_licencia("LIC-1"))
     segundo = repositorio.guardar(id_conductor, nueva_licencia("LIC-2"))
 
     assert isinstance(primero, Documento)
-    assert (primero.id, segundo.id) == (1, 2)
+    assert primero.id is not None
+    assert segundo.id is not None
+    assert primero.id != segundo.id
     assert primero.numero == "LIC-1"
 
 
@@ -153,14 +157,14 @@ def test_el_estado_del_documento_no_se_guarda_en_la_base(sesion_bd):
     assert not any("estado" in columna for columna in columnas)
 
 
-def test_listar_devuelve_solo_los_del_conductor_en_orden_de_alta(repositorio, sesion_bd):
+def test_listar_devuelve_solo_los_del_conductor_sin_orden_garantizado(repositorio, sesion_bd):
     uno = sembrar_conductor(sesion_bd, "30000001")
     otro = sembrar_conductor(sesion_bd, "30000002")
     repositorio.guardar(uno, nueva_licencia("LIC-C"))
     repositorio.guardar(otro, nueva_licencia("LIC-AJENA"))
     repositorio.guardar(uno, nueva_licencia("LIC-A"))
 
-    assert numeros(repositorio.listar_por_conductor(uno)) == ["LIC-C", "LIC-A"]
+    assert numeros(repositorio.listar_por_conductor(uno)) == ["LIC-A", "LIC-C"]
     assert numeros(repositorio.listar_por_conductor(otro)) == ["LIC-AJENA"]
 
 
@@ -170,7 +174,7 @@ def test_listar_de_un_conductor_sin_documentos_o_inexistente_devuelve_lista_vaci
     id_conductor = sembrar_conductor(sesion_bd)
 
     assert repositorio.listar_por_conductor(id_conductor) == []
-    assert repositorio.listar_por_conductor(id_conductor + 1) == []
+    assert repositorio.listar_por_conductor(uid(999)) == []
 
 
 def test_guardar_para_un_conductor_inexistente_propaga_el_integrity_error_de_la_fk(
@@ -180,7 +184,7 @@ def test_guardar_para_un_conductor_inexistente_propaga_el_integrity_error_de_la_
     id_conductor = sembrar_conductor(sesion_bd)
 
     with pytest.raises(IntegrityError):
-        repositorio.guardar(id_conductor + 1, nueva_licencia("LIC-HUERFANA"))
+        repositorio.guardar(uid(999), nueva_licencia("LIC-HUERFANA"))
 
     # La sesion sigue usable sin rollback manual y no quedo nada de la licencia huerfana.
     assert repositorio.listar_por_conductor(id_conductor) == []
@@ -229,7 +233,7 @@ def test_listar_por_conductores_devuelve_una_clave_por_id_pedido_con_sus_documen
     assert leido.estado_al(HOY) is EstadoDocumento.VIGENTE
 
 
-def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
+def test_listar_por_conductores_devuelve_cada_lista_sin_orden_garantizado(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     uno = sembrar_conductor(sesion_bd, "30000001")
@@ -242,7 +246,7 @@ def test_listar_por_conductores_devuelve_cada_lista_en_orden_de_alta(
     with fabrica_sesiones() as otra_sesion:
         resultado = SqlRepositorioDocumentos(otra_sesion).listar_por_conductores([otro, uno])
 
-    assert numeros(resultado[uno]) == ["LIC-C", "LIC-A"]
+    assert numeros(resultado[uno]) == ["LIC-A", "LIC-C"]
     assert numeros(resultado[otro]) == ["LIC-X", "LIC-Y"]
 
 
@@ -265,7 +269,7 @@ def test_listar_por_conductores_sin_ids_devuelve_un_diccionario_vacio(repositori
 
 
 def test_listar_por_conductores_con_ids_inexistentes_devuelve_listas_vacias(repositorio):
-    assert repositorio.listar_por_conductores([998, 999]) == {998: [], 999: []}
+    assert repositorio.listar_por_conductores([uid(998), uid(999)]) == {uid(998): [], uid(999): []}
 
 
 def test_el_lote_de_documentos_hace_una_cantidad_de_selects_que_no_crece_con_los_conductores(

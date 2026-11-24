@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
+from uuid import UUID
 
 import httpx
 import pytest
@@ -31,16 +32,16 @@ VEHICULO = {
 }
 
 
-def _crear_conductor(cliente: TestClient, headers: dict[str, str]) -> int:
+def _crear_conductor(cliente: TestClient, headers: dict[str, str]) -> UUID:
     respuesta = cliente.post("/api/v1/conductores", json=CONDUCTOR, headers=headers)
     assert respuesta.status_code == 201, respuesta.text
-    return int(respuesta.json()["id"])
+    return UUID(respuesta.json()["id"])
 
 
 def _crear_vehiculo(
     cliente: TestClient,
     headers: dict[str, str],
-    id_conductor: int,
+    id_conductor: UUID,
 ) -> httpx.Response:
     return cliente.post(
         f"/api/v1/conductores/{id_conductor}/vehiculos",

@@ -88,14 +88,14 @@ def keycloak(requiere_docker: None, tmp_path_factory: pytest.TempPathFactory) ->
         contenedor.stop()
 
 
-def test_el_token_real_trae_los_ids_como_enteros(keycloak: str, seed_module: Any) -> None:
+def test_el_token_real_trae_los_ids_como_uuid_en_texto(keycloak: str, seed_module: Any) -> None:
     operador = _claims(_token(keycloak, "operador.m3", CLAVE_OPERADOR))
-    assert operador["id_operador"] == 101
-    assert isinstance(operador["id_operador"], int)
+    assert operador["id_operador"] == str(seed_module.ID_OPERADOR_SEED)
+    assert isinstance(operador["id_operador"], str)
 
     conductor = _claims(_token(keycloak, "conductor.m3", CLAVE_CONDUCTOR))
-    assert conductor["id_conductor"] == seed_module.ID_CONDUCTOR_PRUEBA
-    assert isinstance(conductor["id_conductor"], int)
+    assert conductor["id_conductor"] == str(seed_module.ID_CONDUCTOR_PRUEBA)
+    assert isinstance(conductor["id_conductor"], str)
 
 
 def test_el_token_de_servicio_solo_trae_el_rol_de_lectura(keycloak: str) -> None:

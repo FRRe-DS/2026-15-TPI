@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor, exigir_solicitud
 from app.aplicacion.politicas.acceso import (
@@ -24,7 +25,7 @@ class ResponderSolicitud:
     def ejecutar(
         self,
         *,
-        id_solicitud: int,
+        id_solicitud: UUID,
         respuesta: EstadoSolicitud,
         hora_rta: datetime,
         identidad: Identidad,

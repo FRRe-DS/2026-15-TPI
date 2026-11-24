@@ -103,8 +103,8 @@ def test_registrar_varias_licencias_cumple_el_contrato(
     validar_contrato(detalle)
 
     documentos = detalle.json()["documentos"]
-    assert [documento["numero"] for documento in documentos] == [
+    assert sorted(documento["numero"] for documento in documentos) == [
         "LIC-VENCIDA",
         "LIC-VIGENTE",
     ]
-    assert [documento["estado"] for documento in documentos] == ["VENCIDO", "VIGENTE"]
+    assert sorted(documento["estado"] for documento in documentos) == ["VENCIDO", "VIGENTE"]

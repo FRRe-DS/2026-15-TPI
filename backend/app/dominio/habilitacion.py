@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from uuid import UUID
 
 from app.dominio.errores import DatosInvalidos, TransicionInvalida
 
@@ -48,16 +49,16 @@ class EventoHabilitacion:
     estado_anterior: EstadoHabilitacion | None
     estado_nuevo: EstadoHabilitacion
     motivo: str
-    id_operador: int | None
+    id_operador: UUID | None
     fecha: datetime
-    id: int | None = field(default=None, compare=False)
+    id: UUID | None = field(default=None, compare=False)
 
 
 def aplicar_accion(
     estado_actual: EstadoHabilitacion,
     accion: AccionHabilitacion,
     motivo: str,
-    id_operador: int,
+    id_operador: UUID,
     fecha: datetime,
 ) -> EventoHabilitacion:
     estado_nuevo = TRANSICIONES[estado_actual].get(accion)

@@ -463,7 +463,7 @@ def test_la_base_rechaza_solicitud_con_respuesta_sin_hora(motor: Engine) -> None
                     INSERT INTO solicitud
                         (id_conductor, id_viaje, estado, vence_en, respuesta)
                     VALUES
-                        (:id_conductor, 1, 'ACEPTADO', now(), 'ACEPTADO')
+                        (:id_conductor, gen_random_uuid(), 'ACEPTADO', now(), 'ACEPTADO')
                     """
                 ),
                 {"id_conductor": id_conductor},
@@ -491,7 +491,7 @@ def test_la_base_rechaza_solicitud_aceptada_sin_respuesta(motor: Engine) -> None
                     INSERT INTO solicitud
                         (id_conductor, id_viaje, estado, vence_en)
                     VALUES
-                        (:id_conductor, 2, 'ACEPTADO', now())
+                        (:id_conductor, gen_random_uuid(), 'ACEPTADO', now())
                     """
                 ),
                 {"id_conductor": id_conductor},

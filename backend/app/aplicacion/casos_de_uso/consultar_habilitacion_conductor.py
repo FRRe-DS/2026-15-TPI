@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.aplicacion.casos_de_uso.encontrado import exigir_conductor
 from app.aplicacion.casos_de_uso.historial import en_orden_cronologico
 from app.aplicacion.casos_de_uso.resultados import HabilitacionResumen
@@ -8,7 +10,7 @@ class ConsultarHabilitacionConductor:
     def __init__(self, uow: UnidadDeTrabajo) -> None:
         self._uow = uow
 
-    def ejecutar(self, *, id_conductor: int) -> HabilitacionResumen:
+    def ejecutar(self, *, id_conductor: UUID) -> HabilitacionResumen:
         with self._uow:
             conductor = exigir_conductor(self._uow.conductores.obtener(id_conductor), id_conductor)
             historial = self._uow.habilitaciones.historial_conductor(id_conductor)

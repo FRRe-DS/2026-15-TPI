@@ -29,6 +29,8 @@ from app.infraestructura.repositorios.sql_conductores import SqlRepositorioCondu
 from sqlalchemy import event
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
+
 PENDIENTE = EstadoHabilitacion.PENDIENTE
 APROBADA = EstadoHabilitacion.APROBADA
 AUTO = TipoVehiculo.AUTO
@@ -75,20 +77,22 @@ def sembrar_vehiculo(sesion, id_conductor, patente, tipo, servicios=()):
 
 
 def dnis(conductores):
-    return [conductor.dni for conductor in conductores]
+    # Los ids son UUID: el orden de los listados es estable pero arbitrario.
+    return sorted(conductor.dni for conductor in conductores)
 
 
 # --- guardar y obtener ---
 
 
-def test_guardar_conductor_nuevo_devuelve_el_conductor_de_dominio_con_ids_incrementales(
+def test_guardar_conductor_nuevo_devuelve_el_conductor_de_dominio_con_ids_distintos(
     repositorio,
 ):
     primero = repositorio.guardar(nuevo_conductor("30000001"))
     segundo = repositorio.guardar(nuevo_conductor("30000002"))
 
     assert isinstance(primero, Conductor)
-    assert (primero.id, segundo.id) == (1, 2)
+    assert primero.id is not None and segundo.id is not None
+    assert primero.id != segundo.id
     assert primero.dni == "30000001"
 
 
@@ -132,7 +136,7 @@ def test_el_conductor_leido_trae_la_fecha_de_alta_que_asigna_la_base(
 def test_obtener_conductor_inexistente_devuelve_none(repositorio):
     repositorio.guardar(nuevo_conductor())
 
-    assert repositorio.obtener(999) is None
+    assert repositorio.obtener(uid(999)) is None
 
 
 def test_guardar_un_conductor_con_id_lo_actualiza_conservando_el_id(
@@ -158,7 +162,7 @@ def test_guardar_un_conductor_con_id_lo_actualiza_conservando_el_id(
 def test_guardar_un_conductor_con_id_inexistente_lanza_no_encontrado(repositorio):
     """Caracterizacion: el comportamiento ya existia cuando se escribio este test."""
     conductor = nuevo_conductor()
-    conductor.id = 999
+    conductor.id = uid(999)
 
     with pytest.raises(NoEncontrado):
         repositorio.guardar(conductor)
@@ -231,14 +235,15 @@ def test_listar_sin_conductores_devuelve_lista_vacia(repositorio):
     assert repositorio.listar() == []
 
 
-def test_listar_sin_filtros_devuelve_todos_en_orden_de_id(repositorio):
+def test_listar_sin_filtros_devuelve_todos_ordenados_por_id(repositorio):
     for dni in ("30000003", "30000001", "30000002"):
         repositorio.guardar(nuevo_conductor(dni))
 
     resultado = repositorio.listar()
 
-    assert dnis(resultado) == ["30000003", "30000001", "30000002"]
-    assert [c.id for c in resultado] == [1, 2, 3]
+    assert dnis(resultado) == ["30000001", "30000002", "30000003"]
+    ids = [c.id for c in resultado]
+    assert ids == sorted(ids)
     assert all(isinstance(c, Conductor) for c in resultado)
 
 

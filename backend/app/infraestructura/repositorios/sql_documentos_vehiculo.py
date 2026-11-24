@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -24,7 +25,7 @@ def a_dominio(fila: DocumentoVehiculoOrm) -> DocumentoVehiculo:
 
 
 def _copiar_a_fila(
-    id_vehiculo: int, documento: DocumentoVehiculo, fila: DocumentoVehiculoOrm
+    id_vehiculo: UUID, documento: DocumentoVehiculo, fila: DocumentoVehiculoOrm
 ) -> None:
     fila.id_vehiculo = id_vehiculo
     fila.tipo = documento.tipo.value
@@ -41,14 +42,14 @@ class SqlRepositorioDocumentosVehiculo(RepositorioDocumentosVehiculo):
     def __init__(self, sesion: Session) -> None:
         self._sesion = sesion
 
-    def guardar(self, id_vehiculo: int, documento: DocumentoVehiculo) -> DocumentoVehiculo:
+    def guardar(self, id_vehiculo: UUID, documento: DocumentoVehiculo) -> DocumentoVehiculo:
         fila = DocumentoVehiculoOrm()
         _copiar_a_fila(id_vehiculo, documento, fila)
         flush_aislado(self._sesion, fila)
         documento.id = fila.id_documento
         return documento
 
-    def listar_por_vehiculo(self, id_vehiculo: int) -> list[DocumentoVehiculo]:
+    def listar_por_vehiculo(self, id_vehiculo: UUID) -> list[DocumentoVehiculo]:
         consulta = (
             select(DocumentoVehiculoOrm)
             .where(DocumentoVehiculoOrm.id_vehiculo == id_vehiculo)
@@ -57,9 +58,9 @@ class SqlRepositorioDocumentosVehiculo(RepositorioDocumentosVehiculo):
         return [a_dominio(fila) for fila in self._sesion.scalars(consulta)]
 
     def listar_por_vehiculos(
-        self, ids_vehiculo: Sequence[int]
-    ) -> dict[int, list[DocumentoVehiculo]]:
-        por_vehiculo: dict[int, list[DocumentoVehiculo]] = {id_: [] for id_ in ids_vehiculo}
+        self, ids_vehiculo: Sequence[UUID]
+    ) -> dict[UUID, list[DocumentoVehiculo]]:
+        por_vehiculo: dict[UUID, list[DocumentoVehiculo]] = {id_: [] for id_ in ids_vehiculo}
         if not por_vehiculo:
             return por_vehiculo
         consulta = (

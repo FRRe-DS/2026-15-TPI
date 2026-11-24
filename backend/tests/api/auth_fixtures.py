@@ -3,14 +3,19 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
+from uuid import UUID
 
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from tests.ids import como_claim, uid
+
 EMISOR_VALIDO = "http://localhost:8080/realms/m3"
 KID_PRUEBA = "test-key-1"
 SUJETO_PRUEBA = "usuario-de-prueba"
+
+
 VARIABLES_ENTORNO = {
     "KEYCLOAK_URL": "http://localhost:8080",
     "KEYCLOAK_PUBLIC_URL": "http://localhost:8080",
@@ -81,9 +86,9 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
             },
         }
         if id_operador is not None:
-            payload["id_operador"] = id_operador
+            payload["id_operador"] = como_claim(id_operador)
         if id_conductor is not None:
-            payload["id_conductor"] = id_conductor
+            payload["id_conductor"] = como_claim(id_conductor)
         return jwt.encode(
             payload,
             clave_rsa,
@@ -96,7 +101,7 @@ def crear_token(clave_rsa: rsa.RSAPrivateKey):
 
 @pytest.fixture
 def headers_conductor(crear_token) -> dict[str, str]:
-    token = crear_token(roles=["conductor"], id_conductor=1)
+    token = crear_token(roles=["conductor"], id_conductor=uid(1))
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -109,7 +114,7 @@ def headers_servicio(crear_token) -> dict[str, str]:
 def headers_conductor_de(crear_token):
     """Fabrica los headers de un conductor con el ``id_conductor`` indicado."""
 
-    def _headers(id_conductor: int) -> dict[str, str]:
+    def _headers(id_conductor: UUID) -> dict[str, str]:
         token = crear_token(roles=["conductor"], id_conductor=id_conductor)
         return {"Authorization": f"Bearer {token}"}
 
@@ -118,5 +123,5 @@ def headers_conductor_de(crear_token):
 
 @pytest.fixture
 def headers_operador(crear_token) -> dict[str, str]:
-    token = crear_token(roles=["operador"], id_operador=7)
+    token = crear_token(roles=["operador"], id_operador=uid(7))
     return {"Authorization": f"Bearer {token}"}

@@ -11,7 +11,7 @@ Los nombres son una **propuesta**. Cualquier cambio se avisa y se actualiza acá
 | Campo | Tipo | Reglas |
 |---|---|---|
 | `estado` | texto | **Reemplaza a `conectado` y `disponible`.** `DESCONECTADO` (por defecto), `CONECTADO`, `DISPONIBLE` u `OCUPADO`, con `CHECK`. Obligatorio |
-| `id_vehiculo_activo` | bigint, FK → `vehiculo.id_vehiculo`, nulo | Vehículo con el que trabaja. Debe ser de ese conductor (lo valida el backend). `ON DELETE SET NULL` |
+| `id_vehiculo_activo` | uuid, FK → `vehiculo.id_vehiculo`, nulo | Vehículo con el que trabaja. Debe ser de ese conductor (lo valida el backend). `ON DELETE SET NULL` |
 | `fecha_ultimo_cambio_estado` | timestamptz, nulo | Es el campo `actualizado` del contrato. Cambia con el estado o el vehículo activo. **No** cambia por la ubicación. Nulo hasta el primer cambio |
 | `suma_puntajes` | entero | Por defecto 0. No negativo |
 | `cantidad_calificaciones` | entero | Por defecto 0. No negativo |
@@ -32,9 +32,9 @@ Sin cambios de esquema. `habilitado` pasa a mantenerse sincronizado con la habil
 
 | Campo | Tipo | Reglas |
 |---|---|---|
-| `id_solicitud` | bigint, PK | Autogenerado |
-| `id_conductor` | bigint, FK → `conductor` | Obligatorio. `ON DELETE RESTRICT` |
-| `id_viaje` | bigint, nulo | Viaje al que corresponde la oferta |
+| `id_solicitud` | uuid, PK | Autogenerado (`gen_random_uuid()`) |
+| `id_conductor` | uuid, FK → `conductor` | Obligatorio. `ON DELETE RESTRICT` |
+| `id_viaje` | uuid, nulo | Viaje (UUID de M6) al que corresponde la oferta |
 | `estado` | texto | `PENDIENTE` (inicial), `ACEPTADO`, `RECHAZADO` o `VENCIDA`, con `CHECK` |
 | `vence_en` | timestamptz | Obligatorio. Límite para responder |
 | `respuesta` | texto, nulo | `ACEPTADO` o `RECHAZADO`, con `CHECK`. Nulo mientras no se responda |
@@ -50,8 +50,8 @@ Sin cambios de esquema. `habilitado` pasa a mantenerse sincronizado con la habil
 
 | Campo | Tipo | Reglas |
 |---|---|---|
-| `id_documento` | bigint, PK | Autogenerado |
-| `id_vehiculo` | bigint, FK → `vehiculo` | Obligatorio. `ON DELETE RESTRICT` |
+| `id_documento` | uuid, PK | Autogenerado (`gen_random_uuid()`) |
+| `id_vehiculo` | uuid, FK → `vehiculo` | Obligatorio. `ON DELETE RESTRICT` |
 | `tipo` | texto | `SEGURO`, `CEDULA_VERDE` o `VTV`, con `CHECK` |
 | `numero` | texto | Obligatorio |
 | `entidad_emisora` | texto, nulo | Opcional |

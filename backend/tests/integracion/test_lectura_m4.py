@@ -91,7 +91,7 @@ def test_get_devuelve_disponibilidad_y_ubicacion_persistidas(
     if not detalle:
         assert len(datos) == 1
         datos = datos[0]
-    assert datos["id"] == conductor.id_conductor
+    assert datos["id"] == str(conductor.id_conductor)
     assert datos["estado"] == "DISPONIBLE"
     assert datos["cantidad_calificaciones"] == 0
     assert datos["puntaje_promedio"] is None

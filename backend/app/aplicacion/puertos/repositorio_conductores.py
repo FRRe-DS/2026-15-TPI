@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from app.dominio.conductor import Conductor, EstadoConductor
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo
@@ -10,7 +11,7 @@ class RepositorioConductores(ABC):
         """Persiste el conductor y le asigna id. Lanza DniDuplicado si el DNI ya existe."""
 
     @abstractmethod
-    def obtener(self, id_conductor: int) -> Conductor | None:
+    def obtener(self, id_conductor: UUID) -> Conductor | None:
         """Devuelve el conductor o None si no existe."""
 
     @abstractmethod
