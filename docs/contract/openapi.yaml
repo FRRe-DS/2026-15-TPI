@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: API M3 - Conductores y Vehículos
-  version: 1.2.0
+  version: 2.0.0
   description: |
     Contrato del módulo M3 - Conductores y Vehículos.
 
