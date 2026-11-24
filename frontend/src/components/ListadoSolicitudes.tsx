@@ -10,9 +10,10 @@ import type {
 } from "../lib/tipos";
 import { EstadoCarga, EstadoError, EstadoVacio } from "./estados/estados";
 import styles from "./ListadoSolicitudes.module.css";
+import { idCorto } from "../lib/ids";
 
 export type ResponderSolicitud = (
-  idSolicitud: number,
+  idSolicitud: string,
   cuerpo: RespuestaSolicitudRequest,
 ) => Promise<Solicitud>;
 
@@ -70,9 +71,9 @@ export function ListadoSolicitudes({
   responder,
 }: ListadoSolicitudesProps) {
   const [ahora, setAhora] = useState(() => Date.now());
-  const [respondiendo, setRespondiendo] = useState<number | null>(null);
-  const [errores, setErrores] = useState<Record<number, string>>({});
-  const [respuestas, setRespuestas] = useState<Record<number, Solicitud>>({});
+  const [respondiendo, setRespondiendo] = useState<string | null>(null);
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const [respuestas, setRespuestas] = useState<Record<string, Solicitud>>({});
 
   useEffect(() => {
     setAhora(Date.now());
@@ -95,7 +96,7 @@ export function ListadoSolicitudes({
   }
 
   async function responderSolicitud(
-    idSolicitud: number,
+    idSolicitud: string,
     respuesta: RespuestaSolicitud,
   ) {
     if (!responder) return;
@@ -141,17 +142,17 @@ export function ListadoSolicitudes({
           <li
             key={actual.id}
             className={styles.solicitud}
-            aria-label={`Solicitud ${actual.id}`}
+            aria-label={`Solicitud ${idCorto(actual.id)}`}
           >
             <div className={styles.encabezado}>
-              <h2 className={styles.titulo}>Solicitud #{actual.id}</h2>
+              <h2 className={styles.titulo}>Solicitud #{idCorto(actual.id)}</h2>
               <span className={`${styles.estado} ${CLASE_ESTADO[actual.estado]}`}>
                 {actual.estado}
               </span>
             </div>
 
             {actual.id_viaje != null && (
-              <p className={styles.detalle}>Viaje #{actual.id_viaje}</p>
+              <p className={styles.detalle}>Viaje #{idCorto(actual.id_viaje)}</p>
             )}
 
             {pendiente ? (
@@ -166,7 +167,7 @@ export function ListadoSolicitudes({
                   <button
                     type="button"
                     className={styles.aceptar}
-                    aria-label={`Aceptar solicitud ${actual.id}`}
+                    aria-label={`Aceptar solicitud ${idCorto(actual.id)}`}
                     onClick={() => responderSolicitud(actual.id, "ACEPTADO")}
                     disabled={vencida || respondiendoEsta || !responder}
                   >
@@ -175,7 +176,7 @@ export function ListadoSolicitudes({
                   <button
                     type="button"
                     className={styles.rechazar}
-                    aria-label={`Rechazar solicitud ${actual.id}`}
+                    aria-label={`Rechazar solicitud ${idCorto(actual.id)}`}
                     onClick={() => responderSolicitud(actual.id, "RECHAZADO")}
                     disabled={vencida || respondiendoEsta || !responder}
                   >

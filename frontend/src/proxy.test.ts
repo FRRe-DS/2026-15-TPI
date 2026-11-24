@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { proxy } from "./proxy";
 import { NOMBRE_COOKIE_SESION } from "./lib/sesion";
+import { uid } from "./mocks/ids.mock";
 
 function crearToken(payload: Record<string, unknown>): string {
   const parte = (objeto: unknown) =>
@@ -13,10 +14,10 @@ function crearToken(payload: Record<string, unknown>): string {
 const segundosAhora = () => Math.floor(Date.now() / 1000);
 
 const tokenVigente = () =>
-  crearToken({ id_conductor: 1, exp: segundosAhora() + 300 });
+  crearToken({ id_conductor: uid(1), exp: segundosAhora() + 300 });
 
 const tokenVencido = () =>
-  crearToken({ id_conductor: 1, exp: segundosAhora() - 1 });
+  crearToken({ id_conductor: uid(1), exp: segundosAhora() - 1 });
 
 function pedido(pathname: string, token?: string): NextRequest {
   return new NextRequest(`http://localhost${pathname}`, {

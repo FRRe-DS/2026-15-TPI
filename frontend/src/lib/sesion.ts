@@ -1,3 +1,4 @@
+import { esUuid } from "./ids";
 import { ErrorAutenticacion } from "./token";
 
 export const NOMBRE_COOKIE_SESION = "sesion_m3";
@@ -12,7 +13,7 @@ export interface ConfigKeycloak {
 export interface SesionIniciada {
   accessToken: string;
   expiresIn: number;
-  idConductor: number;
+  idConductor: string;
 }
 
 function leerPayload(token: string): Record<string, unknown> | null {
@@ -30,15 +31,15 @@ function leerPayload(token: string): Record<string, unknown> | null {
 }
 
 /** Lee el claim id_conductor sin validar la firma: la valida la API. */
-export function leerIdConductor(token: string): number | null {
+export function leerIdConductor(token: string): string | null {
   const id = leerPayload(token)?.id_conductor;
-  return typeof id === "number" && Number.isInteger(id) && id > 0 ? id : null;
+  return esUuid(id) ? id : null;
 }
 
 export function leerSesion(
   token: string | null | undefined,
   ahora: number = Date.now()
-): { idConductor: number } | null {
+): { idConductor: string } | null {
   if (!token) return null;
   const payload = leerPayload(token);
   const idConductor = leerIdConductor(token);

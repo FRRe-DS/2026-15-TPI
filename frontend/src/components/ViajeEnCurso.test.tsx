@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ViajeEnCurso, type ViajeDetalle } from "./ViajeEnCurso";
+import { uid } from "../mocks/ids.mock";
 
 const { pushMock } = vi.hoisted(() => ({
   pushMock: vi.fn(),
@@ -15,9 +16,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 const viajeEjemplo: ViajeDetalle = {
-  id: 340,
-  id_viaje: 5521,
-  id_conductor: 1,
+  id: uid(340),
+  id_viaje: uid(5521),
+  id_conductor: uid(1),
   estado: "ACEPTADO",
   pasajero: "Laura Gómez",
   origen: "Av. San Martín 1540",
@@ -33,7 +34,7 @@ describe("ViajeEnCurso (T727)", () => {
   it("muestra el viaje tras la aceptación con identificador, datos y estado OCUPADO", () => {
     render(<ViajeEnCurso viaje={viajeEjemplo} />);
 
-    expect(screen.getByText(/Viaje #5521/i)).toBeInTheDocument();
+    expect(screen.getByText(/Viaje #00005521/i)).toBeInTheDocument();
     expect(screen.getByText("OCUPADO")).toBeInTheDocument();
     expect(screen.getByText(/Laura Gómez/i)).toBeInTheDocument();
     expect(screen.getByText(/Av\. San Martín 1540/i)).toBeInTheDocument();

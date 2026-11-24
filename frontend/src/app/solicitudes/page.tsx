@@ -18,7 +18,7 @@ function usaMocks(): boolean {
 }
 
 async function responderSolicitudMock(
-  idSolicitud: number,
+  idSolicitud: string,
   cuerpo: RespuestaSolicitudRequest,
 ): Promise<Solicitud> {
   const solicitud = MOCK_SOLICITUDES.find((item) => item.id === idSolicitud);
@@ -42,7 +42,7 @@ async function responderSolicitudMock(
 }
 
 async function responder(
-  idSolicitud: number,
+  idSolicitud: string,
   cuerpo: RespuestaSolicitudRequest,
 ): Promise<Solicitud> {
   "use server";

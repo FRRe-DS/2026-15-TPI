@@ -11,6 +11,7 @@ import type {
   TipoServicio,
   UbicacionConductor,
 } from "./tipos";
+import { esUuid } from "./ids";
 
 export class ErrorApi extends Error {
   readonly status: number;
@@ -167,36 +168,44 @@ async function pedir<T>(
   return (await response.json()) as T;
 }
 
-export function obtenerEstado(idConductor: number, opciones: OpcionesConductor) {
-  return pedir<EstadoConductor>(`/conductores/${idConductor}/estado`, "GET", opciones);
+/** Corta antes de pedir: un id que no es UUID no llega a la URL (evita rutas como `../x`). */
+function exigirUuid(id: string, descripcion: string): string {
+  if (!esUuid(id)) {
+    throw new ErrorApi(400, `El id ${descripcion} no es un UUID válido.`, "ID_INVALIDO");
+  }
+  return id;
 }
 
-export function actualizarEstado(
-  idConductor: number,
+export async function obtenerEstado(idConductor: string, opciones: OpcionesConductor) {
+  return await pedir<EstadoConductor>(`/conductores/${exigirUuid(idConductor, "del conductor")}/estado`, "GET", opciones);
+}
+
+export async function actualizarEstado(
+  idConductor: string,
   cambios: EstadoConductorRequest,
   opciones: OpcionesConductor
 ) {
-  return pedir<EstadoConductor>(`/conductores/${idConductor}/estado`, "PATCH", opciones, cambios);
+  return await pedir<EstadoConductor>(`/conductores/${exigirUuid(idConductor, "del conductor")}/estado`, "PATCH", opciones, cambios);
 }
 
-export function obtenerUbicacion(idConductor: number, opciones: OpcionesConductor) {
-  return pedir<UbicacionConductor>(`/conductores/${idConductor}/ubicacion`, "GET", opciones);
+export async function obtenerUbicacion(idConductor: string, opciones: OpcionesConductor) {
+  return await pedir<UbicacionConductor>(`/conductores/${exigirUuid(idConductor, "del conductor")}/ubicacion`, "GET", opciones);
 }
 
 export interface OpcionesListarSolicitudes extends OpcionesConductor {
   estado?: EstadoSolicitud;
 }
 
-export function listarSolicitudes(idConductor: number, opciones: OpcionesListarSolicitudes) {
+export async function listarSolicitudes(idConductor: string, opciones: OpcionesListarSolicitudes) {
   const { estado, ...base } = opciones;
   const consulta = estado ? `?${new URLSearchParams({ estado }).toString()}` : "";
-  return pedir<Solicitud[]>(`/conductores/${idConductor}/solicitudes${consulta}`, "GET", base);
+  return await pedir<Solicitud[]>(`/conductores/${exigirUuid(idConductor, "del conductor")}/solicitudes${consulta}`, "GET", base);
 }
 
-export function responderSolicitud(
-  idSolicitud: number,
+export async function responderSolicitud(
+  idSolicitud: string,
   respuesta: RespuestaSolicitudRequest,
   opciones: OpcionesConductor
 ) {
-  return pedir<Solicitud>(`/solicitudes/${idSolicitud}`, "POST", opciones, respuesta);
+  return await pedir<Solicitud>(`/solicitudes/${exigirUuid(idSolicitud, "de la solicitud")}`, "POST", opciones, respuesta);
 }

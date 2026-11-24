@@ -4,6 +4,7 @@ import Page from "./page";
 import * as apiModule from "../../lib/api";
 import { NOMBRE_COOKIE_SESION } from "../../lib/sesion";
 import type { Solicitud } from "../../lib/tipos";
+import { uid } from "../../mocks/ids.mock";
 
 const { cookiesMock, getCookieMock, redirectMock, pushMock } = vi.hoisted(
   () => ({
@@ -32,7 +33,7 @@ function crearToken(payload: Record<string, unknown>): string {
 const segundosAhora = () => Math.floor(Date.now() / 1000);
 
 const tokenVigente = () =>
-  crearToken({ id_conductor: 1, exp: segundosAhora() + 300 });
+  crearToken({ id_conductor: uid(1), exp: segundosAhora() + 300 });
 
 function simularCookie(token: string | null) {
   getCookieMock.mockImplementation((nombre: string) =>
@@ -61,7 +62,7 @@ describe("Página de Viaje (Server Component)", () => {
     const pagina = await Page();
     render(pagina);
 
-    expect(screen.getByText(/Viaje #5521/i)).toBeInTheDocument();
+    expect(screen.getByText(/Viaje #00005521/i)).toBeInTheDocument();
     expect(screen.getByText("OCUPADO")).toBeInTheDocument();
     expect(screen.getByText(/Laura Gómez/i)).toBeInTheDocument();
   });
@@ -83,9 +84,9 @@ describe("Página de Viaje (Server Component)", () => {
 
     const solicitudesMock: Solicitud[] = [
       {
-        id: 101,
-        id_viaje: 7777,
-        id_conductor: 1,
+        id: uid(101),
+        id_viaje: uid(7777),
+        id_conductor: uid(1),
         estado: "ACEPTADO",
         vence_en: "2026-11-13T12:00:00Z",
         respuesta: "ACEPTADO",
@@ -98,11 +99,11 @@ describe("Página de Viaje (Server Component)", () => {
     const pagina = await Page();
     render(pagina);
 
-    expect(apiModule.listarSolicitudes).toHaveBeenCalledWith(1, {
+    expect(apiModule.listarSolicitudes).toHaveBeenCalledWith(uid(1), {
       token: expect.any(String),
       estado: "ACEPTADO",
     });
-    expect(screen.getByText(/Viaje #7777/i)).toBeInTheDocument();
+    expect(screen.getByText(/Viaje #00007777/i)).toBeInTheDocument();
     expect(screen.getByText("OCUPADO")).toBeInTheDocument();
   });
 

@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import Page from "./page";
 import * as apiModule from "../lib/api";
 import type { ConductorConUbicacion } from "../lib/tipos";
+import { uid } from "../mocks/ids.mock";
 
 describe("Page (Server Component)", () => {
   beforeEach(() => {
@@ -12,7 +13,7 @@ describe("Page (Server Component)", () => {
   it("obtiene los datos en el servidor y renderiza el listado", async () => {
     const mockConductores: ConductorConUbicacion[] = [
       {
-        id: 1,
+        id: uid(1),
         dni: "12345678",
         nombre: "María",
         apellido: "González",

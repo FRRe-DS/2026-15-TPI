@@ -1,10 +1,10 @@
 # Plan de implementación: Iteración 2 — Frontend de M3
 
-**Spec**: [spec.md](./spec.md) | **Tareas**: [tasks.md](./tasks.md) | **Contrato**: `docs/contract/openapi.yaml` (1.2.0)
+**Spec**: [spec.md](./spec.md) | **Tareas**: [tasks.md](./tasks.md) | **Contrato**: `docs/contract/openapi.yaml` (2.0.0, ids UUID)
 
 ## Resumen
 
-Se agregan las pantallas del conductor (login, estado, solicitudes, viaje en curso y ubicación) al frontend existente en `frontend/`, y se actualiza el listado de conductores al contrato 1.2.0. Cada pantalla se hace primero con mocks y después contra la API real.
+Se agregan las pantallas del conductor (login, estado, solicitudes, viaje en curso y ubicación) al frontend existente en `frontend/`, y se actualiza el listado de conductores al contrato (1.2.0, luego 2.0.0). Cada pantalla se hace primero con mocks y después contra la API real.
 
 ## Contexto técnico
 

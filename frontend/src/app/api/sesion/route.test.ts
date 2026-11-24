@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { POST, DELETE } from "./route";
 import * as sesion from "../../../lib/sesion";
 import { ErrorAutenticacion } from "../../../lib/token";
+import { uid } from "../../../mocks/ids.mock";
 
 vi.mock("../../../lib/sesion", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../../lib/sesion")>();
@@ -17,7 +18,7 @@ function pedido(cuerpo: unknown) {
   });
 }
 
-const SESION = { accessToken: "token-secreto", expiresIn: 300, idConductor: 1 };
+const SESION = { accessToken: "token-secreto", expiresIn: 300, idConductor: uid(1) };
 
 afterEach(() => {
   vi.mocked(sesion.iniciarSesion).mockReset();
@@ -45,7 +46,7 @@ describe("POST /api/sesion", () => {
 
     expect(texto).not.toContain("token-secreto");
     expect(texto).not.toContain("clave-secreta-123");
-    expect(JSON.parse(texto)).toEqual({ idConductor: 1 });
+    expect(JSON.parse(texto)).toEqual({ idConductor: uid(1) });
   });
 
   it("con credenciales inválidas responde 401 y no crea la cookie", async () => {

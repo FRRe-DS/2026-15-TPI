@@ -2,7 +2,7 @@
 
 **Grupo 15 · Módulo M3 (Conductores y Vehículos) · Equipo de Frontend**
 
-**Plan**: [plan.md](./plan.md) | **Tareas**: [tasks.md](./tasks.md) | **Contrato**: `docs/contract/openapi.yaml` (1.2.0)
+**Plan**: [plan.md](./plan.md) | **Tareas**: [tasks.md](./tasks.md) | **Contrato**: `docs/contract/openapi.yaml` (2.0.0, ids UUID)
 
 ## Resumen
 
@@ -75,7 +75,7 @@ Como conductor quiero que la app informe mi ubicación durante el viaje para que
 
 ### US6 — Listado de conductores (ya existe)
 
-La pantalla de la Iteración 1 se mantiene como vista de operador y servicio. Se actualiza al contrato 1.2.0 y muestra badges por estado de habilitación.
+La pantalla de la Iteración 1 se mantiene como vista de operador y servicio. Se actualiza al contrato 2.0.0 y muestra badges por estado de habilitación.
 
 **Escenarios de aceptación**
 
@@ -88,7 +88,7 @@ La pantalla de la Iteración 1 se mantiene como vista de operador y servicio. Se
 - **FR-001**: Toda pantalla del conductor tiene estados de carga, error y vacío.
 - **FR-002**: Las pantallas funcionan con datos mock sin backend (`USE_MOCK=true`) y con la API real (`USE_MOCK=false`), sin cambiar el código de las pantallas.
 - **FR-003**: Los errores de la API se muestran a partir de `{codigo, mensaje}`.
-- **FR-004**: El frontend consume el contrato 1.2.0: `estado` operativo en lugar de `conectado` y `disponible`, más `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`.
+- **FR-004**: El frontend consume el contrato (1.2.0, luego 2.0.0 con ids UUID): `estado` operativo en lugar de `conectado` y `disponible`, más `id_vehiculo_activo`, `puntaje_promedio` y `cantidad_calificaciones`.
 - **FR-005**: Al responder una solicitud se envía `respuesta` y `hora_rta` (fecha y hora, obligatoria en el contrato).
 - **FR-006**: Una ubicación `null` se trata como desconocida.
 
@@ -108,6 +108,6 @@ La pantalla de la Iteración 1 se mantiene como vista de operador y servicio. Se
 
 ## Supuestos y dependencias
 
-- Todo lo que necesita el backend (`estado`, `ubicacion`, `solicitudes`) está en el contrato 1.2.0 pero **todavía no está mergeado en `dev`**. Los mocks permiten avanzar hasta que se publique. La integración real está bloqueada hasta entonces (ver [plan.md](./plan.md)).
-- El token del conductor trae el claim entero `id_conductor` (contrato, `bearerAuth`) y el realm `m3` ya lo mapea.
+- Todo lo que necesita el backend (`estado`, `ubicacion`, `solicitudes`) está en el contrato (1.2.0 en su momento; hoy 2.0.0, con ids UUID) pero **todavía no está mergeado en `dev`**. Los mocks permiten avanzar hasta que se publique. La integración real está bloqueada hasta entonces (ver [plan.md](./plan.md)).
+- El token del conductor trae el claim `id_conductor`, un UUID en texto (contrato 2.0.0, `bearerAuth`), y el realm `m3` ya lo mapea.
 - «Finalizar viaje» como `PATCH` a `DISPONIBLE` falta acordarlo con M4 y M6.

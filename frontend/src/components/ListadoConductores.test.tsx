@@ -3,10 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { ListadoConductores } from "./ListadoConductores";
 import styles from "./ListadoConductores.module.css";
 import type { ConductorConUbicacion, EstadoHabilitacion } from "../lib/tipos";
+import { uid } from "../mocks/ids.mock";
 
 describe("ListadoConductores", () => {
   const conductorEjemplo: ConductorConUbicacion = {
-    id: 1,
+    id: uid(1),
     dni: "12345678",
     nombre: "Juan",
     apellido: "Pérez",
