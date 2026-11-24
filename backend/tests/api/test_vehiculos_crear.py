@@ -2,7 +2,9 @@ from app.dominio.errores import NoEncontrado, PatenteDuplicada
 from app.dominio.vehiculo import TipoServicio as TipoServicioDominio
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
 
-URL = "/api/v1/conductores/1/vehiculos"
+from tests.ids import uid
+
+URL = f"/api/v1/conductores/{uid(1)}/vehiculos"
 
 PAYLOAD = {
     "tipo": "AUTO",
@@ -18,17 +20,17 @@ def test_crea_vehiculo(client, casos, headers_conductor) -> None:
     respuesta = client.post(URL, json=PAYLOAD, headers=headers_conductor)
 
     assert respuesta.status_code == 201
-    assert respuesta.headers["location"] == "/api/v1/conductores/1/vehiculos/5"
+    assert respuesta.headers["location"] == f"/api/v1/conductores/{uid(1)}/vehiculos/{uid(5)}"
 
     cuerpo = respuesta.json()
-    assert cuerpo["id"] == 5
-    assert cuerpo["id_conductor"] == 1
+    assert cuerpo["id"] == str(uid(5))
+    assert cuerpo["id_conductor"] == str(uid(1))
     assert cuerpo["patente"] == "AB123CD"
     assert cuerpo["tipos_serv"] == [{"tipo": "PASAJEROS", "habilitado": False}]
 
     assert casos["registrar_vehiculo"].llamadas == [
         {
-            "id_conductor": 1,
+            "id_conductor": uid(1),
             "tipo": TipoVehiculoDominio.AUTO,
             "patente": "AB123CD",
             "marca": "Toyota",

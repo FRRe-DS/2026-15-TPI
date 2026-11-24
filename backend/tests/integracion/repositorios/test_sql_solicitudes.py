@@ -5,7 +5,7 @@ Diseno que fijan los tests (igual que el fake `RepositorioSolicitudesEnMemoria`)
   le asigna id y hace `flush` (no `commit`: lo decide la unidad de trabajo); con id
   actualiza la fila existente.
 - `obtener` devuelve la solicitud de dominio o `None`.
-- `listar_por_conductor` devuelve solo las del conductor, en orden de alta (id ascendente).
+- `listar_por_conductor` devuelve solo las del conductor, sin orden garantizado (los ids son UUID).
 - La base es la ultima defensa: `respuesta` y `hora_rta` van juntas y `estado` coincide con
   `respuesta` (`CHECK`).
 - `bloquear_solicitud` usa `SELECT ... FOR UPDATE` con `populate_existing`: si la sesion ya
@@ -25,6 +25,8 @@ from app.infraestructura.repositorios.sql_solicitudes import SqlRepositorioSolic
 from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 from sqlalchemy import event, text
 from sqlalchemy.exc import IntegrityError
+
+from tests.ids import uid
 
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 VENCE_EN = AHORA + timedelta(minutes=2)
@@ -104,7 +106,7 @@ def test_guardar_y_obtener_persisten_estado_vence_en_respuesta_y_hora(
 ):
     id_conductor = sembrar_conductor(sesion_bd)
 
-    guardada = repositorio.guardar(nueva_solicitud(id_conductor, estado, id_viaje=42))
+    guardada = repositorio.guardar(nueva_solicitud(id_conductor, estado, id_viaje=uid(42)))
     sesion_bd.commit()
 
     leida = leer_desde_otra_sesion(fabrica_sesiones, guardada.id)
@@ -112,7 +114,7 @@ def test_guardar_y_obtener_persisten_estado_vence_en_respuesta_y_hora(
     assert isinstance(leida, Solicitud)
     assert leida.id == guardada.id
     assert leida.id_conductor == id_conductor
-    assert leida.id_viaje == 42
+    assert leida.id_viaje == uid(42)
     assert leida.estado is estado
     assert leida.vence_en == VENCE_EN
     if estado in (ACEPTADO, RECHAZADO):
@@ -123,13 +125,15 @@ def test_guardar_y_obtener_persisten_estado_vence_en_respuesta_y_hora(
         assert leida.hora_rta is None
 
 
-def test_guardar_sin_id_asigna_ids_incrementales(repositorio, sesion_bd):
+def test_guardar_sin_id_asigna_ids_distintos(repositorio, sesion_bd):
     id_conductor = sembrar_conductor(sesion_bd)
 
     primera = repositorio.guardar(nueva_solicitud(id_conductor))
     segunda = repositorio.guardar(nueva_solicitud(id_conductor))
 
-    assert (primera.id, segunda.id) == (1, 2)
+    assert primera.id is not None
+    assert segunda.id is not None
+    assert primera.id != segunda.id
 
 
 def test_guardar_una_solicitud_con_id_actualiza_sin_duplicar_filas(
@@ -153,32 +157,32 @@ def test_guardar_una_solicitud_con_id_actualiza_sin_duplicar_filas(
 
 
 def test_obtener_una_solicitud_inexistente_devuelve_none(repositorio):
-    assert repositorio.obtener(999) is None
+    assert repositorio.obtener(uid(999)) is None
 
 
 # --- listar por conductor ---
 
 
-def test_listar_por_conductor_devuelve_solo_las_suyas_en_orden_de_alta(
+def test_listar_por_conductor_devuelve_solo_las_suyas_sin_orden_garantizado(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     duenio = sembrar_conductor(sesion_bd, "30000001")
     otro = sembrar_conductor(sesion_bd, "30000002")
     primera = repositorio.guardar(nueva_solicitud(duenio))
     repositorio.guardar(nueva_solicitud(otro))
-    tercera = repositorio.guardar(nueva_solicitud(duenio, ACEPTADO, id_viaje=7))
+    tercera = repositorio.guardar(nueva_solicitud(duenio, ACEPTADO, id_viaje=uid(7)))
     sesion_bd.commit()
 
     with fabrica_sesiones() as otra_sesion:
         resultado = SqlRepositorioSolicitudes(otra_sesion).listar_por_conductor(duenio)
 
-    assert [s.id for s in resultado] == [primera.id, tercera.id]
+    assert {s.id for s in resultado} == {primera.id, tercera.id}
     assert [s.id_conductor for s in resultado] == [duenio, duenio]
-    assert [s.estado for s in resultado] == [PENDIENTE, ACEPTADO]
+    assert {s.estado for s in resultado} == {PENDIENTE, ACEPTADO}
 
 
 def test_listar_por_conductor_sin_solicitudes_o_inexistente_devuelve_lista_vacia(repositorio):
-    assert repositorio.listar_por_conductor(999) == []
+    assert repositorio.listar_por_conductor(uid(999)) == []
 
 
 # --- la base rechaza combinaciones incoherentes (CHECK) ---
@@ -235,7 +239,7 @@ def test_bloquear_solicitud_devuelve_la_solicitud_de_dominio_o_none(uow, sesion_
 
     with uow:
         bloqueada = uow.bloquear_solicitud(guardada.id)
-        inexistente = uow.bloquear_solicitud(999)
+        inexistente = uow.bloquear_solicitud(uid(999))
 
     assert isinstance(bloqueada, Solicitud)
     assert (bloqueada.id, bloqueada.id_conductor) == (guardada.id, id_conductor)

@@ -21,6 +21,7 @@ from app.dominio.solicitud import EstadoSolicitud, Solicitud
 from fastapi.testclient import TestClient
 
 from tests.api.conftest import CasoDeUsoFalso, devolver_caso, instalar_limitador_falso
+from tests.ids import uid
 
 LISTADO = "/api/v1/conductores/{id}/solicitudes"
 RESPONDER = "/api/v1/solicitudes/{id}"
@@ -36,9 +37,9 @@ PROVEEDORES_V4 = {
 
 def _solicitud(**cambios) -> Solicitud:
     datos = {
-        "id": 340,
-        "id_conductor": 1,
-        "id_viaje": 5521,
+        "id": str(uid(340)),
+        "id_conductor": str(uid(1)),
+        "id_viaje": str(uid(5521)),
         "estado": EstadoSolicitud.PENDIENTE,
         "vence_en": VENCE,
     }
@@ -83,60 +84,62 @@ def client_solicitudes(
 def test_listar_devuelve_las_solicitudes_del_conductor(
     client_solicitudes, casos_solicitudes, headers_conductor_de
 ) -> None:
-    respuesta = client_solicitudes.get(LISTADO.format(id=1), headers=headers_conductor_de(1))
+    respuesta = client_solicitudes.get(
+        LISTADO.format(id=uid(1)), headers=headers_conductor_de(uid(1))
+    )
 
     assert respuesta.status_code == 200
     assert respuesta.json() == [
         {
-            "id": 340,
-            "id_conductor": 1,
-            "id_viaje": 5521,
+            "id": str(uid(340)),
+            "id_conductor": str(uid(1)),
+            "id_viaje": str(uid(5521)),
             "estado": "PENDIENTE",
             "vence_en": "2026-10-03T18:45:30Z",
             "respuesta": None,
             "hora_rta": None,
         }
     ]
-    assert casos_solicitudes["listar"].llamadas == [{"id_conductor": 1, "estado": None}]
+    assert casos_solicitudes["listar"].llamadas == [{"id_conductor": uid(1), "estado": None}]
 
 
 def test_listar_serializa_pendientes_vencidas_y_respondidas(
     client_solicitudes, casos_solicitudes, headers_operador
 ) -> None:
     respondida = _solicitud(
-        id=342,
+        id=uid(342),
         estado=EstadoSolicitud.RECHAZADO,
         respuesta=EstadoSolicitud.RECHAZADO,
         hora_rta=datetime(2026, 10, 3, 18, 44, 10, tzinfo=UTC),
     )
     casos_solicitudes["listar"].resultado = [
-        _solicitud(id=340),
-        _solicitud(id=341, estado=EstadoSolicitud.VENCIDA),
+        _solicitud(id=uid(340)),
+        _solicitud(id=uid(341), estado=EstadoSolicitud.VENCIDA),
         respondida,
     ]
 
-    respuesta = client_solicitudes.get(LISTADO.format(id=1), headers=headers_operador)
+    respuesta = client_solicitudes.get(LISTADO.format(id=uid(1)), headers=headers_operador)
 
     assert respuesta.status_code == 200
     por_id = {solicitud["id"]: solicitud for solicitud in respuesta.json()}
-    assert por_id[340]["estado"] == "PENDIENTE"
-    assert por_id[341]["estado"] == "VENCIDA"
-    assert por_id[341]["respuesta"] is None
-    assert por_id[342]["estado"] == "RECHAZADO"
-    assert por_id[342]["respuesta"] == "RECHAZADO"
-    assert por_id[342]["hora_rta"] == HORA_RTA
+    assert por_id[str(uid(340))]["estado"] == "PENDIENTE"
+    assert por_id[str(uid(341))]["estado"] == "VENCIDA"
+    assert por_id[str(uid(341))]["respuesta"] is None
+    assert por_id[str(uid(342))]["estado"] == "RECHAZADO"
+    assert por_id[str(uid(342))]["respuesta"] == "RECHAZADO"
+    assert por_id[str(uid(342))]["hora_rta"] == HORA_RTA
 
 
 def test_listar_admite_el_filtro_estado(
     client_solicitudes, casos_solicitudes, headers_operador
 ) -> None:
     respuesta = client_solicitudes.get(
-        LISTADO.format(id=1), params={"estado": "VENCIDA"}, headers=headers_operador
+        LISTADO.format(id=uid(1)), params={"estado": "VENCIDA"}, headers=headers_operador
     )
 
     assert respuesta.status_code == 200
     assert casos_solicitudes["listar"].llamadas == [
-        {"id_conductor": 1, "estado": EstadoSolicitud.VENCIDA}
+        {"id_conductor": uid(1), "estado": EstadoSolicitud.VENCIDA}
     ]
 
 
@@ -144,7 +147,7 @@ def test_listar_con_estado_invalido_es_400(
     client_solicitudes, casos_solicitudes, headers_operador
 ) -> None:
     respuesta = client_solicitudes.get(
-        LISTADO.format(id=1), params={"estado": "CANCELADA"}, headers=headers_operador
+        LISTADO.format(id=uid(1)), params={"estado": "CANCELADA"}, headers=headers_operador
     )
 
     assert respuesta.status_code == 400
@@ -155,7 +158,9 @@ def test_listar_con_estado_invalido_es_400(
 def test_el_conductor_lista_solo_las_suyas(
     client_solicitudes, casos_solicitudes, headers_conductor_de
 ) -> None:
-    respuesta = client_solicitudes.get(LISTADO.format(id=99), headers=headers_conductor_de(1))
+    respuesta = client_solicitudes.get(
+        LISTADO.format(id=uid(99)), headers=headers_conductor_de(uid(1))
+    )
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "ACCESO_PROHIBIDO"
@@ -165,7 +170,7 @@ def test_el_conductor_lista_solo_las_suyas(
 def test_el_servicio_no_lista_solicitudes(
     client_solicitudes, casos_solicitudes, headers_servicio
 ) -> None:
-    respuesta = client_solicitudes.get(LISTADO.format(id=1), headers=headers_servicio)
+    respuesta = client_solicitudes.get(LISTADO.format(id=uid(1)), headers=headers_servicio)
 
     assert respuesta.status_code == 403
     assert respuesta.json()["codigo"] == "SIN_PERMISOS"
@@ -177,7 +182,7 @@ def test_listar_de_un_conductor_inexistente_es_404(
 ) -> None:
     casos_solicitudes["listar"].error = NoEncontrado("No existe el conductor 99")
 
-    respuesta = client_solicitudes.get(LISTADO.format(id=99), headers=headers_operador)
+    respuesta = client_solicitudes.get(LISTADO.format(id=uid(99)), headers=headers_operador)
 
     assert respuesta.status_code == 404
     assert respuesta.json()["codigo"] == "NO_ENCONTRADO"
@@ -190,21 +195,21 @@ def test_responder_devuelve_la_solicitud_y_pasa_la_identidad(
     client_solicitudes, casos_solicitudes, headers_conductor_de
 ) -> None:
     respuesta = client_solicitudes.post(
-        RESPONDER.format(id=340), json=CUERPO, headers=headers_conductor_de(1)
+        RESPONDER.format(id=uid(340)), json=CUERPO, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 200
     cuerpo = respuesta.json()
-    assert cuerpo["id"] == 340
+    assert cuerpo["id"] == str(uid(340))
     assert cuerpo["estado"] == "ACEPTADO"
     assert cuerpo["respuesta"] == "ACEPTADO"
     assert cuerpo["hora_rta"] == HORA_RTA
     assert casos_solicitudes["responder"].llamadas == [
         {
-            "id_solicitud": 340,
+            "id_solicitud": uid(340),
             "respuesta": EstadoSolicitud.ACEPTADO,
             "hora_rta": datetime(2026, 10, 3, 18, 44, 10, tzinfo=UTC),
-            "identidad": Identidad(roles=frozenset({"conductor"}), id_conductor=1),
+            "identidad": Identidad(roles=frozenset({"conductor"}), id_conductor=uid(1)),
         }
     ]
 
@@ -213,7 +218,7 @@ def test_responder_pasa_la_identidad_del_operador(
     client_solicitudes, casos_solicitudes, headers_operador
 ) -> None:
     respuesta = client_solicitudes.post(
-        RESPONDER.format(id=340),
+        RESPONDER.format(id=uid(340)),
         json={**CUERPO, "respuesta": "RECHAZADO"},
         headers=headers_operador,
     )
@@ -221,7 +226,7 @@ def test_responder_pasa_la_identidad_del_operador(
     assert respuesta.status_code == 200
     llamada = casos_solicitudes["responder"].llamadas[0]
     assert llamada["respuesta"] is EstadoSolicitud.RECHAZADO
-    assert llamada["identidad"] == Identidad(roles=frozenset({"operador"}), id_operador=7)
+    assert llamada["identidad"] == Identidad(roles=frozenset({"operador"}), id_operador=uid(7))
 
 
 @pytest.mark.parametrize(
@@ -241,7 +246,7 @@ def test_responder_mapea_los_errores_del_caso_de_uso(
     casos_solicitudes["responder"].error = error
 
     respuesta = client_solicitudes.post(
-        RESPONDER.format(id=340), json=CUERPO, headers=headers_conductor_de(1)
+        RESPONDER.format(id=uid(340)), json=CUERPO, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == status_code
@@ -252,7 +257,7 @@ def test_el_servicio_no_responde_solicitudes(
     client_solicitudes, casos_solicitudes, headers_servicio
 ) -> None:
     respuesta = client_solicitudes.post(
-        RESPONDER.format(id=340), json=CUERPO, headers=headers_servicio
+        RESPONDER.format(id=uid(340)), json=CUERPO, headers=headers_servicio
     )
 
     assert respuesta.status_code == 403
@@ -285,7 +290,7 @@ def test_responder_con_cuerpo_invalido_es_400(
     client_solicitudes, casos_solicitudes, headers_conductor_de, cuerpo
 ) -> None:
     respuesta = client_solicitudes.post(
-        RESPONDER.format(id=340), json=cuerpo, headers=headers_conductor_de(1)
+        RESPONDER.format(id=uid(340)), json=cuerpo, headers=headers_conductor_de(uid(1))
     )
 
     assert respuesta.status_code == 400

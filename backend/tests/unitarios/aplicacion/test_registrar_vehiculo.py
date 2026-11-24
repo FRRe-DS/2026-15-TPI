@@ -24,6 +24,7 @@ from app.dominio.errores import DatosInvalidos, NoEncontrado, PatenteDuplicada
 from app.dominio.habilitacion import AccionHabilitacion, EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -138,12 +139,12 @@ def test_rechaza_patente_duplicada_sin_dejar_vehiculo_ni_evento_extra(
     assert [v.id for v in uow.vehiculos.listar_por_conductor(duenio.id)] == [primero.id]
     assert uow.vehiculos.listar_por_conductor(otro.id) == []
     assert len(uow.habilitaciones.historial_vehiculo(primero.id)) == 1
-    assert uow.habilitaciones.historial_vehiculo(primero.id + 1) == []
+    assert uow.habilitaciones.historial_vehiculo(uid(999)) == []
 
 
 def test_lanza_no_encontrado_si_el_conductor_no_existe_sin_guardar_nada(registrar_vehiculo, uow):
     existente = sembrar_conductor(uow)
-    id_inexistente = existente.id + 1
+    id_inexistente = uid(999)
 
     with pytest.raises(NoEncontrado):
         registrar_vehiculo.ejecutar(id_conductor=id_inexistente, **DATOS_VALIDOS)

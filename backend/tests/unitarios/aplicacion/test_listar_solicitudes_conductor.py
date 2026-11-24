@@ -18,6 +18,7 @@ from app.dominio.conductor import Conductor
 from app.dominio.errores import NoEncontrado
 from app.dominio.solicitud import EstadoSolicitud, Solicitud
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -179,4 +180,4 @@ def test_sin_filtro_devuelve_todas_las_solicitudes(uow, listar):
 
 def test_conductor_inexistente_lanza_no_encontrado(listar):
     with pytest.raises(NoEncontrado):
-        listar.ejecutar(id_conductor=999)
+        listar.ejecutar(id_conductor=uid(999))

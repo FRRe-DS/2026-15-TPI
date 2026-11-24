@@ -27,6 +27,7 @@ from app.dominio.documento_vehiculo import TipoDocumentoVehiculo
 from app.dominio.errores import DatosInvalidos, NoEncontrado
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -177,14 +178,14 @@ def test_vencimiento_no_posterior_a_la_emision_lanza_datos_invalidos_y_no_guarda
 
 def test_lanza_no_encontrado_si_el_vehiculo_no_existe_y_no_guarda(registrar_documento, uow):
     conductor = sembrar_conductor(uow)
-    vehiculo = sembrar_vehiculo(uow, conductor.id)
+    sembrar_vehiculo(uow, conductor.id)
 
     with pytest.raises(NoEncontrado):
         registrar_documento.ejecutar(
-            id_conductor=conductor.id, id_vehiculo=vehiculo.id + 1, **datos_del_documento()
+            id_conductor=conductor.id, id_vehiculo=uid(999), **datos_del_documento()
         )
 
-    assert uow.documentos_vehiculo.listar_por_vehiculo(vehiculo.id + 1) == []
+    assert uow.documentos_vehiculo.listar_por_vehiculo(uid(999)) == []
 
 
 def test_lanza_no_encontrado_si_el_vehiculo_es_de_otro_conductor_y_no_guarda(

@@ -25,6 +25,8 @@ from app.aplicacion.casos_de_uso.resultados import ConductorDetalle
 from app.dominio.conductor import Conductor, EstadoConductor
 from pydantic import ValidationError
 
+from tests.ids import uid
+
 
 @pytest.mark.parametrize("dni", ["1234567", "12345678"])
 def test_dni_valido(dni: str) -> None:
@@ -83,7 +85,7 @@ def test_estado_operativo_del_conductor_se_deriva_de_su_estado_actual(
         telefono="3415550000",
         email="ana@example.com",
     )
-    conductor.id = 1
+    conductor.id = uid(1)
     conductor.estado = estado_dominio
 
     respuesta = conductor_desde_detalle(
@@ -103,7 +105,7 @@ def _detalle_de(**cambios):
         telefono="3415550000",
         email="ana@example.com",
     )
-    conductor.id = 1
+    conductor.id = uid(1)
     for campo, valor in cambios.items():
         setattr(conductor, campo, valor)
     return ConductorDetalle(conductor=conductor, documentos=[], vehiculos=[])
@@ -125,9 +127,9 @@ def test_el_puntaje_promedio_y_la_cantidad_salen_del_dominio() -> None:
 
 
 def test_el_vehiculo_activo_sale_del_dominio() -> None:
-    respuesta = conductor_desde_detalle(_detalle_de(id_vehiculo_activo=7))
+    respuesta = conductor_desde_detalle(_detalle_de(id_vehiculo_activo=uid(7)))
 
-    assert respuesta.id_vehiculo_activo == 7
+    assert respuesta.id_vehiculo_activo == uid(7)
 
 
 def test_el_alta_devuelve_conductor_sin_ubicacion_ni_vehiculo_activo() -> None:
@@ -148,7 +150,7 @@ def test_el_puntaje_promedio_se_acota_de_1_a_5(puntaje: float) -> None:
 
     with pytest.raises(ValidationError):
         ConductorRespuesta(
-            id=1,
+            id=uid(1),
             dni="12345678",
             nombre="Ana",
             apellido="Pérez",
@@ -313,7 +315,7 @@ def test_estado_operativo_tiene_los_cuatro_estados() -> None:
 
 def test_estado_conductor_no_incluye_la_ubicacion() -> None:
     respuesta = EstadoConductorRespuesta(
-        id_conductor=1,
+        id_conductor=uid(1),
         estado="DISPONIBLE",
         actualizado="2026-11-02T01:30:00Z",
     )
@@ -328,7 +330,9 @@ def test_estado_conductor_no_incluye_la_ubicacion() -> None:
 
 
 def test_ubicacion_conductor_admite_los_tres_campos_nulos() -> None:
-    ubicacion = UbicacionConductor(id_conductor=1, latitud=None, longitud=None, fecha_act_ubic=None)
+    ubicacion = UbicacionConductor(
+        id_conductor=uid(1), latitud=None, longitud=None, fecha_act_ubic=None
+    )
 
     assert ubicacion.latitud is None
     assert ubicacion.longitud is None
@@ -393,8 +397,8 @@ def test_estado_request_no_admite_nulos_en_estado_ni_en_coordenadas(datos: dict)
 
 def test_solicitud_tiene_los_campos_del_contrato() -> None:
     solicitud = SolicitudRespuesta(
-        id=340,
-        id_conductor=15,
+        id=uid(340),
+        id_conductor=uid(15),
         estado="PENDIENTE",
         vence_en="2026-10-03T18:45:30Z",
     )
@@ -503,28 +507,30 @@ def test_documento_vehiculo_exige_los_campos_obligatorios() -> None:
 
 
 def test_documento_vehiculo_de_respuesta_suma_id_vehiculo_y_estado() -> None:
-    documento = DocumentoVehiculoRespuesta(**DOCUMENTO_VEHICULO, id_vehiculo=5, estado="VENCIDO")
+    documento = DocumentoVehiculoRespuesta(
+        **DOCUMENTO_VEHICULO, id_vehiculo=uid(5), estado="VENCIDO"
+    )
 
-    assert documento.id_vehiculo == 5
+    assert documento.id_vehiculo == uid(5)
     assert documento.estado.value == "VENCIDO"
 
 
 def test_vehiculo_incluye_los_documentos_con_su_estado() -> None:
     vehiculo = VehiculoRespuesta(
-        id=5,
-        id_conductor=1,
+        id=uid(5),
+        id_conductor=uid(1),
         tipo="AUTO",
         patente="AB123CD",
         marca="Toyota",
         modelo="Corolla",
         anio=2020,
         tipos_serv=[{"tipo": "PASAJEROS", "habilitado": True}],
-        documentos=[{**DOCUMENTO_VEHICULO, "id_vehiculo": 5, "estado": "VIGENTE"}],
+        documentos=[{**DOCUMENTO_VEHICULO, "id_vehiculo": str(uid(5)), "estado": "VIGENTE"}],
         habilitacion="APROBADA",
     )
 
     assert vehiculo.documentos[0].estado.value == "VIGENTE"
-    assert vehiculo.documentos[0].id_vehiculo == 5
+    assert vehiculo.documentos[0].id_vehiculo == uid(5)
 
 
 def test_la_respuesta_no_revalida_el_esquema_de_la_url_ya_guardada() -> None:
@@ -541,10 +547,10 @@ def test_la_respuesta_no_revalida_el_esquema_de_la_url_ya_guardada() -> None:
         fecha_emision=date(2020, 1, 1),
         fecha_vencimiento=date(2030, 1, 1),
         url_archivo="ftp://archivos.example/licencia.pdf",
-        id=10,
+        id=uid(10),
     )
 
-    respuesta = documento_desde_dominio(1, documento, EstadoDocumento.VIGENTE)
+    respuesta = documento_desde_dominio(uid(1), documento, EstadoDocumento.VIGENTE)
 
     assert str(respuesta.url_archivo) == "ftp://archivos.example/licencia.pdf"
 

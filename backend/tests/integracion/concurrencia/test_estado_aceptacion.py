@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import Barrier
 from types import ModuleType
+from uuid import UUID
 
 import httpx
 import pytest
@@ -46,7 +47,9 @@ def _conductor(sesion_bd: Session) -> Conductor:
 
 
 def _solicitud_vigente(sesion_bd: Session) -> SolicitudDB:
-    solicitud = sesion_bd.scalar(select(SolicitudDB).where(SolicitudDB.id_viaje == 1001))
+    solicitud = sesion_bd.scalar(
+        select(SolicitudDB).where(SolicitudDB.id_viaje == MODULO_SEED.id_viaje_seed(1001))
+    )
     assert solicitud is not None
     return solicitud
 
@@ -102,7 +105,7 @@ def test_doble_aceptacion_paralela_responde_una_vez_y_luego_409(
 
 
 def _responder_con_headers(
-    cliente: TestClient, id_solicitud: int, headers: dict[str, str]
+    cliente: TestClient, id_solicitud: UUID, headers: dict[str, str]
 ) -> httpx.Response:
     return cliente.post(
         URL_RESPONDER.format(id_solicitud=id_solicitud),

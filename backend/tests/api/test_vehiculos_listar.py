@@ -2,7 +2,9 @@ from app.dominio.errores import NoEncontrado
 from app.dominio.habilitacion import EstadoHabilitacion as EstadoHabilitacionDominio
 from app.dominio.vehiculo import TipoVehiculo as TipoVehiculoDominio
 
-URL = "/api/v1/conductores/1/vehiculos"
+from tests.ids import uid
+
+URL = f"/api/v1/conductores/{uid(1)}/vehiculos"
 
 
 def test_lista_sin_filtros(client, casos, headers_conductor) -> None:
@@ -10,9 +12,9 @@ def test_lista_sin_filtros(client, casos, headers_conductor) -> None:
 
     assert respuesta.status_code == 200
     assert len(respuesta.json()) == 1
-    assert respuesta.json()[0]["id"] == 5
+    assert respuesta.json()[0]["id"] == str(uid(5))
     assert casos["listar_vehiculos"].llamadas == [
-        {"id_conductor": 1, "tipo": None, "habilitacion": None}
+        {"id_conductor": uid(1), "tipo": None, "habilitacion": None}
     ]
 
 
@@ -26,7 +28,7 @@ def test_pasa_los_filtros_al_caso_de_uso(client, casos, headers_conductor) -> No
     assert respuesta.status_code == 200
     assert casos["listar_vehiculos"].llamadas == [
         {
-            "id_conductor": 1,
+            "id_conductor": uid(1),
             "tipo": TipoVehiculoDominio.MOTO,
             "habilitacion": EstadoHabilitacionDominio.SUSPENDIDA,
         }

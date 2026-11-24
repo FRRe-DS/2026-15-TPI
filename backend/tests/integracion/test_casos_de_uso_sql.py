@@ -57,13 +57,14 @@ from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 from app.infraestructura.repositorios.sql_unidad_de_trabajo import SqlUnidadDeTrabajo
 from sqlalchemy import text
 
+from tests.ids import uid
 from tests.integracion.sentencias import capturar_sentencias
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
 AHORA = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
 URL = "https://almacen.example.com/licencias/lic.pdf"
-ID_OPERADOR = 7
+ID_OPERADOR = uid(7)
 
 APROBAR = AccionHabilitacion.APROBAR
 OBSERVAR = AccionHabilitacion.OBSERVAR
@@ -128,10 +129,14 @@ class Normalizador:
     def detalle_de_conductor(self, d):
         return {
             "conductor": self.conductor(d.conductor),
-            "documentos": [
-                {**self.documento(x.documento), "estado": x.estado.value} for x in d.documentos
-            ],
-            "vehiculos": [self.vehiculo(v) for v in d.vehiculos],
+            # Los ids son UUID: el orden de las listas es arbitrario, se normaliza.
+            "documentos": sorted(
+                ({**self.documento(x.documento), "estado": x.estado.value} for x in d.documentos),
+                key=lambda documento: documento["numero"],
+            ),
+            "vehiculos": sorted(
+                (self.vehiculo(v) for v in d.vehiculos), key=lambda vehiculo: vehiculo["patente"]
+            ),
         }
 
     def detalle_de_vehiculo(self, d):
@@ -191,7 +196,7 @@ def ejecutar_escenario(uow, reloj):
         r[f"crear_{alias}"] = n.detalle_de_conductor(detalle)
 
     intentar("crear_dni_duplicado", lambda: crear.ejecutar(**datos_de("Otro", "30000001")))
-    r["dnis_tras_dni_duplicado"] = [d.conductor.dni for d in listar_conductores.ejecutar()]
+    r["dnis_tras_dni_duplicado"] = sorted(d.conductor.dni for d in listar_conductores.ejecutar())
     r["historiales_tras_dni_duplicado"] = {
         alias: [evento(e) for e in consultar_habilitacion.ejecutar(id_conductor=i).historial]
         for alias, i in id_de.items()
@@ -225,12 +230,12 @@ def ejecutar_escenario(uow, reloj):
     licencia("licencia_B_vence_hoy", id_de["B"], "L-HOY", hoy)
     licencia("licencia_A_vencida", id_de["A"], "L-VENCIDA", date(2026, 6, 14))
     licencia("licencia_A_futura", id_de["A"], "L-FUTURA", date(2029, 1, 1))
-    licencia("licencia_conductor_inexistente", 999, "L-X", date(2029, 1, 1))
+    licencia("licencia_conductor_inexistente", uid(999), "L-X", date(2029, 1, 1))
     licencia("licencia_fechas_invalidas", id_de["C"], "L-Y", date(2020, 1, 1))
 
     # -- Habilitacion del conductor
     def accion_conductor(clave, alias, accion, motivo="Revision", id_operador=ID_OPERADOR):
-        id_conductor = id_de.get(alias, 999)
+        id_conductor = id_de.get(alias, uid(999))
         intentar(
             clave,
             lambda: _eventos_de_conductor(
@@ -245,7 +250,7 @@ def ejecutar_escenario(uow, reloj):
         )
 
     def estado_de_habilitacion(clave, alias):
-        id_conductor = id_de.get(alias, 999)
+        id_conductor = id_de.get(alias, uid(999))
         intentar(
             clave,
             lambda: _resumen(n, consultar_habilitacion.ejecutar(id_conductor=id_conductor)),
@@ -273,7 +278,7 @@ def ejecutar_escenario(uow, reloj):
 
     # -- Vehiculos
     def vehiculo(clave, alias, tipo, patente, servicios, anio=2019):
-        id_conductor = id_de.get(alias, 999)
+        id_conductor = id_de.get(alias, uid(999))
 
         def registrar():
             detalle = registrar_vehiculo.ejecutar(
@@ -303,8 +308,8 @@ def ejecutar_escenario(uow, reloj):
     vehiculo("vehiculo_con_servicios_repetidos", "A", AUTO, "HHH888", [ENVIOS, ENVIOS])
 
     def accion_vehiculo(clave, alias_conductor, patente, accion, motivo="Revision"):
-        id_conductor = id_de.get(alias_conductor, 999)
-        id_vehiculo = id_de.get(patente, 999)
+        id_conductor = id_de.get(alias_conductor, uid(999))
+        id_vehiculo = id_de.get(patente, uid(999))
         intentar(
             clave,
             lambda: _eventos_de_vehiculo(
@@ -334,13 +339,16 @@ def ejecutar_escenario(uow, reloj):
     accion_vehiculo("vehiculo_inexistente_accion", "A", "inexistente", OBSERVAR)
 
     def listar_veh(clave, alias, **filtros):
-        id_conductor = id_de.get(alias, 999)
+        id_conductor = id_de.get(alias, uid(999))
         intentar(
             clave,
-            lambda: [
-                n.vehiculo(v)
-                for v in listar_vehiculos.ejecutar(id_conductor=id_conductor, **filtros)
-            ],
+            lambda: sorted(
+                (
+                    n.vehiculo(v)
+                    for v in listar_vehiculos.ejecutar(id_conductor=id_conductor, **filtros)
+                ),
+                key=lambda vehiculo: vehiculo["patente"],
+            ),
         )
 
     listar_veh("vehiculos_de_A", "A")
@@ -353,8 +361,8 @@ def ejecutar_escenario(uow, reloj):
     listar_veh("vehiculos_de_inexistente", "inexistente")
 
     def obtener_veh(clave, alias_conductor, patente):
-        id_conductor = id_de.get(alias_conductor, 999)
-        id_vehiculo = id_de.get(patente, 999)
+        id_conductor = id_de.get(alias_conductor, uid(999))
+        id_vehiculo = id_de.get(patente, uid(999))
         intentar(
             clave,
             lambda: n.detalle_de_vehiculo(
@@ -375,7 +383,7 @@ def ejecutar_escenario(uow, reloj):
                 obtener_conductor.ejecutar(id_conductor=id_de[alias])
             ),
         )
-    intentar("obtener_inexistente", lambda: obtener_conductor.ejecutar(id_conductor=999))
+    intentar("obtener_inexistente", lambda: obtener_conductor.ejecutar(id_conductor=uid(999)))
 
     with uow:  # el unico modo de marcar "disponible" en la Iteracion 1 es guardar directo
         conductor_b = uow.conductores.obtener(id_de["B"])
@@ -386,7 +394,10 @@ def ejecutar_escenario(uow, reloj):
     def listar_cond(clave, **filtros):
         intentar(
             clave,
-            lambda: [n.detalle_de_conductor(d) for d in listar_conductores.ejecutar(**filtros)],
+            lambda: sorted(
+                (n.detalle_de_conductor(d) for d in listar_conductores.ejecutar(**filtros)),
+                key=lambda detalle: detalle["conductor"]["dni"],
+            ),
         )
 
     listar_cond("listar_todos")
@@ -551,7 +562,7 @@ def test_el_historial_de_A_queda_en_orden_con_el_alta_primero(resultados):
         ("SUSPENDER", "APROBADA", "SUSPENDIDA"),
         ("APROBAR", "SUSPENDIDA", "APROBADA"),
     ]
-    assert [e["operador"] for e in historial] == [None, 7, 7, 7]
+    assert [e["operador"] for e in historial] == [None, ID_OPERADOR, ID_OPERADOR, ID_OPERADOR]
     assert historial[1]["motivo"] == "Todo en orden"
     assert historial[1]["fecha"] == datetime(2026, 6, 16, 12, 0, tzinfo=UTC).isoformat()
     assert [e["fecha"] for e in historial] == sorted(e["fecha"] for e in historial)
@@ -765,7 +776,7 @@ def test_accionar_devuelve_eventos_con_id_no_nulo_y_distinto(uow_de_cada_backend
     ids = [evento.id for evento in resultado.eventos]
     assert len(ids) == 2  # el alta y la observacion
     assert all(id_evento is not None for id_evento in ids)
-    assert ids == sorted(set(ids))
+    assert len(set(ids)) == len(ids)  # cada evento tiene su propio UUID
 
 
 def test_los_ids_de_los_eventos_devueltos_son_los_de_la_base(uow_sql, fabrica_sesiones):
@@ -779,7 +790,7 @@ def test_los_ids_de_los_eventos_devueltos_son_los_de_la_base(uow_sql, fabrica_se
     with fabrica_sesiones() as sesion:
         ids_en_la_base = (
             sesion.execute(
-                text("SELECT id_evento FROM habilitacion_evento_conductor ORDER BY id_evento")
+                text("SELECT id_evento FROM habilitacion_evento_conductor ORDER BY secuencia")
             )
             .scalars()
             .all()

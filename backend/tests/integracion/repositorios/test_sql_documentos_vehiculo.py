@@ -25,6 +25,8 @@ from app.infraestructura.repositorios.sql_documentos_vehiculo import (
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from tests.ids import uid
+
 SEGURO = TipoDocumentoVehiculo.SEGURO
 CEDULA_VERDE = TipoDocumentoVehiculo.CEDULA_VERDE
 VTV = TipoDocumentoVehiculo.VTV
@@ -89,7 +91,7 @@ def listar_desde_otra_sesion(fabrica_sesiones, id_vehiculo):
 
 
 def ids(documentos):
-    return [documento.id for documento in documentos]
+    return sorted([documento.id for documento in documentos], key=str)
 
 
 def tipos(documentos):
@@ -111,7 +113,7 @@ def test_guardar_un_documento_le_asigna_id_y_persiste_todos_sus_campos(
 
     [leido] = listar_desde_otra_sesion(fabrica_sesiones, id_vehiculo)
     assert isinstance(guardado, DocumentoVehiculo)
-    assert guardado.id == 1
+    assert guardado.id is not None
     assert leido.id == guardado.id
     assert leido.tipo is tipo
     assert leido.numero == f"N-{tipo.value}"
@@ -132,7 +134,7 @@ def test_entidad_emisora_es_opcional(repositorio, sesion_bd, fabrica_sesiones):
     assert leido.entidad_emisora is None
 
 
-def test_listar_por_vehiculo_devuelve_solo_los_suyos_en_orden_de_alta(
+def test_listar_por_vehiculo_devuelve_solo_los_suyos_sin_orden_garantizado(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     id_conductor = sembrar_conductor(sesion_bd)
@@ -145,15 +147,15 @@ def test_listar_por_vehiculo_devuelve_solo_los_suyos_en_orden_de_alta(
 
     resultado = listar_desde_otra_sesion(fabrica_sesiones, un_vehiculo)
 
-    assert ids(resultado) == [primero.id, tercero.id]
-    assert tipos(resultado) == [SEGURO, VTV]
+    assert ids(resultado) == sorted([primero.id, tercero.id], key=str)
+    assert set(tipos(resultado)) == {SEGURO, VTV}
 
 
 def test_listar_por_vehiculo_sin_documentos_o_inexistente_devuelve_lista_vacia(repositorio):
-    assert repositorio.listar_por_vehiculo(999) == []
+    assert repositorio.listar_por_vehiculo(uid(999)) == []
 
 
-def test_listar_por_vehiculos_devuelve_una_clave_por_id_pedido_y_ordena_por_id(
+def test_listar_por_vehiculos_devuelve_una_clave_por_id_pedido_sin_orden_garantizado(
     repositorio, sesion_bd, fabrica_sesiones
 ):
     id_conductor = sembrar_conductor(sesion_bd)
@@ -170,7 +172,7 @@ def test_listar_por_vehiculos_devuelve_una_clave_por_id_pedido_y_ordena_por_id(
 
     assert list(resultado) == [sin_documentos, con_documentos]
     assert resultado[sin_documentos] == []
-    assert ids(resultado[con_documentos]) == [primero.id, segundo.id]
+    assert ids(resultado[con_documentos]) == sorted([primero.id, segundo.id], key=str)
 
 
 def test_listar_por_vehiculos_sin_ids_devuelve_un_diccionario_vacio(repositorio):
@@ -178,7 +180,7 @@ def test_listar_por_vehiculos_sin_ids_devuelve_un_diccionario_vacio(repositorio)
 
 
 def test_listar_por_vehiculos_con_ids_inexistentes_devuelve_listas_vacias(repositorio):
-    assert repositorio.listar_por_vehiculos([998, 999]) == {998: [], 999: []}
+    assert repositorio.listar_por_vehiculos([uid(998), uid(999)]) == {uid(998): [], uid(999): []}
 
 
 # --- la base rechaza datos invalidos (CHECK) ---
@@ -212,7 +214,7 @@ def test_la_base_rechaza_documentos_invalidos(repositorio, sesion_bd, actualizac
 
 def test_no_se_puede_guardar_un_documento_para_un_vehiculo_inexistente(repositorio):
     with pytest.raises(IntegrityError):
-        repositorio.guardar(999, documento())
+        repositorio.guardar(uid(999), documento())
 
 
 def test_no_se_puede_borrar_un_vehiculo_con_documentos(repositorio, sesion_bd):

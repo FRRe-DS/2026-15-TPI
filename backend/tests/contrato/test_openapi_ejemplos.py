@@ -8,12 +8,14 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import httpx
 import pytest
 import yaml
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
+from tests.ids import uid
 
 RAIZ_REPO = Path(__file__).resolve().parents[3]
 RUTA_CONTRATO = RAIZ_REPO / "docs" / "contract" / "openapi.yaml"
@@ -294,7 +296,7 @@ def test_estado_anterior_admite_null_en_evento_de_alta(contrato):
     OAS30Validator(esquema).validate(None)
 
 
-def _insertar_solicitud(engine: Engine, id_conductor: int, *, vence_en: datetime) -> int:
+def _insertar_solicitud(engine: Engine, id_conductor: UUID, *, vence_en: datetime) -> UUID:
     """Inserta una solicitud pendiente; M6 no forma parte de este contrato."""
     with engine.begin() as conexion:
         return conexion.execute(
@@ -303,7 +305,7 @@ def _insertar_solicitud(engine: Engine, id_conductor: int, *, vence_en: datetime
                 "VALUES (:id_conductor, :id_viaje, 'PENDIENTE', :vence_en) "
                 "RETURNING id_solicitud"
             ),
-            {"id_conductor": id_conductor, "id_viaje": 5521, "vence_en": vence_en},
+            {"id_conductor": id_conductor, "id_viaje": str(uid(5521)), "vence_en": vence_en},
         ).scalar_one()
 
 

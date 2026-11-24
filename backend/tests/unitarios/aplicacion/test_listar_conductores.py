@@ -30,6 +30,7 @@ from app.dominio.documento import Documento, EstadoDocumento, TipoDocumento
 from app.dominio.habilitacion import EstadoHabilitacion
 from app.dominio.vehiculo import TipoServicio, TipoVehiculo, Vehiculo
 
+from tests.ids import uid
 from tests.unitarios.fakes.reloj_fijo import RelojFijo
 from tests.unitarios.fakes.repositorios_en_memoria import UnidadDeTrabajoEnMemoria
 
@@ -350,7 +351,7 @@ def test_cada_conductor_trae_estado_vehiculo_activo_y_puntajes_con_los_valores_g
         uow,
         "30000001",
         estado=EstadoConductor.OCUPADO,
-        id_vehiculo_activo=7,
+        id_vehiculo_activo=uid(7),
         suma_puntajes=14,
         cantidad_calificaciones=3,
     )
@@ -359,7 +360,7 @@ def test_cada_conductor_trae_estado_vehiculo_activo_y_puntajes_con_los_valores_g
     con_datos, sin_datos = (detalle.conductor for detalle in listar_conductores.ejecutar())
 
     assert con_datos.estado is EstadoConductor.OCUPADO
-    assert con_datos.id_vehiculo_activo == 7
+    assert con_datos.id_vehiculo_activo == uid(7)
     assert con_datos.suma_puntajes == 14
     assert con_datos.cantidad_calificaciones == 3
     assert con_datos.puntaje_promedio == Decimal("4.67")
