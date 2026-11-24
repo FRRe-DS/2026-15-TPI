@@ -10,12 +10,13 @@ import type {
 } from "../lib/tipos";
 import { EstadoCarga, EstadoError, EstadoVacio } from "./estados/estados";
 import styles from "./ViajeEnCurso.module.css";
+import { idCorto } from "../lib/ids";
 
 export interface ViajeInfo {
-  id?: number | null;
-  id_viaje?: number | null;
-  id_solicitud?: number | null;
-  id_conductor?: number;
+  id?: string | null;
+  id_viaje?: string | null;
+  id_solicitud?: string | null;
+  id_conductor?: string;
   estado?: EstadoOperativo | EstadoSolicitud;
   pasajero?: string;
   origen?: string;
@@ -97,7 +98,7 @@ export function ViajeEnCurso({
     <div className={styles.contenedor}>
       <header className={styles.encabezado}>
         <div>
-          <h2 className={styles.tripId}>Viaje #{idViaje}</h2>
+          <h2 className={styles.tripId}>Viaje #{idViaje ? idCorto(idViaje) : ""}</h2>
           {tarifa && (
             <div className={styles.tarifa}>Tarifa pactada: $ {tarifa}</div>
           )}

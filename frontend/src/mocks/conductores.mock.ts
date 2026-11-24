@@ -1,13 +1,14 @@
+import { uid } from "./ids.mock";
 import type { ConductorConUbicacion } from "../lib/tipos";
 
 /**
- * Datos simulados del listado de conductores, según el contrato 1.2.0.
+ * Datos simulados del listado de conductores, según el contrato 2.0.0.
  * Respetan las reglas del contrato: DISPONIBLE y OCUPADO solo con habilitación
  * APROBADA y vehículo activo APROBADA; latitud y longitud siempre juntas.
  */
 export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
   {
-    id: 1,
+    id: uid(1),
     dni: "28345678",
     nombre: "María",
     apellido: "González",
@@ -20,7 +21,7 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
     documentos: [],
     vehiculos: [
       {
-        id: 1,
+        id: uid(1),
         tipo: "AUTO",
         patente: "AB123CD",
         marca: "Toyota",
@@ -29,13 +30,13 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
         habilitacion: "APROBADA",
       },
     ],
-    id_vehiculo_activo: 1,
+    id_vehiculo_activo: uid(1),
     latitud: -34.6037,
     longitud: -58.3816,
     fecha_act_ubic: "2026-11-10T18:00:00Z",
   },
   {
-    id: 2,
+    id: uid(2),
     dni: "30123456",
     nombre: "Carlos",
     apellido: "Rodríguez",
@@ -48,7 +49,7 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
     documentos: [],
     vehiculos: [
       {
-        id: 2,
+        id: uid(2),
         tipo: "MOTO",
         patente: "123ABC",
         marca: "Honda",
@@ -57,13 +58,13 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
         habilitacion: "APROBADA",
       },
     ],
-    id_vehiculo_activo: 2,
+    id_vehiculo_activo: uid(2),
     latitud: -34.6118,
     longitud: -58.4173,
     fecha_act_ubic: "2026-11-10T18:05:00Z",
   },
   {
-    id: 3,
+    id: uid(3),
     dni: "32987654",
     nombre: "Lucía",
     apellido: "Fernández",
@@ -81,7 +82,7 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
     fecha_act_ubic: null,
   },
   {
-    id: 4,
+    id: uid(4),
     dni: "35111222",
     nombre: "Martín",
     apellido: "Suárez",
@@ -99,7 +100,7 @@ export const MOCK_CONDUCTORES: ConductorConUbicacion[] = [
     fecha_act_ubic: null,
   },
   {
-    id: 5,
+    id: uid(5),
     dni: "27555666",
     nombre: "Sofía",
     apellido: "Pérez",
