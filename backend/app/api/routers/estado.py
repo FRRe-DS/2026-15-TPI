@@ -15,6 +15,7 @@ from app.api.esquemas.estado import (
     estado_desde_dominio,
     ubicacion_desde_dominio,
 )
+from app.api.observabilidad import medir_operacion
 from app.api.seguridad import (
     requerir_conductor_propio_operador_o_servicio,
     requerir_conductor_propio_u_operador,
@@ -53,13 +54,16 @@ def actualizar_estado(
     caso: Annotated[ActualizarEstadoConductor, Depends(obtener_caso_actualizar_estado_conductor)],
 ) -> EstadoConductor:
     informa_vehiculo = "id_vehiculo_activo" in datos.model_fields_set
-    resultado = caso.ejecutar(
-        id_conductor=id_conductor,
-        estado=EstadoConductorDominio(datos.estado.value) if datos.estado is not None else None,
-        id_vehiculo_activo=datos.id_vehiculo_activo if informa_vehiculo else NO_INFORMADO,
-        latitud=datos.latitud,
-        longitud=datos.longitud,
-    )
+    with medir_operacion(
+        "operational_state.update", enabled=datos.estado is not None or informa_vehiculo
+    ):
+        resultado = caso.ejecutar(
+            id_conductor=id_conductor,
+            estado=EstadoConductorDominio(datos.estado.value) if datos.estado is not None else None,
+            id_vehiculo_activo=datos.id_vehiculo_activo if informa_vehiculo else NO_INFORMADO,
+            latitud=datos.latitud,
+            longitud=datos.longitud,
+        )
     return estado_desde_dominio(resultado)
 
 

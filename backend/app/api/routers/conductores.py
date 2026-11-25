@@ -18,6 +18,7 @@ from app.api.esquemas.conductor import (
     conductor_desde_detalle,
 )
 from app.api.esquemas.vehiculo import TipoServicio, TipoVehiculo
+from app.api.observabilidad import medir_operacion
 from app.api.seguridad import (
     requerir_conductor_propio_operador_o_servicio,
     requerir_operador_o_conductor,
@@ -45,7 +46,8 @@ def crear_conductor(
     response: Response,
     caso: Annotated[CrearConductor, Depends(obtener_caso_crear_conductor)],
 ) -> Conductor:
-    detalle = caso.ejecutar(**datos.model_dump())
+    with medir_operacion("registration"):
+        detalle = caso.ejecutar(**datos.model_dump())
     creado = conductor_creado(detalle)
     response.headers["Location"] = f"/api/v1/conductores/{creado.id}"
     return creado

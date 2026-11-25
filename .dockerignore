@@ -12,6 +12,7 @@
 .env
 *.pdf
 README.md
+.local/
 
 **/node_modules
 **/.next

@@ -11,6 +11,7 @@ from redis import Redis
 
 from app.api.configuracion import obtener_configuracion
 from app.api.errores import registrar_manejadores
+from app.api.observabilidad import habilitada
 from app.api.rate_limit import RedisRateLimiter
 from app.api.routers import (
     conductores,
@@ -79,6 +80,10 @@ def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
             dependencies=[Depends(requerir_usuario)],
         )
 
+    if habilitada():
+        from app.infraestructura.observabilidad import instrumentar
+
+        instrumentar(app)
     return app
 
 

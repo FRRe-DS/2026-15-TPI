@@ -1,0 +1,35 @@
+receivers:
+  sqlquery/drivers:
+    driver: postgres
+    datasource: 'host=postgres port=5432 dbname=m3 user=m3_otel password=${env:OTEL_SQL_PASSWORD} sslmode=disable connect_timeout=5'
+    collection_interval: 60s
+    max_open_conn: 1
+    queries:
+      - sql: SELECT value FROM observability.available_drivers
+        metrics:
+          - metric_name: m3.drivers.available
+            description: Conductores disponibles y aprobados con vehiculo activo propio aprobado
+            value_column: value
+            data_type: gauge
+            value_type: int
+            unit: '{driver}'
+
+processors:
+  resource/business:
+    attributes:
+      - key: service.name
+        value: m3-conductores-grupo15
+        action: upsert
+      - key: service.namespace
+        value: utn-frre
+        action: upsert
+      - key: deployment.environment.name
+        value: local
+        action: upsert
+
+service:
+  pipelines:
+    metrics/business:
+      receivers: [sqlquery/drivers]
+      processors: [memory_limiter, resource/business, batch]
+      exporters: [debug, prometheus]
