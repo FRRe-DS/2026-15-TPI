@@ -354,8 +354,8 @@ def _respuesta_de(respuesta: httpx.Response) -> MockResponse:
 
 # El contrato 3.0.0 define las ofertas de M5 con campos nuevos (`oferta_id`, `solicitud_id`,
 # `tipo_vehiculo` y las coordenadas de origen y destino), que llegan con el issue #111. Mientras
-# no existan, la prueba que los exige queda pendiente (xfail). Solo esos campos faltantes se
-# toleran: cualquier otra diferencia con el contrato, incluidos los ids UUID, sigue fallando.
+# no existan, la prueba que los exige queda pendiente (xfail). Solo se tolera que falten esos
+# campos: si hay cualquier otro error de esquema (un enum, un tipo, otro campo), la prueba falla.
 _CAMPOS_PENDIENTES = (
     "oferta_id",
     "solicitud_id",
@@ -376,16 +376,34 @@ def _descripcion_del_error(error: BaseException) -> str:
     return " ".join(partes)
 
 
+def _errores_de_esquema(error: BaseException) -> list[Any]:
+    """Errores de validación de esquema de la cadena de excepciones, si los hay."""
+    actual: BaseException | None = error
+    while actual is not None:
+        errores = getattr(actual, "schema_errors", None)
+        if errores:
+            return list(errores)
+        actual = actual.__cause__ or actual.__context__
+    return []
+
+
+def _solo_faltan_campos_pendientes(error: BaseException) -> bool:
+    errores = _errores_de_esquema(error)
+    return bool(errores) and all(
+        e.validator == "required" and any(f"'{campo}'" in e.message for campo in _CAMPOS_PENDIENTES)
+        for e in errores
+    )
+
+
 @contextmanager
 def _pendiente_por_ofertas_m5() -> Iterator[None]:
     try:
         yield
     except OpenAPIError as error:
-        descripcion = _descripcion_del_error(error)
-        if "is a required property" in descripcion and any(
-            f"'{campo}'" in descripcion for campo in _CAMPOS_PENDIENTES
-        ):
-            pytest.xfail("Campos de las ofertas de M5 del contrato 3.0.0 pendientes: ver #111.")
+        if _solo_faltan_campos_pendientes(error):
+            pytest.xfail(
+                "Campos de las ofertas de M5 del contrato 3.0.0 pendientes de implementar."
+            )
         raise
 
 

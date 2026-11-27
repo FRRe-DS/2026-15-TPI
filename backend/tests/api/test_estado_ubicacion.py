@@ -221,6 +221,20 @@ def test_actualizar_estado_distingue_vehiculo_nulo_de_no_informado(
     assert llamada["id_vehiculo_activo"] is None
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="PATCH con OCUPADO: contrato 3.0.0, pendiente de implementar en la PR siguiente",
+)
+def test_actualizar_estado_acepta_ocupado_segun_el_contrato_2_1_0(
+    client_estado, casos_estado, headers_conductor_de
+) -> None:
+    respuesta = client_estado.patch(
+        ESTADO.format(id=uid(1)), json={"estado": "OCUPADO"}, headers=headers_conductor_de(uid(1))
+    )
+
+    assert respuesta.status_code == 200
+
+
 @pytest.mark.parametrize(
     "cuerpo",
     [

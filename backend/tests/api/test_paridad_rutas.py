@@ -54,7 +54,8 @@ ESPERADOS: dict[tuple[str, str], str] = {
 
 
 # Operaciones que el contrato 3.0.0 ya no tiene pero que el código todavía expone: se retiran en
-# una PR siguiente. Aceptar o rechazar una oferta lo hace el conductor en M5.
+# una PR siguiente, que cierra esta deuda antes de terminar la iteración. Aceptar o rechazar una
+# oferta lo hace el conductor en M5.
 RETIRADAS_DEL_CONTRATO = {"responderSolicitud"}
 
 
@@ -69,7 +70,7 @@ def _pares_generados() -> dict[tuple[str, str], str]:
     return pares
 
 
-def test_el_alcance_son_las_17_operaciones_del_contrato() -> None:
+def test_el_codigo_expone_17_operaciones() -> None:
     assert len(ESPERADOS) == 17
     assert len(set(ESPERADOS.values())) == 17
 
