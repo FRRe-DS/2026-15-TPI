@@ -1,4 +1,4 @@
-"""T611: ejemplos y consistencia del contrato en las 17 operaciones del alcance."""
+"""T611: ejemplos y consistencia del contrato en las 19 operaciones del alcance."""
 
 from __future__ import annotations
 
@@ -20,7 +20,9 @@ from tests.ids import uid
 RAIZ_REPO = Path(__file__).resolve().parents[3]
 RUTA_CONTRATO = RAIZ_REPO / "docs" / "contract" / "openapi.yaml"
 
-# Las 17 operaciones del alcance de la Iteración 2 (spec.md, US5).
+# Las 19 operaciones del contrato 3.0.0: 16 ya implementadas y 3 que solo están en el contrato
+# (`recibirOfertas`, `calificarConductor` y `calificarCliente`). `responderSolicitud` se retiró
+# (aceptar o rechazar es de M5).
 OPERACIONES_EN_ALCANCE = [
     ("post", "/conductores"),
     ("get", "/conductores"),
@@ -41,7 +43,9 @@ OPERACIONES_EN_ALCANCE = [
     ("patch", "/conductores/{id_conductor}/estado"),
     ("get", "/conductores/{id_conductor}/ubicacion"),
     ("get", "/conductores/{id_conductor}/solicitudes"),
-    ("post", "/solicitudes/{id_solicitud}"),
+    ("post", "/solicitudes"),
+    ("post", "/conductores/{id_conductor}/calificaciones"),
+    ("post", "/conductores/{id_conductor}/calificaciones-cliente"),
 ]
 
 IDS_OPERACIONES = [f"{metodo.upper()} {ruta}" for metodo, ruta in OPERACIONES_EN_ALCANCE]
@@ -60,6 +64,8 @@ CODIGOS_POR_ESTADO = {
         "PATENTE_DUPLICADA",
         "TRANSICION_INVALIDA",
         "SOLICITUD_YA_RESPONDIDA",
+        "SOLICITUD_DUPLICADA",
+        "CALIFICACION_DUPLICADA",
     },
     "410": {"SOLICITUD_VENCIDA"},
     "422": {
@@ -83,11 +89,11 @@ def contrato() -> dict[str, Any]:
         return yaml.safe_load(archivo)
 
 
-def test_el_alcance_contractual_contiene_las_17_operaciones_unicas(
+def test_el_alcance_contractual_contiene_las_19_operaciones_unicas(
     contrato: dict[str, Any],
 ) -> None:
-    assert len(OPERACIONES_EN_ALCANCE) == 17
-    assert len(set(OPERACIONES_EN_ALCANCE)) == 17
+    assert len(OPERACIONES_EN_ALCANCE) == 19
+    assert len(set(OPERACIONES_EN_ALCANCE)) == 19
     for metodo, ruta in OPERACIONES_EN_ALCANCE:
         assert metodo in contrato["paths"].get(ruta, {}), (
             f"Falta {metodo.upper()} {ruta} en el contrato OpenAPI"
@@ -165,7 +171,7 @@ def _tiene_acentos(texto: str) -> bool:
 
 
 def _esquemas_del_alcance(contrato: dict[str, Any]) -> set[str]:
-    """Nombres de los esquemas alcanzables desde las 17 operaciones."""
+    """Nombres de los esquemas alcanzables desde las 19 operaciones."""
     nombres: set[str] = set()
 
     def visitar(nodo: Any) -> None:
@@ -313,7 +319,6 @@ def _insertar_solicitud(engine: Engine, id_conductor: UUID, *, vence_en: datetim
 def test_respuestas_reales_de_los_7_endpoints_nuevos_cumplen_el_contrato(
     cliente: TestClient,
     headers_conductor: dict[str, str],
-    headers_conductor_de: Callable[[int], dict[str, str]],
     crear_conductor: Callable[..., dict[str, Any]],
     crear_vehiculo: Callable[..., httpx.Response],
     engine_contrato: Engine,
@@ -397,30 +402,3 @@ def test_respuestas_reales_de_los_7_endpoints_nuevos_cumplen_el_contrato(
     assert listado.status_code == 200, listado.text
     validar_contrato(listado)
     assert [solicitud["id"] for solicitud in listado.json()] == [id_solicitud]
-
-    respuesta_solicitud = cliente.post(
-        f"/api/v1/solicitudes/{id_solicitud}",
-        json={
-            "respuesta": "RECHAZADO",
-            "hora_rta": datetime.now(UTC).isoformat(),
-        },
-        headers=headers_conductor_de(id_conductor),
-    )
-    assert respuesta_solicitud.status_code == 200, respuesta_solicitud.text
-    validar_contrato(respuesta_solicitud)
-
-    id_vencida = _insertar_solicitud(
-        engine_contrato,
-        id_conductor,
-        vence_en=datetime.now(UTC) - timedelta(minutes=1),
-    )
-    respuesta_vencida = cliente.post(
-        f"/api/v1/solicitudes/{id_vencida}",
-        json={
-            "respuesta": "RECHAZADO",
-            "hora_rta": datetime.now(UTC).isoformat(),
-        },
-        headers=headers_conductor_de(id_conductor),
-    )
-    assert respuesta_vencida.status_code == 410, respuesta_vencida.text
-    validar_contrato(respuesta_vencida)

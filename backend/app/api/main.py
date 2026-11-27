@@ -62,7 +62,7 @@ def crear_app(*, routers: Sequence[APIRouter] | None = None) -> FastAPI:
 
     app = FastAPI(
         title="API M3 - Conductores y Vehículos",
-        version="2.0.0",
+        version="3.0.0",
         lifespan=lifespan,
     )
     registrar_manejadores(app)
