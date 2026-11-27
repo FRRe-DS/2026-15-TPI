@@ -352,11 +352,19 @@ def _respuesta_de(respuesta: httpx.Response) -> MockResponse:
     )
 
 
-# El contrato 2.0.0 tambien define los campos nuevos de las ofertas de M5 (`id_solicitud_m5`,
-# `tipo_servicio`, `origen`, `destino`), que llegan con el issue #111. Mientras no existan, la
-# prueba que los exige queda pendiente (xfail). Solo esos cuatro campos faltantes se toleran:
-# cualquier otra diferencia con el contrato, incluidos los ids UUID, sigue fallando.
-_CAMPOS_PENDIENTES = ("id_solicitud_m5", "tipo_servicio", "origen", "destino")
+# El contrato 3.0.0 define las ofertas de M5 con campos nuevos (`oferta_id`, `solicitud_id`,
+# `tipo_vehiculo` y las coordenadas de origen y destino), que llegan con el issue #111. Mientras
+# no existan, la prueba que los exige queda pendiente (xfail). Solo esos campos faltantes se
+# toleran: cualquier otra diferencia con el contrato, incluidos los ids UUID, sigue fallando.
+_CAMPOS_PENDIENTES = (
+    "oferta_id",
+    "solicitud_id",
+    "tipo_vehiculo",
+    "origen_latitud",
+    "origen_longitud",
+    "destino_latitud",
+    "destino_longitud",
+)
 
 
 def _descripcion_del_error(error: BaseException) -> str:
@@ -377,7 +385,7 @@ def _pendiente_por_ofertas_m5() -> Iterator[None]:
         if "is a required property" in descripcion and any(
             f"'{campo}'" in descripcion for campo in _CAMPOS_PENDIENTES
         ):
-            pytest.xfail("Campos de las ofertas de M5 del contrato 2.0.0 pendientes: ver #111.")
+            pytest.xfail("Campos de las ofertas de M5 del contrato 3.0.0 pendientes: ver #111.")
         raise
 
 
