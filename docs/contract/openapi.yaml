@@ -716,7 +716,7 @@ paths:
         Lo usa el conductor (o un operador) para informar su estado, el vehículo activo y la ubicación.
 
         - `estado` puede pedirse como `DESCONECTADO`, `CONECTADO`, `DISPONIBLE` u `OCUPADO`.
-        - `OCUPADO` lo pide la app del conductor cuando M5 confirmó que aceptó una oferta. Solo se acepta si el conductor está `DISPONIBLE`; si no, responde `409` con `TRANSICION_INVALIDA` y no cambia nada. M3 no verifica con M5 que la aceptación haya ocurrido.
+        - `OCUPADO` lo pide la app del conductor cuando M5 confirmó que aceptó una oferta. Se acepta si el conductor está `DISPONIBLE`; si ya está `OCUPADO` responde `200` sin cambios (es idempotente, para poder reintentar); desde `DESCONECTADO` o `CONECTADO` responde `409` con `TRANSICION_INVALIDA` y no cambia nada. M3 no verifica con M5 que la aceptación haya ocurrido.
         - `DESCONECTADO` y `CONECTADO` se aceptan siempre, también desde `OCUPADO`.
         - Para quedar `DISPONIBLE`, el conductor debe tener habilitación APROBADA y un vehículo activo también APROBADA. Si no, responde `422` con `CONDUCTOR_NO_HABILITADO` y no cambia nada. Pedir `DISPONIBLE` estando `DESCONECTADO` también lo conecta, y estando `OCUPADO` lo libera.
         - Si se quita el vehículo activo, o se cambia a uno que no está APROBADA, un conductor `DISPONIBLE` pasa a `CONECTADO`.
@@ -989,12 +989,14 @@ paths:
 
         - Todos los conductores deben existir; si alguno no existe, responde `404 NO_ENCONTRADO` y no guarda ninguna oferta.
         - M3 no exige que el conductor esté `DISPONIBLE` ni habilitado: M5 ya lo reservó con M4 antes de ofertar.
-        - `vence_en` debe ser posterior a la hora del servidor; si no, `422 DATOS_INVALIDOS`.
-        - Las ofertas se identifican por `oferta_id`. Un reenvío idéntico del lote (mismos `oferta_id` y mismos datos)
-          devuelve `200` sin crear otras. Si un `oferta_id` ya existe con otros datos, devuelve `409 SOLICITUD_DUPLICADA`
-          y no guarda nada.
+        - Las ofertas se identifican por `oferta_id`. La idempotencia se evalúa antes que el vencimiento: un reenvío
+          idéntico del lote (mismos `oferta_id` y mismos datos) devuelve `200` sin crear otras, aunque `vence_en` ya haya pasado.
+        - Si un `oferta_id` ya existe con otros datos, devuelve `409 SOLICITUD_DUPLICADA` y no guarda nada.
+        - Un lote que mezcla ofertas ya existentes idénticas con ofertas nuevas guarda las nuevas y devuelve `200`.
+        - Si no es un reenvío, `vence_en` debe ser posterior a la hora del servidor; si no, `422 DATOS_INVALIDOS`.
+        - Un `oferta_id` o un `conductor_id` repetido dentro del lote, o más de 50 ofertas, devuelve `422 DATOS_INVALIDOS`.
 
-        El lote se guarda completo o no se guarda.
+        El lote se guarda completo o no se guarda. `ofertas_recibidas` es la cantidad de ofertas del lote, ya sean nuevas o existentes.
       operationId: recibirOfertas
       requestBody:
         required: true
@@ -1221,14 +1223,14 @@ components:
         - `DESCONECTADO`: no tiene la app activa.
         - `CONECTADO`: está activo pero no recibe viajes (en pausa).
         - `DISPONIBLE`: puede recibir viajes. Exige habilitación APROBADA y un vehículo activo APROBADA.
-        - `OCUPADO`: está en un viaje. Lo pide la app del conductor con `PATCH /conductores/{id_conductor}/estado` después de aceptar una oferta en M5, y solo desde `DISPONIBLE`.
+        - `OCUPADO`: está en un viaje. Lo pide la app del conductor con `PATCH /conductores/{id_conductor}/estado` después de aceptar una oferta en M5, desde `DISPONIBLE`.
       enum: [DESCONECTADO, CONECTADO, DISPONIBLE, OCUPADO]
 
     EstadoSolicitud:
       type: string
       description: |
-        M3 guarda las ofertas como `PENDIENTE`. `VENCIDA` se calcula cuando pasó `vence_en` sin que el estado haya cambiado.
-        Aceptar o rechazar se hace en M5 y M3 no registra la respuesta.
+        `PENDIENTE` significa que la oferta no venció: M3 no registra si el conductor la aceptó o la rechazó en M5.
+        `VENCIDA` se calcula cuando pasó `vence_en`.
       enum: [PENDIENTE, VENCIDA]
     ConductorCreate:
       type: object
@@ -1315,7 +1317,7 @@ components:
       properties:
         estado:
           type: string
-          description: OCUPADO solo se acepta si el conductor está DISPONIBLE (lo pide la app después de aceptar una oferta en M5).
+          description: OCUPADO se acepta si el conductor está DISPONIBLE (lo pide la app después de aceptar una oferta en M5); estando OCUPADO responde 200 sin cambios.
           enum: [DESCONECTADO, CONECTADO, DISPONIBLE, OCUPADO]
         id_vehiculo_activo:
           type: string
@@ -1670,6 +1672,7 @@ components:
         ofertas:
           type: array
           minItems: 1
+          maxItems: 50
           items:
             $ref: '#/components/schemas/OfertaDelLote'
         vence_en:

@@ -130,7 +130,7 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 
 ## Contrato de la API
 
-- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 2.0.0.
+- Especificación: [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml) (OpenAPI 3.0.3), versión 3.0.0.
 - **El contrato dirige:** no se implementa ningún endpoint que no esté en el `openapi.yaml`.
 - URL base en desarrollo local: `http://localhost:8080/api/v1`
 - Formato: JSON.
@@ -153,10 +153,14 @@ El backend se divide en dos mitades que se comunican por interfaces (puertos) de
 | `GET` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/tipos-servicio` | Tipos de servicio del vehículo y su habilitación. | 2 |
 | `POST` | `/conductores/{id_conductor}/vehiculos/{id_vehiculo}/documentacion` | Registrar documentación del vehículo (`SEGURO`, `CEDULA_VERDE`, `VTV`). | 2 |
 | `GET` | `/conductores/{id_conductor}/estado` | Consultar el estado (`DESCONECTADO`, `CONECTADO`, `DISPONIBLE` u `OCUPADO`) y el vehículo activo (la ubicación va en `/ubicacion`). Lo consulta M4. | 2 |
-| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar estado, vehículo activo y ubicación. `OCUPADO` no se puede pedir: lo asigna M3 al aceptar una solicitud. | 2 |
+| `PATCH` | `/conductores/{id_conductor}/estado` | Actualizar estado, vehículo activo y ubicación. `OCUPADO` se pide desde `DISPONIBLE` después de aceptar una oferta en M5. | 2 |
 | `GET` | `/conductores/{id_conductor}/ubicacion` | Consultar la última ubicación registrada y su fecha (`null` si no hay). Lo consulta M4. | 2 |
 | `GET` | `/conductores/{id_conductor}/solicitudes` | Listar solicitudes del conductor. | 2 |
-| `POST` | `/solicitudes/{id_solicitud}` | Aceptar o rechazar una solicitud. Al aceptar, el conductor pasa a `OCUPADO`. | 2 |
+| `POST` | `/solicitudes` | Recibir el lote de ofertas de una solicitud (lo invoca M5). Contrato 3.0.0, pendiente de implementar. | 2 |
+| `POST` | `/conductores/{id_conductor}/calificaciones` | Registrar la calificación de un cliente al conductor (lo invoca M2). Contrato 3.0.0, pendiente de implementar. | 2 |
+| `POST` | `/conductores/{id_conductor}/calificaciones-cliente` | Guardar la calificación del conductor al cliente. Contrato 3.0.0, pendiente de implementar. | 2 |
+
+Aceptar o rechazar una oferta lo hace el conductor en M5: `POST /solicitudes/{id_solicitud}` se retiró del contrato 3.0.0 y se retira del código en una PR siguiente.
 
 El contrato 1.2.0 reemplaza `conectado` y `disponible` por un único campo `estado`. La API ya devuelve solo `estado`, junto con `puntaje_promedio`, `cantidad_calificaciones` y, en la lectura, `id_vehiculo_activo`.
 
@@ -420,10 +424,11 @@ Según la consigna, las integraciones clave de M3 son **M1, M4, M5 y M6**. Esta 
 |---|---|---|
 | **M1 - Identidad y Acceso** | Todos los endpoints usan seguridad `bearerAuth` (JWT). | ⚠️ *Por definir.* |
 | **M4 - Ubicación y Disponibilidad** | Consulta `GET /conductores/{id_conductor}/estado` y `GET /conductores/{id_conductor}/ubicacion`, con rol `servicio` de solo lectura. | M4 lee estado y ubicación de M3; no hay operaciones de escritura de M4 en el contrato. |
-| **M5 - Solicitud y Despacho** | `GET /conductores/{id_conductor}/solicitudes` y `POST /solicitudes/{id_solicitud}`. | M5 origina las solicitudes; M3 las lista y el conductor puede aceptarlas o rechazarlas. |
-| **M6 - Viajes y Ciclo de Vida** | Sin operaciones consumidas ni de integración en el alcance de esta iteración. | No se implementan viajes ni calificación. El puntaje y la cantidad de calificaciones son de solo lectura. |
+| **M5 - Solicitud y Despacho** | `POST /solicitudes` (M5 envía el lote de ofertas) y `GET /conductores/{id_conductor}/solicitudes`. | M5 origina las ofertas; M3 las guarda y las lista. El conductor las acepta o rechaza en M5 y la app informa `OCUPADO` por `PATCH`. |
+| **M6 - Viajes y Ciclo de Vida** | Sin operaciones de M3: la app del conductor llama directo a M6 (llegada, finalización y cancelación) y después informa el estado a M3. | M3 no consume ni expone operaciones de viaje. |
+| **M2 - Clientes** | `POST /conductores/{id_conductor}/calificaciones` (rol `servicio`). | M2 registra la calificación que un cliente le da al conductor. |
 
-Las 17 operaciones propias y sus permisos se definen en [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml). No se agregan rutas de escritura para M4/M6 ni operaciones de viaje o calificación.
+Las operaciones propias y sus permisos se definen en [`docs/contract/openapi.yaml`](./docs/contract/openapi.yaml). M4 y M6 no escriben en M3; M5 y M2 escriben solo las ofertas y las calificaciones.
 
 ---
 
